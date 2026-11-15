@@ -5,7 +5,7 @@
  */
 export function cleanMask(alpha: Uint8Array, w: number, h: number): Uint8Array | null {
   const n = w * h;
-  let bin = new Uint8Array(n);
+  let bin: Uint8Array = new Uint8Array(n);
   for (let i = 0; i < n; i++) bin[i] = alpha[i] >= 128 ? 1 : 0;
 
   bin = dilate(erode(bin, w, h, 3), w, h, 3);
