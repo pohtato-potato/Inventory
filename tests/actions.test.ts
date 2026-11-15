@@ -169,3 +169,19 @@ describe('addTags', () => {
     expect((await db.items.get(b))!.tags).toEqual([]);
   });
 });
+
+describe('editMany', () => {
+  it('changes fields and adds tags as one step that one Undo takes back', async () => {
+    const { editMany } = await import('../src/db/actions');
+    const a = await createItemWithPhoto({ name: 'A', kindId: tees, tags: ['old'] }, []);
+    clearUndo();
+    await editMany([a], { fit: 'tight', brand: 'Zara' }, ['gym']);
+    expect((await db.items.get(a))!).toMatchObject({ fit: 'tight', brand: 'Zara', tags: ['old', 'gym'] });
+    expect(await undoLast()).toBe('Edited 1 piece');
+    const back = (await db.items.get(a))!;
+    expect(back.fit).toBeUndefined();
+    expect(back.brand).toBeUndefined();
+    expect(back.tags).toEqual(['old']);
+    expect(await undoLast()).toBeNull();
+  });
+});

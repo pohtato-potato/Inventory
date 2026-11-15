@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { addTags, letGoMany, moveItems, trash, undoLast, updateMany } from '../db/actions';
+import { editMany, letGoMany, moveItems, trash, undoLast } from '../db/actions';
 import type { Trees } from '../db/hooks';
 import type { Fit, Id, Item } from '../domain/types';
 import { Chip, Chips } from '../ui/Chips';
@@ -52,7 +52,7 @@ export function Selection({ sel, trees }: { sel: SelectionState; trees: Trees })
           <button type="button" className="acc" style={{ flex: 1 }} disabled={!spot} onClick={async () => { await moveItems(ids, spot === 'none' ? undefined : spot); setSpot(undefined); done(`Moved ${pieces(n)}`); }}>Move</button>
         </div>
       </Sheet>
-      <BatchEdit open={editing} onClose={() => setEditing(false)} trees={trees} n={n} onSave={async (patch, tags) => { if (Object.keys(patch).length) await updateMany(ids, patch); if (tags.length) await addTags(ids, tags); setEditing(false); done(`Edited ${pieces(n)}`); }} onDelete={async () => { await trash(ids); setEditing(false); done(`Deleted ${pieces(n)}`); }} />
+      <BatchEdit open={editing} onClose={() => setEditing(false)} trees={trees} n={n} onSave={async (patch, tags) => { await editMany(ids, patch, tags); setEditing(false); done(`Edited ${pieces(n)}`); }} onDelete={async () => { await trash(ids); setEditing(false); done(`Deleted ${pieces(n)}`); }} />
       <LetGoSheet open={letting} onClose={() => setLetting(false)} count={n} onDone={async (g) => { await letGoMany(ids, g); setLetting(false); done(`Let go of ${pieces(n)}`); }} />
     </>
   );

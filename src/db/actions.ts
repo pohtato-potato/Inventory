@@ -182,6 +182,13 @@ export async function addTags(ids: Id[], tags: string[]): Promise<void> {
   await changeItems(ids, `Edited ${pieces(ids.length)}`, 'edited', (i) => ({ tags: [...new Set([...i.tags, ...tags])] }), () => ({ fields: ['tags'] }));
 }
 
+/** Batch edit: field changes and added tags together, as one step for Undo. */
+export async function editMany(ids: Id[], patch: Partial<Item>, tags: string[]): Promise<void> {
+  const fields = [...Object.keys(patch), ...(tags.length ? ['tags'] : [])];
+  if (!fields.length) return;
+  await changeItems(ids, `Edited ${pieces(ids.length)}`, 'edited', (i) => (tags.length ? { ...patch, tags: [...new Set([...i.tags, ...tags])] } : patch), () => ({ fields }));
+}
+
 export async function moveItems(ids: Id[], spotId: Id | undefined): Promise<void> {
   await changeItems(ids, `Moved ${pieces(ids.length)}`, 'moved', () => ({ spotId }), (b) => ({ from: b.spotId ?? null, to: spotId ?? null }));
 }
