@@ -81,7 +81,7 @@ export function usePhoto(itemId: Id | null | undefined, role: Photo['role'] = 'm
 export function usePhotos(itemId: Id | null | undefined): { url: string; photo: Photo }[] | undefined {
   return useLiveQuery(async () => {
     if (!itemId) return [];
-    const rank = { main: 0, original: 1, extra: 2 } as const;
+    const rank: Record<Photo['role'], number> = { main: 0, original: 1, extra: 2, selfie: 3, wish: 4 };
     const list = await db.photos.where('itemId').equals(itemId).toArray();
     return list.sort((a, b) => rank[a.role] - rank[b.role] || a.updatedAt - b.updatedAt).map((p) => ({ url: urlFor(p), photo: p }));
   }, [itemId]);

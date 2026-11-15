@@ -8,6 +8,10 @@ export interface Base {
 
 export type FieldKey = 'size' | 'shoeSize' | 'serial' | 'metal' | 'battery';
 
+/** Where a kind sits on the head-to-toe outfit stage, and which layer it is when lanes share (tops). */
+export type Lane = 'head' | 'neck' | 'top' | 'waist' | 'bottom' | 'feet' | 'wrist' | 'hand' | 'carry';
+export type Layer = 'under' | 'over' | 'outer';
+
 export interface Kind extends Base {
   parentId: Id | null;
   name: string;
@@ -15,6 +19,10 @@ export interface Kind extends Base {
   fields: FieldKey[];
   hideFromWindow?: boolean;
   order: number;
+  lane?: Lane;
+  layer?: Layer;
+  /** Width on the outfit stage; 1 = a tee's width. */
+  baseScale?: number;
 }
 
 /** familyId null = a family (Red); otherwise a shade inside it (Burgundy). */
@@ -78,6 +86,11 @@ export interface Item extends Base {
   hideFromWindow?: boolean;
   extra: Record<string, string>;
   createdAt: number;
+  /** The owner's size correction on the outfit stage (× the kind's baseScale). */
+  outfitScale?: number;
+  /** Pieces this one pairs well with (kept on both sides). */
+  pairs?: Id[];
+  dressCodes?: string[];
 }
 
 export interface CloseUp {
@@ -87,8 +100,9 @@ export interface CloseUp {
 }
 
 export interface Photo extends Base {
+  /** The owner's id: a piece, an outfit, a wear or a wish. */
   itemId: Id;
-  role: 'main' | 'original' | 'extra';
+  role: 'main' | 'original' | 'extra' | 'selfie' | 'wish';
   blob: Blob;
   w: number;
   h: number;
@@ -122,4 +136,42 @@ export interface SizeRow extends Base {
 export interface Setting {
   key: string;
   value: unknown;
+}
+
+/** What was worn on one local calendar day (YYYY-MM-DD). One wear per day. */
+export interface Wear extends Base {
+  day: string;
+  itemIds: Id[];
+  outfitId?: Id;
+  note?: string;
+}
+
+export interface Outfit extends Base {
+  name?: string;
+  itemIds: Id[];
+  dressCodes: string[];
+  createdAt: number;
+}
+
+export type Tier = 'now' | 'soon' | 'someday';
+
+export interface Wish extends Base {
+  name: string;
+  tier: Tier;
+  kindId?: Id;
+  shadeId?: Id;
+  url?: string;
+  shop?: string;
+  price?: Rough<number>;
+  currency: string;
+  note?: string;
+  forWhom?: string;
+  waitUntil?: { date?: string; note?: string };
+  status: 'open' | 'bought' | 'dropped';
+  itemId?: Id;
+  boughtOn?: string;
+  glad?: number;
+  gladSkipped?: boolean;
+  source: 'hand' | 'share' | 'photo' | 'gap';
+  createdAt: number;
 }
