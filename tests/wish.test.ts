@@ -78,3 +78,21 @@ describe('wish actions', () => {
     expect((await db.items.get(itemId))!.kindId).toBe('k-unsorted');
   });
 });
+
+describe('waitText and safeLink', () => {
+  it('says what a wish waits for', async () => {
+    const { waitText } = await import('../src/domain/wish');
+    expect(waitText({ ...w, waitUntil: { date: '2026-12-01' } }, '2026-11-15')).toBe('Waiting until 1 Dec');
+    expect(waitText({ ...w, waitUntil: { date: '2027-02-01' } }, '2026-11-15')).toBe('Waiting until 1 Feb 2027');
+    expect(waitText({ ...w, waitUntil: { note: 'when my waist is under 32' } }, '2026-11-15')).toBe('Waiting: when my waist is under 32');
+    expect(waitText(w, '2026-11-15')).toBeNull();
+    expect(waitText({ ...w, waitUntil: { date: '2026-11-01' } }, '2026-11-15')).toBeNull();
+  });
+  it('keeps only http and https links', async () => {
+    const { safeLink } = await import('../src/domain/wish');
+    expect(safeLink(' https://www.myntra.com/x ')).toBe('https://www.myntra.com/x');
+    expect(safeLink('www.myntra.com/x')).toBe('https://www.myntra.com/x');
+    expect(safeLink('javascript:alert(1)')).toBeUndefined();
+    expect(safeLink('')).toBeUndefined();
+  });
+});

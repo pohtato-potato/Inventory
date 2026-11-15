@@ -141,6 +141,18 @@ export function useMainPhotos(): Map<Id, Thumb> | undefined {
   }, []);
 }
 
+/** Each wish's picture, by wish id. */
+export function useWishPhotos(): Map<Id, Thumb> | undefined {
+  return useLiveQuery(async () => {
+    const ids = await db.wishes.toCollection().primaryKeys();
+    const out = new Map<Id, Thumb>();
+    if (!ids.length) return out;
+    const list = await db.photos.where('itemId').anyOf(ids).toArray();
+    for (const p of list) if (p.role === 'wish') out.set(p.itemId, { url: urlFor(p), cut: false, aspect: p.h / p.w || 1.2 });
+    return out;
+  }, []);
+}
+
 export function useSetting<T>(key: string, fallback: T): T {
   const v = useLiveQuery(async () => (await db.settings.get(key))?.value as T | undefined, [key]);
   return v === undefined ? fallback : v;

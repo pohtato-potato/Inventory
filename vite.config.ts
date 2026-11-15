@@ -28,6 +28,8 @@ export default defineConfig({
         background_color: '#0B0C0F',
         theme_color: '#0B0C0F',
         categories: ['lifestyle', 'productivity'],
+        // A shop app's Share → Inventory opens the app with the product's title, text and link (main.tsx reads them).
+        share_target: { action: './', method: 'GET', params: { title: 'title', text: 'text', url: 'url' } },
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },

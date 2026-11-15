@@ -24,3 +24,8 @@ Task 5: Ruling: the day's pieces show as removable tiles while changing a day, a
 Task 6: complete — parseShare, isWaiting, sortWishes, addWish/updateWish/dropWish/buyWish, useWishes/useWish (tests: TZ=UTC npm test and npm test → 260/260)
 Task 6: Ruling: parseShare uses the words around a link as the name when there is no title, and names a "shop."/"m." host by its second label (shop.uniqlo.com → Uniqlo) — shop apps share "Name https://…" in text — if wrong, a name field holds a stray sentence the owner edits.
 Task 6: Ruling: a bought wish with no kind becomes "Not sorted yet" under clothing — the wish list is mostly clothes — if wrong, the owner re-sorts one piece.
+Task 7: complete — Wishes board, wish page with Bought/Move/Not any more, WishForm, share_target in dist/manifest.webmanifest, five tabs (tests: TZ=UTC npm test and npm test → 264/264; build ok)
+Task 7: Ruling: the Home tab and a stub Home screen land now, because the plan's Task 7 test requires the five tabs; Task 11 fills Home — cost if wrong: none, the stub is replaced.
+Task 7: Ruling: "Photo from a shop" picks the photo inside the + sheet (a real tap) and hands it to the form, so the file picker is never opened without a tap — cost if wrong: none.
+Task 7: Ruling: added safeLink and waitText to wish.ts (tested); a typed link without http gets https; anything not http/https is refused — cost if wrong: an odd link needs retyping.
+Task 7: Ruling: no currency field on a wish (INR unless a later edit adds it) — the form already has nine fields — cost if wrong: a USD wish shows ₹.
