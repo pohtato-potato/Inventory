@@ -265,3 +265,10 @@ button.li { width: 100%; border-left: 0; border-right: 0; border-bottom: 0; back
 .fix-bar .ghost { flex: 1; }
 .fix-bar .acc { flex: 2; }
 .fix-entry { display: grid; padding: 12px 14px 0; }
+
+/* The outfit stage: one tall window, pieces placed by fractions of the box at true proportions. */
+.stage { flex: none; border-radius: 12px; }
+.stage-pc { position: absolute; display: block; }
+.stage-pc .pc { width: 100%; height: auto; }
+.stage-pc.gone .pc { filter: grayscale(1) brightness(.6); opacity: .55; }
+.stage-gone { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); padding: 0 6px; border-radius: 6px; background: #0B0C0FCC; color: var(--t); font: 400 14px/1.4 var(--f-body); white-space: nowrap; }

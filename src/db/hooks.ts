@@ -92,6 +92,8 @@ export interface Thumb {
   url: string;
   /** true for a cut-out, false for an uncut photo */
   cut: boolean;
+  /** height ÷ width */
+  aspect: number;
 }
 
 /** Main photos for many pieces at once (grids). Falls back to the uncut photo. */
@@ -100,10 +102,10 @@ export function useMainPhotos(): Map<Id, Thumb> | undefined {
     const out = new Map<Id, Thumb>();
     const fallback = new Map<Id, Photo>();
     await db.photos.each((p) => {
-      if (p.role === 'main') out.set(p.itemId, { url: urlFor(p), cut: true });
+      if (p.role === 'main') out.set(p.itemId, { url: urlFor(p), cut: true, aspect: p.h / p.w || 1.2 });
       else if (p.role === 'original') fallback.set(p.itemId, p);
     });
-    for (const [id, p] of fallback) if (!out.has(id)) out.set(id, { url: urlFor(p), cut: false });
+    for (const [id, p] of fallback) if (!out.has(id)) out.set(id, { url: urlFor(p), cut: false, aspect: p.h / p.w || 1.2 });
     return out;
   }, []);
 }

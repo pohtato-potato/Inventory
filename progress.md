@@ -11,3 +11,7 @@ Task 2: Ruling: wornToday now returns boolean (false when already on today's wea
 Task 2: Ruling: a wear counts for an outfit by outfitId or by holding all its pieces; adding a piece to an outfit day drops outfitId — keeps counts right without a second record — cost if wrong: an outfit worn with an extra piece still counts as that outfit.
 Task 2: Ruling: with no regular to suggest, suggestWear offers the last wear before today ("Same as last time?") — the plan only defines the outfit case — cost if wrong: an unwanted suggestion, one tap to dismiss.
 Task 2: Ruling: logging a past day stamps its worn events at noon that day; taking a piece off a day removes that day's worn event — keeps "Its story" in step with wears — cost if wrong: story times show noon.
+Task 3: complete — layout/placeIn/pairedFirst/laneOf/lightPiece in src/domain/outfit.ts, Stage in src/ui/Stage.tsx; thumbs carry photo aspect. Tests 236/236.
+Task 3: Ruling: Placed gains `h` (height fraction, from the photo's aspect and a fixed stage shape 0.53 = the board's 128×240) — the Stage needs it — cost if wrong: none, additive.
+Task 3: Ruling: a kind with no lane uses its parent's, else stands at the side ("carry", 0.6) — the plan leaves lane-less kinds undefined — cost if wrong: an owner's kind shows at the side until a lane is chosen in Settings.
+Task 3: Ruling: placeIn toggles (a chosen piece tapped again is taken out) — the builder needs a way to remove — cost if wrong: none.
