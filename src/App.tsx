@@ -12,6 +12,7 @@ import { Search } from './screens/Search';
 import { Piece } from './screens/Piece';
 import { Camera } from './screens/Camera';
 import { Details } from './screens/Details';
+import { Sizes } from './screens/Sizes';
 import { startConveyor } from './photo/conveyor';
 
 const SCREENS: Record<string, React.ComponentType> = {
@@ -22,6 +23,7 @@ const SCREENS: Record<string, React.ComponentType> = {
   '/piece': Piece,
   '/add': Camera,
   '/details': Details,
+  '/sizes': Sizes,
 };
 
 /** Screens that show the tab bar. The rest (a piece, the camera, details) use the whole screen. */

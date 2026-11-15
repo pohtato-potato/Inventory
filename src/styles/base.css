@@ -217,3 +217,12 @@ button.li { width: 100%; border-left: 0; border-right: 0; border-bottom: 0; back
 .receipt-found { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--edge); border-radius: 12px; }
 .receipt-row { display: flex; align-items: center; gap: 8px; }
 .receipt-row input[type="checkbox"] { width: 24px; height: 24px; margin: 10px; accent-color: var(--a); flex: none; }
+
+/* ---------- sizes ---------- */
+.measures { display: grid; grid-template-columns: 1fr 1fr; gap: 0 17px; padding: 14px 18px 0; }
+.measure { display: flex; align-items: flex-end; gap: 7px; min-height: 64px; padding: 10px 0 7px; border: 0; border-top: 1px solid var(--line); background: none; color: var(--t); text-align: left; font: inherit; }
+.measure-num { font-size: 46px; }
+.fitbar { display: flex; gap: 4px; height: 12px; margin: 0 18px; border-radius: 6px; overflow: hidden; }
+.fit-counts { display: flex; gap: 6px; padding: 4px 12px 0; }
+.fitnow { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 4px; padding: 0; border: 0; background: none; color: var(--t); font: 400 15px/1 var(--f-body); }
+.fitnow-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 10px var(--ok); }

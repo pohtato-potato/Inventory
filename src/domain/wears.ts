@@ -1,5 +1,5 @@
 import { money } from './format';
-import type { Item, Rough, StartWears } from './types';
+import type { Item, Kind, Rough, StartWears } from './types';
 
 export interface WearCount {
   n: number;
@@ -37,4 +37,15 @@ export function costPerWear(price: Rough<number> | undefined, wears: WearCount, 
 
 export function wearsText(w: WearCount): string {
   return w.atLeast ? 'wears, at least' : w.approx ? 'wears, about' : w.n === 1 ? 'wear' : 'wears';
+}
+
+/** How the owned clothing fits now, counting ×N as N. */
+export function fitSummary(items: Item[], kinds: Kind[]): { fits: number; tight: number; loose: number; unset: number } {
+  const clothing = new Set(kinds.filter((k) => k.clothing).map((k) => k.id));
+  const out = { fits: 0, tight: 0, loose: 0, unset: 0 };
+  for (const i of items) {
+    if (i.status !== 'owned' || i.deletedAt !== undefined || !clothing.has(i.kindId)) continue;
+    out[i.fit ?? 'unset'] += i.count;
+  }
+  return out;
 }

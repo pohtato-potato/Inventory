@@ -5,6 +5,7 @@ import { useItems, useMainPhotos, useSetting, useTrees, useWearLog, type Thumb, 
 import { countAtEveryLevel, descendants } from '../domain/tree';
 import type { Id, Item } from '../domain/types';
 import { kindOrder, pickWindowPiece, sortItems, type SortBy } from '../domain/window';
+import { fitSummary } from '../domain/wears';
 import { go, useRoute } from '../router';
 import { Chips } from '../ui/Chips';
 import { Numeral } from '../ui/Numeral';
@@ -60,7 +61,7 @@ export function Browse({ scope }: { scope: Scope }) {
       {sel.ids.size ? (
         <Selection sel={sel} trees={trees} />
       ) : (
-        <Header scope={scope} total={total} pick={pick} thumbs={thumbs} trees={trees} onMenu={() => setMenu(true)} />
+        <Header scope={scope} total={total} pick={pick} thumbs={thumbs} trees={trees} items={items} onMenu={() => setMenu(true)} />
       )}
       {items.length > 0 && (
         <>
@@ -75,7 +76,7 @@ export function Browse({ scope }: { scope: Scope }) {
   );
 }
 
-function Header({ scope, total, pick, thumbs, trees, onMenu }: { scope: Scope; total: number; pick: ReturnType<typeof pickWindowPiece>; thumbs: Map<Id, Thumb>; trees: Trees; onMenu: () => void }) {
+function Header({ scope, total, pick, thumbs, trees, items, onMenu }: { scope: Scope; total: number; items: Item[]; pick: ReturnType<typeof pickWindowPiece>; thumbs: Map<Id, Thumb>; trees: Trees; onMenu: () => void }) {
   const s = SCOPE[scope];
   const [hideSheet, setHideSheet] = useState(false);
   const press = usePress(pick ? () => go('/piece', { id: pick.item.id }) : undefined, pick ? () => setHideSheet(true) : undefined);
@@ -93,7 +94,7 @@ function Header({ scope, total, pick, thumbs, trees, onMenu }: { scope: Scope; t
       <div className="hero-count">
         <Numeral value={total} className="hero-num" />
         <p className="caps m">{total === 1 ? s.noun[0] : s.noun[1]}</p>
-        {scope === 'clothing' && <FitNow />}
+        {scope === 'clothing' && <FitNow items={items} trees={trees} />}
       </div>
       {pick ? (
         <>
@@ -126,9 +127,15 @@ function Header({ scope, total, pick, thumbs, trees, onMenu }: { scope: Scope; t
   );
 }
 
-/** "N fit now", which filters the wardrobe to what fits today (Task 14 fills the number). */
-function FitNow() {
-  return <span data-fitnow />;
+/** "N fit now": tapping it shows what fits today. */
+function FitNow({ items, trees }: { items: Item[]; trees: Trees }) {
+  const n = fitSummary(items, trees.kinds).fits;
+  if (!n) return null;
+  return (
+    <button type="button" className="fitnow" onClick={() => go('/search', { fit: 'fits' })}>
+      <span className="fitnow-dot" aria-hidden="true" />{n} fit now
+    </button>
+  );
 }
 
 // ---------- by kind ----------
