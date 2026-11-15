@@ -355,3 +355,31 @@ a.ghost { text-decoration: none; }
 .bar > span { display: block; height: 100%; border-radius: 4px; background: var(--a); }
 .value-cell { min-width: 0; }
 .value-cell .sm { padding-top: 2px; }
+/* home */
+.home-hero { height: 220px; margin-bottom: 14px; }
+.home-hero .hero-count .caps + .caps { padding-top: 2px; }
+.home-q { font-size: 24px; }
+.home-line { font-weight: 700; padding: 2px 0 0; }
+.home-suggest { display: grid; gap: 6px; padding-top: 12px; }
+.home-acts { display: flex; gap: 8px; padding-top: 12px; }
+.home-acts > * { flex: 1; }
+.card-link { margin-left: -6px; }
+button.card { display: flex; width: calc(100% - 28px); text-align: left; color: inherit; font: inherit; }
+.card-row { align-items: center; gap: 12px; min-height: 64px; }
+.card-row .n { margin-left: auto; }
+.card-num { font-size: 40px; }
+.card-li { padding-inline: 0; }
+.card .card-li:first-of-type { border-top: 0; }
+.home-recent { padding-bottom: 16px; }
+/* year in review */
+.year-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.year-track::-webkit-scrollbar { display: none; }
+.year-slide { flex: 0 0 100%; scroll-snap-align: start; padding: 4px 18px 24px; display: grid; gap: 12px; align-content: start; }
+.year-fig { display: grid; gap: 6px; margin: 0; }
+.year-win { height: 320px; border-radius: 16px; display: grid; place-items: center; }
+.year-win .pc { max-width: 70%; max-height: 84%; }
+.year-room { font-size: 32px; }
+.year-nums { display: flex; gap: 20px; flex-wrap: wrap; }
+.year-num { font-size: 56px; display: block; }
+.year-spend { display: grid; gap: 4px; }
+.year-hint { text-align: center; padding: 0 18px 20px; }

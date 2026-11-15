@@ -23,6 +23,7 @@ import { WishForm } from './screens/WishForm';
 import { Home } from './screens/Home';
 import { OwnThis } from './screens/OwnThis';
 import { Numbers } from './screens/Numbers';
+import { YearReview } from './screens/YearReview';
 import { startConveyor } from './photo/conveyor';
 
 const SCREENS: Record<string, React.ComponentType> = {
@@ -45,6 +46,7 @@ const SCREENS: Record<string, React.ComponentType> = {
   '/home': Home,
   '/own': OwnThis,
   '/numbers': Numbers,
+  '/year': YearReview,
 };
 
 /** Screens that show the tab bar. The rest (a piece, the camera, details) use the whole screen. */

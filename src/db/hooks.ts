@@ -132,16 +132,20 @@ export interface Thumb {
   aspect: number;
 }
 
-/** Main photos for many pieces at once (grids). Falls back to the uncut photo. */
+/** Main photos for many pieces at once (grids). Falls back to the uncut photo, then to an extra photo. */
 export function useMainPhotos(): Map<Id, Thumb> | undefined {
   return useLiveQuery(async () => {
     const out = new Map<Id, Thumb>();
     const fallback = new Map<Id, Photo>();
+    const extra = new Map<Id, Photo>();
     await db.photos.each((p) => {
       if (p.role === 'main') out.set(p.itemId, { url: urlFor(p), cut: true, aspect: p.h / p.w || 1.2 });
       else if (p.role === 'original') fallback.set(p.itemId, p);
+      // A piece bought from a wish starts with only the shop's photo, kept as an extra.
+      else if (p.role === 'extra' && !extra.has(p.itemId)) extra.set(p.itemId, p);
     });
     for (const [id, p] of fallback) if (!out.has(id)) out.set(id, { url: urlFor(p), cut: false, aspect: p.h / p.w || 1.2 });
+    for (const [id, p] of extra) if (!out.has(id)) out.set(id, { url: urlFor(p), cut: false, aspect: p.h / p.w || 1.2 });
     return out;
   }, []);
 }

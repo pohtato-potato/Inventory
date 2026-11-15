@@ -41,3 +41,7 @@ Task 10: Ruling: costPerWear now also returns `value` (the amount per wear) so r
 Task 10: Ruling: unpriced pieces come from a separate unpricedCount(items) rather than a field on spend()'s array (signature addition) — cost if wrong: none.
 Task 10: Ruling: best and worst never share a piece; with fewer than ten ranked, the cheaper half is best — cost if wrong: a short list looks thin.
 Task 10: Ruling: spend "by kind" groups by top kind (Tops, Bottoms…); a price is the piece's price, not multiplied by its count; value ranking is owned clothing only — cost if wrong: totals differ for ×N pieces.
+Task 11: complete — homeCards (log, glad, needsDetails, onThisDay, anniversary, recent, year), yearOpen, reviewYear, yearRooms, yearTotals; Home tab with the date and a Numbers link; YearReview at #/year (tests: TZ=UTC npm test and npm test → 296/296)
+Task 11: Ruling: added reviewYear and yearTotals (tested) for the year's last screen; spend there counts pieces bought that year (rough dates included; no date: when added) — cost if wrong: the year's spend total differs.
+Task 11: Ruling: a piece shown as an anniversary is not repeated on "On this day"; "On this day" lists up to four lines — cost if wrong: none.
+Task 11: Ruling: useMainPhotos falls back to an extra photo, so a piece bought from a wish shows the shop's photo in grids until it is photographed (no hook test exists; checked in the browser) — cost if wrong: an extra photo of a scratch shows as the tile.
