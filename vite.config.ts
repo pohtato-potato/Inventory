@@ -40,10 +40,14 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
+        // The first install takes over the open page, so the first model download is already cached.
+        clientsClaim: true,
         runtimeCaching: [
           {
-            // The cut-out model, the text reader and their engines are fetched on first use, then kept for offline.
-            urlPattern: ({ url }) => url.origin === 'https://huggingface.co' || url.origin === 'https://cdn.jsdelivr.net' || url.hostname.endsWith('.hf.co') || url.hostname.endsWith('huggingface.co'),
+            // The engines for the cut-out and the text reader, and the reader's English data, are fetched
+            // on first use and kept for offline. The cut-out model itself is kept by transformers.js in
+            // its own cache ('transformers-cache'), so it is not stored twice.
+            urlPattern: ({ url }) => url.origin === 'https://cdn.jsdelivr.net' || url.origin === 'https://tessdata.projectnaptha.com',
             handler: 'CacheFirst',
             options: {
               cacheName: 'models',
