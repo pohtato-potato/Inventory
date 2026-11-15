@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Item, ItemEvent, Kind, Photo, Place, SavedSearch, Setting, Shade, SizeRow } from '../domain/types';
+import { wearsFromEvents, withStarterLane } from './migrate';
+import type { Item, ItemEvent, Kind, Outfit, Photo, Place, SavedSearch, Setting, Shade, SizeRow, Wear, Wish } from '../domain/types';
 
 export class InventoryDb extends Dexie {
   items!: EntityTable<Item, 'id'>;
@@ -11,6 +12,9 @@ export class InventoryDb extends Dexie {
   sizes!: EntityTable<SizeRow, 'id'>;
   searches!: EntityTable<SavedSearch, 'id'>;
   settings!: EntityTable<Setting, 'key'>;
+  wears!: EntityTable<Wear, 'id'>;
+  outfits!: EntityTable<Outfit, 'id'>;
+  wishes!: EntityTable<Wish, 'id'>;
 
   constructor() {
     super('inventory');
@@ -25,12 +29,21 @@ export class InventoryDb extends Dexie {
       searches: 'id',
       settings: 'key',
     });
+    // Build 2: what was worn moves from 'worn' events into one wear per day; starter kinds get their outfit lanes.
+    // Nothing is deleted: the events stay for each piece's story.
+    this.version(2)
+      .stores({ wears: 'id, day, outfitId, *itemIds', outfits: 'id', wishes: 'id, tier, status' })
+      .upgrade(async (tx) => {
+        const worn = await tx.table('events').filter((e: ItemEvent) => e.type === 'worn').toArray();
+        await tx.table('wears').bulkAdd(wearsFromEvents(worn));
+        await tx.table('kinds').toCollection().modify((k: Kind) => { Object.assign(k, withStarterLane(k)); });
+      });
   }
 }
 
 export const db = new InventoryDb();
 
-export const TABLES = ['items', 'kinds', 'shades', 'places', 'photos', 'events', 'sizes', 'searches', 'settings'] as const;
+export const TABLES = ['items', 'kinds', 'shades', 'places', 'photos', 'events', 'sizes', 'searches', 'settings', 'wears', 'outfits', 'wishes'] as const;
 export type TableName = (typeof TABLES)[number];
 
 export function newId(): string {

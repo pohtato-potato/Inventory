@@ -18,6 +18,7 @@ import { UNKNOWN_LIGHT, windowColour } from '../ui/light';
 import { IconDown, IconMenu, IconSearch, IconChev } from '../ui/icons';
 import { byId, homesWithSpots, kindName, pieceColour } from './shared';
 import { Selection, useSelection } from './Selection';
+import { WardrobeSwitch } from './Outfits';
 
 export type Scope = 'clothing' | 'things';
 type By = 'kind' | 'colour' | 'place';
@@ -63,6 +64,7 @@ export function Browse({ scope }: { scope: Scope }) {
       ) : (
         <Header scope={scope} total={total} pick={pick} thumbs={thumbs} trees={trees} items={items} onMenu={() => setMenu(true)} />
       )}
+      {scope === 'clothing' && !sel.ids.size && <WardrobeSwitch on="pieces" />}
       {items.length > 0 && (
         <>
           <Seg label="Browse by" value={by} onChange={setBy} options={[{ value: 'kind', label: 'By kind' }, { value: 'colour', label: 'By colour' }, { value: 'place', label: 'By place' }]} />
@@ -353,6 +355,8 @@ function ViewMenu({ open, onClose, layout, sort, scope }: { open: boolean; onClo
           <Chips label="Sort by" value={sort} onChange={(v) => void setSetting('view.sort', v)} options={[{ value: 'kind', label: 'Kind' }, { value: 'added', label: 'Newest' }, { value: 'lastWorn', label: 'Last worn' }, { value: 'name', label: 'Name' }]} />
         </div>
         <div style={{ display: 'grid', gap: 0, margin: '0 -18px' }}>
+          {scope === 'clothing' && <button type="button" className="li" onClick={() => { onClose(); go('/wear'); }}>What you wore<span className="n"><IconChev /></span></button>}
+          {scope === 'clothing' && <button type="button" className="li" onClick={() => { onClose(); go('/own'); }}>Do I already own this?<span className="n"><IconChev /></span></button>}
           {scope === 'clothing' && <button type="button" className="li" onClick={() => { onClose(); go('/sizes'); }}>My sizes<span className="n"><IconChev /></span></button>}
           <button type="button" className="li" onClick={() => { onClose(); go('/details'); }}>Pieces that need details<span className="n"><IconChev /></span></button>
           <button type="button" className="li" onClick={() => { onClose(); go('/search', { gone: '1' }); }}>Pieces you let go<span className="n"><IconChev /></span></button>

@@ -1,9 +1,11 @@
 import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from 'fflate';
 import { db, TABLES } from '../db/db';
 import { clearUndo, getSetting, setSetting } from '../db/actions';
-import type { Photo } from '../domain/types';
+import { wearsFromEvents, withStarterLane } from '../db/migrate';
+import type { ItemEvent, Kind, Photo } from '../domain/types';
 
-export const BACKUP_VERSION = 1;
+/** 2 adds wears, outfits and wishes. A version 1 file still restores: its wears are made from its 'worn' events. */
+export const BACKUP_VERSION = 2;
 export const NOT_A_BACKUP = 'This file is not an Inventory backup';
 export const TOO_NEW = 'This backup was made by a newer version of Inventory';
 const LAST_KEY = 'backup.last';
@@ -75,6 +77,10 @@ export async function importAll(zip: Blob): Promise<{ items: number; photos: num
     const bytes = files[`photos/${row.id}.webp`];
     if (!bytes) throw new Error(NOT_A_BACKUP); // a photo named but missing: the file is incomplete
     photos.push({ ...row, blob: new Blob([bytes as Uint8Array<ArrayBuffer>], { type: type || 'image/webp' }) });
+  }
+  if (data.version < 2) {
+    data.tables.wears = wearsFromEvents((data.tables.events ?? []) as ItemEvent[]);
+    data.tables.kinds = (data.tables.kinds as Kind[]).map(withStarterLane);
   }
   await db.transaction('rw', TABLES.map((t) => db.table(t)), async () => {
     for (const t of TABLES) {

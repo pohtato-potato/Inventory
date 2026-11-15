@@ -15,6 +15,15 @@ import { Details } from './screens/Details';
 import { Settings } from './screens/Settings';
 import { Sizes } from './screens/Sizes';
 import { Fix } from './screens/Fix';
+import { Outfits } from './screens/Outfits';
+import { OutfitPage } from './screens/OutfitPage';
+import { WearLog } from './screens/WearLog';
+import { WishPage, Wishes } from './screens/Wishes';
+import { WishForm } from './screens/WishForm';
+import { Home } from './screens/Home';
+import { OwnThis } from './screens/OwnThis';
+import { Numbers } from './screens/Numbers';
+import { YearReview } from './screens/YearReview';
 import { startConveyor } from './photo/conveyor';
 
 const SCREENS: Record<string, React.ComponentType> = {
@@ -28,10 +37,20 @@ const SCREENS: Record<string, React.ComponentType> = {
   '/sizes': Sizes,
   '/settings': Settings,
   '/fix': Fix,
+  '/outfits': Outfits,
+  '/outfit': OutfitPage,
+  '/wear': WearLog,
+  '/wishes': Wishes,
+  '/wish': WishPage,
+  '/wish-new': WishForm,
+  '/home': Home,
+  '/own': OwnThis,
+  '/numbers': Numbers,
+  '/year': YearReview,
 };
 
 /** Screens that show the tab bar. The rest (a piece, the camera, details) use the whole screen. */
-const WITH_TABS = new Set(['/wardrobe', '/things', '/spot', '/search']);
+const WITH_TABS = new Set(['/wardrobe', '/things', '/spot', '/search', '/outfits', '/wishes', '/home']);
 
 export function App() {
   const { path } = useRoute();
@@ -39,7 +58,7 @@ export function App() {
     void seedIfEmpty().then(() => sweepTrash(Date.now())).then(() => startConveyor());
   }, []);
   const Screen = SCREENS[path] ?? Wardrobe;
-  const tab = path === '/things' ? '/things' : path === '/wardrobe' ? '/wardrobe' : '';
+  const tab = path === '/outfits' ? '/wardrobe' : ['/things', '/wardrobe', '/wishes', '/home'].includes(path) ? path : '';
   return (
     <>
       <Suspense fallback={<main className="screen" aria-busy="true" />}>

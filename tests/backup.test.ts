@@ -33,9 +33,21 @@ describe('backup file', () => {
     expect(await db.kinds.count()).toBeGreaterThan(10);
   });
 
+  it('a version 2 backup carries wears, outfits and wishes', async () => {
+    await db.wears.add({ id: 'w1', day: '2026-11-03', itemIds: ['a'], updatedAt: 1 });
+    await db.outfits.add({ id: 'o1', itemIds: ['a', 'b'], dressCodes: [], createdAt: 1, updatedAt: 1 });
+    await db.wishes.add({ id: 'h1', name: 'Linen shirt', tier: 'soon', currency: 'INR', status: 'open', source: 'hand', createdAt: 1, updatedAt: 1 });
+    const zip = await exportAll();
+    expect(JSON.parse(strFromU8(unzipSync(new Uint8Array(await zip.arrayBuffer()))['data.json'])).version).toBe(2);
+    await db.delete();
+    await db.open();
+    await importAll(zip);
+    expect([await db.wears.count(), await db.outfits.count(), await db.wishes.count()]).toEqual([1, 1, 1]);
+  });
+
   it('refuses a backup made by a newer version', async () => {
     const zipWithVersion = (v: number) => new Blob([zipSync({ 'data.json': strToU8(JSON.stringify({ app: 'inventory', version: v, tables: {} })) })]);
-    await expect(importAll(zipWithVersion(2))).rejects.toThrow('This backup was made by a newer version of Inventory');
+    await expect(importAll(zipWithVersion(3))).rejects.toThrow('This backup was made by a newer version of Inventory');
   });
 
   it('refuses a file that is not a backup, and changes nothing', async () => {

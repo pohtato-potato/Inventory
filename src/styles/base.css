@@ -265,3 +265,124 @@ button.li { width: 100%; border-left: 0; border-right: 0; border-bottom: 0; back
 .fix-bar .ghost { flex: 1; }
 .fix-bar .acc { flex: 2; }
 .fix-entry { display: grid; padding: 12px 14px 0; }
+
+/* The outfit stage: one tall window, pieces placed by fractions of the box at true proportions. */
+.stage { flex: none; border-radius: 12px; }
+.stage-pc { position: absolute; display: block; }
+.stage-pc .pc { width: 100%; height: auto; }
+.stage-pc.gone .pc { filter: grayscale(1) brightness(.6); opacity: .55; }
+.stage-gone { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); padding: 0 6px; border-radius: 6px; background: #0B0C0FCC; color: var(--t); font: 400 14px/1.4 var(--f-body); white-space: nowrap; }
+
+/* Outfits */
+.section-cap { padding: 16px 18px 8px; }
+.regulars { display: flex; gap: 8px; overflow-x: auto; padding: 0 14px 4px; scrollbar-width: none; scroll-padding: 14px; }
+.regulars::-webkit-scrollbar { display: none; }
+.regular { flex: none; display: grid; gap: 4px; justify-items: start; border: 0; padding: 0; background: none; color: inherit; text-align: left; max-width: 140px; }
+.builder { position: sticky; top: 0; z-index: 10; display: flex; gap: 14px; align-items: flex-end; padding: 10px 14px 12px; background: var(--g); border-bottom: 1px solid var(--line); }
+.builder-side { flex: 1; display: grid; gap: 8px; }
+.pairs-well { color: var(--ok); padding: 0 2px; }
+.outfit-hero { display: flex; justify-content: center; padding: 6px 14px 0; }
+.piece-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 18px 0; }
+.piece-actions .ghost { flex: 1; }
+.scale-row { display: flex; gap: 14px; align-items: center; }
+.scale-row input[type=range] { width: 100%; min-height: 44px; accent-color: var(--a); }
+
+/* Wear log */
+.day-head { display: flex; align-items: center; gap: 4px; padding: 6px 10px 8px; }
+.day-head .icon-btn:disabled { opacity: .35; }
+.day-mid { flex: 1; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.day-num { font-size: 64px; line-height: 1; }
+.wear-card { display: flex; gap: 14px; align-items: flex-end; padding: 10px 14px 4px; }
+.wear-side { flex: 1; display: grid; gap: 8px; min-width: 0; }
+.mirror { display: grid; gap: 8px; padding: 12px 0 0; }
+.mirror-row { display: flex; gap: 8px; overflow-x: auto; }
+.mirror-shot { flex: none; display: grid; justify-items: start; margin: 0; }
+.mirror-shot img { height: 140px; width: auto; border-radius: 10px; display: block; }
+.regular[aria-pressed=true] .stage { outline: 3px solid var(--a); outline-offset: -3px; }
+
+/* wishes */
+.empty-line { padding: 14px 18px; }
+.hero-wish .hero-piece .pc.uncut { max-width: 100%; max-height: 100%; border-radius: 8px; }
+.wish-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 10px; padding: 0 14px; }
+.wish-cell { min-width: 0; display: grid; gap: 3px; align-content: start; }
+.wish-tile { width: 100%; aspect-ratio: 4 / 5; border-radius: 12px; display: grid; place-items: center; border: 0; padding: 0; color: inherit; overflow: hidden; touch-action: manipulation; transition: transform .25s var(--ease-out); }
+.wish-tile:active { transform: scale(.97); }
+.wish-tile .pc.uncut { max-width: 86%; max-height: 86%; border-radius: 6px; }
+.wish-cell.waiting .wish-tile { opacity: .55; }
+.wish-name { font-weight: 700; padding-top: 4px; overflow-wrap: anywhere; }
+.wish-word { padding: 12px; font-family: var(--f-caps); font-stretch: 84%; font-weight: 600; font-size: 22px; line-height: 1.05; text-align: center; overflow-wrap: anywhere; color: var(--t); }
+.wish-word.big { font-size: 32px; }
+.wish-past { padding: 18px 0 0; }
+.wish-past > .link { margin-left: 12px; }
+.wish-hero { height: 300px; margin: 0 14px; border-radius: 16px; display: grid; place-items: center; overflow: hidden; }
+.wish-hero.form { height: 220px; }
+.wish-hero .pc.uncut { max-width: 88%; max-height: 88%; border-radius: 8px; }
+.wish-body { display: grid; gap: 8px; padding: 16px 18px 24px; }
+.wish-title { font-size: 30px; }
+.wish-note { white-space: pre-wrap; }
+a.ghost { text-decoration: none; }
+.wish-actions { display: grid; gap: 8px; padding-top: 10px; }
+.own-count { display: flex; align-items: baseline; gap: 10px; padding: 18px 18px 10px; }
+.own-num { font-size: 72px; }
+.own-none { font-size: 24px; padding: 18px 18px 10px; }
+.gaps { padding: 22px 0 8px; }
+.gap-row { display: flex; align-items: center; flex-wrap: wrap; gap: 0 8px; min-height: 52px; padding: 4px 12px 4px 18px; border-top: 1px solid var(--line); }
+.gap-label { flex: 1 1 140px; font-weight: 700; }
+.gap-acts { display: flex; flex-wrap: wrap; }
+.card { margin: 0 14px 12px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--pane); }
+.glad-head { display: flex; gap: 12px; align-items: center; }
+.glad-win { width: 96px; height: 110px; flex: none; border-radius: 12px; display: grid; place-items: center; }
+.glad-win .pc { max-width: 80%; max-height: 86%; }
+.glad-name { font-size: 22px; padding: 2px 0 4px; }
+.glad-scale { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin: 14px -14px 0; border: 1px solid #5A5C66; border-radius: 12px; overflow: hidden; }
+.glad-scale button { min-height: 48px; border: 0; border-left: 1px solid #5A5C66; background: none; color: var(--t); font: 600 20px/1 var(--f-num); }
+.glad-scale button:first-child { border-left: 0; }
+.glad-scale button:active { background: var(--a); color: #0B0C0F; }
+.glad-ends { display: flex; justify-content: space-between; padding: 6px 0 0; }
+/* numbers */
+.num-pair { display: flex; gap: 28px; padding: 6px 18px 4px; }
+.num-big { font-size: 72px; display: block; }
+.spend-totals { display: grid; gap: 2px; padding: 0 18px 4px; }
+.spend-total { font: 600 40px/1.1 var(--f-num); font-stretch: 80%; }
+.spend-total .sm { font-family: var(--f-body); }
+.num-note { padding: 0 18px 10px; }
+.bars { padding: 10px 18px 0; display: grid; gap: 10px; }
+.bars-cur { padding-top: 8px; }
+.bar-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; }
+.bar-label { min-width: 0; overflow-wrap: anywhere; }
+.bar-amt { font-variant-numeric: tabular-nums; color: var(--m); }
+.bar { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: #23252B; overflow: hidden; }
+.bar > span { display: block; height: 100%; border-radius: 4px; background: var(--a); }
+.value-cell { min-width: 0; }
+.value-cell .sm { padding-top: 2px; }
+/* home */
+.home-hero { height: 220px; margin-bottom: 14px; }
+.home-hero .hero-count .caps + .caps { padding-top: 2px; }
+.home-q { font-size: 24px; }
+.home-line { font-weight: 700; padding: 2px 0 0; }
+.home-suggest { display: grid; gap: 6px; padding-top: 12px; }
+.home-acts { display: flex; gap: 8px; padding-top: 12px; }
+.home-acts > * { flex: 1; }
+.card-link { margin-left: -6px; }
+button.card { display: flex; width: calc(100% - 28px); text-align: left; color: inherit; font: inherit; }
+.card-row { align-items: center; gap: 12px; min-height: 64px; }
+.card-row .n { margin-left: auto; }
+.card-num { font-size: 40px; }
+.card-li { padding-inline: 0; }
+.card .card-li:first-of-type { border-top: 0; }
+.home-recent { padding-bottom: 16px; }
+/* year in review */
+.year-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.year-track::-webkit-scrollbar { display: none; }
+.year-slide { flex: 0 0 100%; scroll-snap-align: start; padding: 4px 18px 24px; display: grid; gap: 12px; align-content: start; }
+.year-fig { display: grid; gap: 6px; margin: 0; }
+.year-win { height: 320px; border-radius: 16px; display: grid; place-items: center; }
+.year-win .pc { max-width: 70%; max-height: 84%; }
+.year-room { font-size: 32px; }
+.year-nums { display: flex; gap: 20px; flex-wrap: wrap; }
+.year-num { font-size: 56px; display: block; }
+.year-spend { display: grid; gap: 4px; }
+.year-hint { text-align: center; padding: 0 18px 20px; }
+/* The wish in the window stands on the right; its light sits behind it, so the words on the left stay legible over any colour. */
+.hero-wish::before { background: radial-gradient(ellipse 60% 70% at 76% 60%, var(--c, #555) 0%, transparent 70%); }
+.card.glad { margin-inline: 10px; }

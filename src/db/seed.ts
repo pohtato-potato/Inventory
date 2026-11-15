@@ -1,6 +1,7 @@
 import type { FieldKey, Kind, Place, Shade } from '../domain/types';
 import { db } from './db';
 import { UNSORTED, UNSORTED_NAME } from '../domain/fields';
+import { withStarterLane } from './migrate';
 
 export { UNSORTED };
 
@@ -31,7 +32,7 @@ function buildKinds(): Kind[] {
   const add = ([name, fields = [], hide]: K, parentId: string | null, clothing: boolean, prefix = '') => {
     const kind: Kind = { id: `k-${prefix}${slug(name)}`, parentId, name, clothing, fields, order: order++, updatedAt: T0 };
     if (hide) kind.hideFromWindow = true;
-    out.push(kind);
+    out.push(withStarterLane(kind));
     return kind.id;
   };
   for (const [root, kids] of CLOTHING) {

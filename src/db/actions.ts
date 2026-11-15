@@ -1,4 +1,7 @@
-import type { EventType, Gone, Id, Item, ItemEvent, Kind, Photo, Place, Shade } from '../domain/types';
+import type { EventType, Gone, Id, Item, ItemEvent, Kind, Lane, Outfit, Photo, Place, Rough, Shade, Wear, Wish } from '../domain/types';
+import { UNSORTED } from '../domain/fields';
+import { samePieces } from '../domain/outfit';
+import { dayKey, dayStart } from '../domain/wearlog';
 import { db, newId } from './db';
 import { WITH_ME_ID } from './seed';
 
@@ -230,13 +233,144 @@ export async function moveItems(ids: Id[], spotId: Id | undefined): Promise<void
   await changeItems(ids, `Moved ${pieces(ids.length)}`, 'moved', () => ({ spotId }), (b) => ({ from: b.spotId ?? null, to: spotId ?? null }));
 }
 
-/** Records a wear for today (or the given time). */
-export async function wornToday(id: Id, at = Date.now()): Promise<void> {
-  const e = event(id, 'worn', at);
-  await db.events.add(e);
-  pushUndo('Worn today', async () => {
-    await db.events.delete(e.id);
+// ---------- wears ----------
+
+/** A worn event's time for a day: now for today, else noon that day (so the story sorts it into the right day). */
+function wornAt(day: string): number {
+  return day === dayKey(Date.now()) ? stamp() : dayStart(day) + 12 * 3600_000;
+}
+
+/**
+ * What was worn on a day: one wear per day, so this replaces the day's wear. Pieces newly on the day get a 'worn'
+ * event (each piece's story); pieces taken off lose that day's. One step for Undo.
+ */
+async function setDay(day: string, itemIds: Id[], outfitId: Id | undefined, label: string): Promise<Id | null> {
+  const asked = [...new Set(itemIds)];
+  let ids = asked;
+  let before: Wear | undefined;
+  let beforeEvents: ItemEvent[] = [];
+  let wearId: Id | null = null;
+  const added: Id[] = [];
+  await db.transaction('rw', [db.wears, db.events, db.items], async () => {
+    before = await db.wears.where('day').equals(day).first();
+    const old = new Set(before?.itemIds ?? []);
+    // Only pieces still owned can be newly worn (a saved outfit or a suggestion may hold one let go or deleted
+    // since); a piece already on the day stays, so editing a past day keeps what was really worn.
+    const items = await db.items.bulkGet(asked);
+    ids = asked.filter((id, n) => old.has(id) || (items[n]?.status === 'owned' && items[n]?.deletedAt === undefined));
+    if (asked.length && !ids.length) throw new Error('Nothing to log');
+    // The outfit is kept only when all of its pieces are still worn.
+    if (ids.length !== asked.length) outfitId = undefined;
+    const keep = new Set(ids);
+    beforeEvents = await db.events.where('itemId').anyOf([...old]).filter((e) => e.type === 'worn' && dayKey(e.at) === day && !keep.has(e.itemId)).toArray();
+    await db.events.bulkDelete(beforeEvents.map((e) => e.id));
+    for (const id of ids) {
+      if (old.has(id)) continue;
+      const e = event(id, 'worn', wornAt(day), { day });
+      added.push(e.id);
+      await db.events.add(e);
+    }
+    if (!ids.length) {
+      if (before) await db.wears.delete(before.id);
+      return;
+    }
+    const w: Wear = { ...(before ?? {}), id: before?.id ?? newId(), day, itemIds: ids, updatedAt: stamp() };
+    if (outfitId) w.outfitId = outfitId;
+    else delete w.outfitId;
+    wearId = w.id;
+    await db.wears.put(w);
   });
+  pushUndo(label, async () => {
+    await db.transaction('rw', db.wears, db.events, async () => {
+      await db.events.bulkDelete(added);
+      await db.events.bulkPut(beforeEvents);
+      const now = await db.wears.where('day').equals(day).first();
+      if (now) await db.wears.delete(now.id);
+      if (before) await db.wears.put(before);
+    });
+  });
+  return wearId;
+}
+
+/** Logs what was worn on a day (replacing that day's wear). Returns the wear's id. */
+export async function logWear(day: string, itemIds: Id[], outfitId?: Id): Promise<Id> {
+  if (!itemIds.length) throw new Error('Nothing to log');
+  return (await setDay(day, itemIds, outfitId, 'Logged what you wore'))!;
+}
+
+/** Clears a day's wear. */
+export async function removeWear(day: string): Promise<void> {
+  if (!(await db.wears.where('day').equals(day).count())) return;
+  await setDay(day, [], undefined, 'Cleared a day');
+}
+
+/** Adds the piece to today's wear. False when it was already there. */
+export async function wornToday(id: Id): Promise<boolean> {
+  const day = dayKey(Date.now());
+  const w = await db.wears.where('day').equals(day).first();
+  if (w?.itemIds.includes(id)) return false;
+  // An added piece makes it no longer exactly the outfit; outfitCount still finds the outfit by its pieces.
+  await setDay(day, [...(w?.itemIds ?? []), id], undefined, 'Worn today');
+  return true;
+}
+
+// ---------- outfits ----------
+
+/**
+ * Saves an outfit. The same set of pieces again changes nothing and returns the outfit already saved, with
+ * `existed` set (no undo step, so the screen must not offer one).
+ */
+export async function saveOutfit(itemIds: Id[], name?: string, dressCodes: string[] = []): Promise<{ id: Id; existed: boolean }> {
+  const ids = [...new Set(itemIds)];
+  if (!ids.length) throw new Error('An outfit needs at least one piece');
+  const same = (await db.outfits.toArray()).find((o) => samePieces(o.itemIds, ids));
+  if (same) return { id: same.id, existed: true };
+  const now = stamp();
+  const o: Outfit = { id: newId(), itemIds: ids, dressCodes, createdAt: now, updatedAt: now };
+  if (name?.trim()) o.name = name.trim();
+  await db.outfits.add(o);
+  pushUndo('Saved 1 outfit', async () => { await db.outfits.delete(o.id); });
+  return { id: o.id, existed: false };
+}
+
+export async function updateOutfit(id: Id, patch: Partial<Omit<Outfit, 'id'>>): Promise<void> {
+  const before = await db.outfits.get(id);
+  if (!before) return;
+  await db.outfits.put({ ...before, ...patch, updatedAt: stamp() });
+  pushUndo('Changed 1 outfit', async () => { await db.outfits.put(before); });
+}
+
+/** Removes an outfit and its mirror photos. Its wear days stay. */
+export async function removeOutfit(id: Id): Promise<void> {
+  const before = await db.outfits.get(id);
+  if (!before) return;
+  const photos = await db.photos.where('itemId').equals(id).toArray();
+  await db.transaction('rw', db.outfits, db.photos, async () => {
+    await db.photos.bulkDelete(photos.map((p) => p.id));
+    await db.outfits.delete(id);
+  });
+  pushUndo('Removed 1 outfit', async () => {
+    await db.transaction('rw', db.outfits, db.photos, async () => {
+      await db.outfits.put(before);
+      await db.photos.bulkPut(photos);
+    });
+  });
+}
+
+/** Marks two pieces as going well together (or not), on both of them. */
+export async function setPairs(a: Id, b: Id, on: boolean): Promise<void> {
+  if (a === b) return;
+  const before = (await db.items.bulkGet([a, b])).filter((i): i is Item => !!i);
+  if (before.length < 2) return;
+  const now = stamp();
+  await db.transaction('rw', db.items, async () => {
+    for (const [x, y] of [[a, b], [b, a]] as const) {
+      const it = before.find((i) => i.id === x)!;
+      const rest = (it.pairs ?? []).filter((p) => p !== y);
+      await db.items.update(x, { pairs: on ? [...rest, y] : rest, updatedAt: now });
+    }
+  });
+  pushUndo(on ? 'Marked as pairing well' : 'No longer pairing', async () => { await db.items.bulkPut(before); });
 }
 
 export async function copyItem(id: Id): Promise<Id> {
@@ -431,6 +565,107 @@ export async function rename(table: 'kinds' | 'shades' | 'places', id: Id, name:
 
 export async function setKindHidden(id: Id, hide: boolean): Promise<void> {
   await db.kinds.update(id, { hideFromWindow: hide, updatedAt: stamp() });
+}
+
+/** Where a kind stands in outfits. Each lane brings its usual size; tops sit as an over layer. */
+const LANE_SCALE: Record<Lane, number> = { head: 0.45, neck: 0.6, top: 1, waist: 0.7, bottom: 0.8, feet: 0.45, wrist: 0.16, hand: 0.08, carry: 0.6 };
+export async function setKindLane(id: Id, lane: Lane | undefined): Promise<void> {
+  const k = await db.kinds.get(id);
+  if (!k) return;
+  const next: Kind = { ...k, updatedAt: stamp() };
+  delete next.lane; delete next.layer; delete next.baseScale;
+  if (lane) Object.assign(next, { lane, baseScale: LANE_SCALE[lane] }, lane === 'top' ? { layer: 'over' } : {});
+  await db.kinds.put(next);
+}
+
+// ---------- wishes ----------
+
+export type WishDraft = Partial<Omit<Wish, 'id' | 'status' | 'createdAt' | 'updatedAt'>> & Pick<Wish, 'name' | 'tier'>;
+
+/** Adds a wish, with its picture when there is one. */
+export async function addWish(draft: WishDraft, photo?: { blob: Blob; w: number; h: number }): Promise<Id> {
+  const now = stamp();
+  const w: Wish = { currency: 'INR', source: 'hand', ...draft, id: newId(), status: 'open', createdAt: now, updatedAt: now };
+  try {
+    await db.transaction('rw', db.wishes, db.photos, async () => {
+      await db.wishes.add(w);
+      if (photo) await db.photos.add({ id: newId(), itemId: w.id, role: 'wish', updatedAt: now, ...photo });
+    });
+  } catch (e) {
+    if (isQuota(e)) throw new Error(NO_SPACE);
+    throw e;
+  }
+  pushUndo('Added 1 wish', async () => {
+    await db.transaction('rw', db.wishes, db.photos, async () => {
+      await db.photos.where('itemId').equals(w.id).delete();
+      await db.wishes.delete(w.id);
+    });
+  });
+  return w.id;
+}
+
+async function changeWish(id: Id, patch: Partial<Wish>, label: string): Promise<void> {
+  const before = await db.wishes.get(id);
+  if (!before) return;
+  await db.wishes.put({ ...before, ...patch, id, updatedAt: stamp() });
+  pushUndo(label, async () => { await db.wishes.put({ ...before, updatedAt: stamp() }); });
+}
+
+export function updateWish(id: Id, patch: Partial<Omit<Wish, 'id'>>): Promise<void> {
+  return changeWish(id, patch, 'Changed 1 wish');
+}
+
+/** "Not any more": the wish stays in the record as dropped. */
+export function dropWish(id: Id): Promise<void> {
+  return changeWish(id, { status: 'dropped' }, 'Dropped 1 wish');
+}
+
+/** "Glad you bought it?": 1 (not at all) to 7 (very), or a skip. */
+export function answerGlad(id: Id, score: number | 'skip'): Promise<void> {
+  if (score !== 'skip' && !(Number.isInteger(score) && score >= 1 && score <= 7)) return Promise.reject(new Error('A score from 1 to 7'));
+  return changeWish(id, score === 'skip' ? { gladSkipped: true } : { glad: score, gladSkipped: undefined }, 'Answered');
+}
+
+/**
+ * Bought: a new piece that needs details, carrying what the wish knew (name, kind, shade, price, shop) and its
+ * picture as an extra photo. The wish is kept as bought, pointing at the piece. One step for Undo.
+ */
+export async function buyWish(id: Id, opts: { boughtOn: string; price?: Rough<number> }): Promise<Id> {
+  const wish = await db.wishes.get(id);
+  if (!wish) throw new Error('No such wish');
+  if (wish.status !== 'open') throw new Error('This wish is already bought or dropped');
+  const now = stamp();
+  const draft: Partial<Item> = {
+    name: wish.name,
+    kindId: wish.kindId ?? UNSORTED.clothing,
+    currency: wish.currency,
+    needsDetails: true,
+    boughtOn: { value: opts.boughtOn, estimate: false },
+  };
+  if (wish.shadeId) draft.shadeMain = wish.shadeId;
+  if (wish.shop) draft.shop = wish.shop;
+  const price = opts.price ?? wish.price;
+  if (price) draft.price = price;
+  const item = blankItem(draft, now);
+  const wishPhotos = (await db.photos.where('itemId').equals(id).toArray()).filter((p) => p.role === 'wish');
+  try {
+    await db.transaction('rw', [db.items, db.photos, db.events, db.wishes], async () => {
+      // Checked again inside the transaction, so a double tap cannot buy it twice.
+      if ((await db.wishes.get(id))?.status !== 'open') throw new Error('This wish is already bought or dropped');
+      await db.items.add(item);
+      await db.photos.bulkAdd(wishPhotos.map((p) => ({ id: newId(), itemId: item.id, role: 'extra' as const, blob: p.blob, w: p.w, h: p.h, updatedAt: now })));
+      await db.events.add(event(item.id, 'added', now));
+      await db.wishes.put({ ...wish, status: 'bought', itemId: item.id, boughtOn: opts.boughtOn, updatedAt: now });
+    });
+  } catch (e) {
+    if (isQuota(e)) throw new Error(NO_SPACE);
+    throw e;
+  }
+  pushUndo('Bought 1 wish', async () => {
+    await hardDelete([item.id]);
+    await db.wishes.put({ ...wish, updatedAt: stamp() });
+  });
+  return item.id;
 }
 
 // ---------- settings ----------

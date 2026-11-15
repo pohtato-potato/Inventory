@@ -1,5 +1,6 @@
 import { money } from './format';
-import type { Item, Kind, Rough, StartWears } from './types';
+import type { Id, Item, Kind, Outfit, Rough, StartWears, Wear } from './types';
+import { daysBetween } from './wearlog';
 
 export interface WearCount {
   n: number;
@@ -22,17 +23,20 @@ export function totalWears(item: Pick<Item, 'startWears'>, logged: number): Wear
   return { n: s.n + logged, approx: s.approx, atLeast: s.atLeast };
 }
 
-/** Price ÷ wears, in words. Absent (null) with no price, no wears or a free piece — never NaN, Infinity or ₹0. */
-export function costPerWear(price: Rough<number> | undefined, wears: WearCount, currency = 'INR'): { text: string } | null {
+/** Price ÷ wears, in words (and the amount, for ranking). Absent (null) with no price, no wears or a free piece — never NaN, Infinity or ₹0. */
+export function costPerWear(price: Rough<number> | undefined, wears: WearCount, currency = 'INR'): { text: string; value: number } | null {
   if (!price || !Number.isFinite(price.value) || price.value <= 0 || !Number.isFinite(wears.n) || wears.n <= 0) return null;
-  const per = price.value / wears.n;
-  if (wears.atLeast) return { text: `under ${money(Math.max(1, Math.ceil(per / 10) * 10), currency)} a wear` };
-  if (per < 1) return { text: `under ${money(1, currency)} a wear` };
-  if (wears.approx || price.estimate) {
-    const r = Math.round(per / 10) * 10;
-    return { text: r ? `about ${money(r, currency)} a wear` : `under ${money(10, currency)} a wear` };
-  }
-  return { text: `${money(Math.round(per), currency)} a wear` };
+  const value = price.value / wears.n;
+  const text = (() => {
+    if (wears.atLeast) return `under ${money(Math.max(1, Math.ceil(value / 10) * 10), currency)} a wear`;
+    if (value < 1) return `under ${money(1, currency)} a wear`;
+    if (wears.approx || price.estimate) {
+      const r = Math.round(value / 10) * 10;
+      return r ? `about ${money(r, currency)} a wear` : `under ${money(10, currency)} a wear`;
+    }
+    return `${money(Math.round(value), currency)} a wear`;
+  })();
+  return { text, value };
 }
 
 export function wearsText(w: WearCount): string {
@@ -48,4 +52,25 @@ export function fitSummary(items: Item[], kinds: Kind[]): { fits: number; tight:
     out[i.fit ?? 'unset'] += i.count;
   }
   return out;
+}
+
+/** Two names, then "and N more": "Navy tee, Blue jeans and 2 more". */
+export function namesLine(ids: Id[], items: Item[]): string {
+  const names = ids.map((id) => items.find((i) => i.id === id)?.name).filter((n): n is string => !!n);
+  if (names.length <= 2) return names.join(' and ');
+  return `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`;
+}
+
+/** A day's wear in a line: the outfit's name when it was a named outfit, else its pieces. */
+export function wearLine(wear: Wear | undefined, outfits: Outfit[], items: Item[]): string {
+  if (!wear) return 'Nothing logged';
+  const name = wear.outfitId ? outfits.find((o) => o.id === wear.outfitId)?.name : undefined;
+  return name || namesLine(wear.itemIds, items) || 'Nothing logged';
+}
+
+/** "today", "yesterday", "13 days ago" or "never logged". */
+export function lastWornText(day: string | undefined, today: string): string {
+  if (!day) return 'never logged';
+  const n = daysBetween(day, today);
+  return n <= 0 ? 'today' : n === 1 ? 'yesterday' : `${n} days ago`;
 }

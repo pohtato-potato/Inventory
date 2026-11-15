@@ -9,6 +9,8 @@ import archivoLatin from '@fontsource-variable/archivo/files/archivo-latin-wdth-
 import { App } from './App';
 import { handleAuthReturn } from './backup/google';
 import { startPwa } from './pwa';
+import { parseShare } from './domain/wish';
+import { go } from './router';
 
 // Body text is Atkinson Hyperlegible, whose zero is slashed (hard to read small: "₹2,000" looked like "₹2,ØØØ").
 // Its digits alone are swapped for Archivo's plain ones: the same bundled file the numerals already use.
@@ -17,6 +19,13 @@ document.fonts.add(new FontFace('Body digits', `url(${archivoLatin}) format('wof
 // Google sending the owner back: take the token out of the address before anything reads it.
 handleAuthReturn();
 startPwa();
+
+// Shared in from a shop app: open the wish form with what came, and take the query out of the address.
+const shared = parseShare(location.search);
+if (shared) {
+  history.replaceState(null, '', location.pathname);
+  go('/wish-new', { ...shared, source: 'share' }, { replace: true });
+}
 
 if (import.meta.env.DEV) {
   const n = Number(new URLSearchParams(location.hash.split('?')[1] ?? '').get('devseed'));
