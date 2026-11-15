@@ -87,16 +87,22 @@ export function usePhotos(itemId: Id | null | undefined): { url: string; photo: 
   }, [itemId]);
 }
 
-/** Main photos for many pieces at once (grids). */
-export function useMainPhotos(): Map<Id, string> | undefined {
+export interface Thumb {
+  url: string;
+  /** true for a cut-out, false for an uncut photo */
+  cut: boolean;
+}
+
+/** Main photos for many pieces at once (grids). Falls back to the uncut photo. */
+export function useMainPhotos(): Map<Id, Thumb> | undefined {
   return useLiveQuery(async () => {
-    const out = new Map<Id, string>();
+    const out = new Map<Id, Thumb>();
     const fallback = new Map<Id, Photo>();
     await db.photos.each((p) => {
-      if (p.role === 'main') out.set(p.itemId, urlFor(p));
+      if (p.role === 'main') out.set(p.itemId, { url: urlFor(p), cut: true });
       else if (p.role === 'original') fallback.set(p.itemId, p);
     });
-    for (const [id, p] of fallback) if (!out.has(id)) out.set(id, urlFor(p));
+    for (const [id, p] of fallback) if (!out.has(id)) out.set(id, { url: urlFor(p), cut: false });
     return out;
   }, []);
 }
