@@ -84,6 +84,17 @@ describe('the conveyor', () => {
     expect((await db.items.get(id))!.cutout).toBe('uncut');
   });
 
+  it('saves a new shot as "Not sorted yet", not as the last kind used', async () => {
+    _setCutter(async () => result());
+    const shot = { width: 10, height: 10, close() {} } as unknown as ImageBitmap;
+    const { setSetting } = await import('../src/db/actions');
+    await setSetting('add.lastKind', 'k-jeans');
+    const a = await addShot(shot, 'clothing', async () => ({ blob, w: 10, h: 10 }));
+    const b = await addShot(shot, 'things', async () => ({ blob, w: 10, h: 10 }));
+    expect((await db.items.get(a))!.kindId).toBe('k-unsorted');
+    expect((await db.items.get(b))!.kindId).toBe('k-o-unsorted');
+  });
+
   it('closes the shot as soon as it is saved', async () => {
     _setCutter(async () => result());
     let closed = false;

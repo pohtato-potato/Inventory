@@ -9,6 +9,7 @@ import { backFromGoogle } from '../backup/google';
 import { backupToDrive, CLIENT_ID_KEY } from '../backup/drive';
 import { exportAll, importAll } from '../backup/file';
 import { parseStarter } from '../backup/starter';
+import { isUnsorted } from '../domain/fields';
 import { askConfirm, askText } from '../ui/Ask';
 import { Sheet } from '../ui/Sheet';
 import { showToast } from '../ui/Toast';
@@ -69,7 +70,7 @@ export function Settings() {
   };
 
   if (!items || !trees || !trashed) return <main className="screen" aria-busy="true" />;
-  const tops = trees.kinds.filter((k) => !k.parentId);
+  const tops = trees.kinds.filter((k) => !k.parentId && !isUnsorted(k.id)); // "Not sorted yet" is fixed: not renamed or removed
 
   return (
     <main className="screen">

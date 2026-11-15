@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../src/db/db';
-import { STARTER_KINDS, STARTER_SHADES, seedIfEmpty } from '../src/db/seed';
+import { STARTER_KINDS, STARTER_SHADES, seedIfEmpty, UNSORTED } from '../src/db/seed';
 
 beforeEach(async () => {
   await db.delete();
@@ -56,5 +56,14 @@ describe('seedIfEmpty', () => {
     expect(await db.places.where('role').equals('home').count()).toBe(1);
     expect(await db.kinds.count()).toBe(STARTER_KINDS.length);
     expect(await db.shades.count()).toBe(STARTER_SHADES.length);
+  });
+});
+
+describe('"Not sorted yet"', () => {
+  it('exists for clothes and for things, and is added to a database made before it existed', async () => {
+    await db.kinds.bulkAdd(STARTER_KINDS.filter((k) => !k.id.includes('unsorted')));
+    await seedIfEmpty();
+    expect((await db.kinds.get(UNSORTED.clothing))).toMatchObject({ name: 'Not sorted yet', clothing: true, parentId: null });
+    expect((await db.kinds.get(UNSORTED.things))).toMatchObject({ name: 'Not sorted yet', clothing: false, parentId: null });
   });
 });

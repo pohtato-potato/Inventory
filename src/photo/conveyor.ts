@@ -1,6 +1,7 @@
 import { db } from '../db/db';
-import { createItemWithPhoto, getSetting, savePhotos } from '../db/actions';
+import { createItemWithPhoto, savePhotos } from '../db/actions';
 import { guessShades } from '../domain/colour';
+import { UNSORTED } from '../domain/fields';
 import type { Id, Item } from '../domain/types';
 import { createQueue, cutOut, ModelUnavailable, onModelReady, shrinkToWebp, type CutResult } from './cutout';
 
@@ -105,10 +106,9 @@ export async function addShot(
   } finally {
     bitmap.close?.(); // the full-size frame is not kept; the queue reads the saved original
   }
-  const kindId = await getSetting<string>(scope === 'things' ? 'add.lastThingKind' : 'add.lastKind', scope === 'things' ? 'k-o-other' : 'k-tees');
-  const kind = await db.kinds.get(kindId);
+  // The kind is not guessed: the piece waits as "Not sorted yet" until the owner says what it is in Details.
   const id = await createItemWithPhoto(
-    { name: 'New piece', kindId: kind && !kind.deletedAt ? kindId : scope === 'things' ? 'k-o-other' : 'k-tees', needsDetails: true, cutout: 'pending' },
+    { name: 'New piece', kindId: UNSORTED[scope === 'things' ? 'things' : 'clothing'], needsDetails: true, cutout: 'pending' },
     [{ role: 'original', ...original }],
   );
   queue.add(id, id);

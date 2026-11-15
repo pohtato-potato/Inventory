@@ -1,5 +1,8 @@
 import type { FieldKey, Kind, Place, Shade } from '../domain/types';
 import { db } from './db';
+import { UNSORTED, UNSORTED_NAME } from '../domain/fields';
+
+export { UNSORTED };
 
 const T0 = 0; // starter rows carry updatedAt 0 so any edit by the owner is newer
 
@@ -16,6 +19,12 @@ const OTHER: K[] = [['Electronics', ['serial']], ['Bags and luggage'], ['Tools']
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
+/** Fixed kinds where new shots wait until the owner says what they are. Kept last, and added to older databases too. */
+const UNSORTED_KINDS: Kind[] = [
+  { id: UNSORTED.clothing, parentId: null, name: UNSORTED_NAME, clothing: true, fields: [], order: 9998, updatedAt: T0 },
+  { id: UNSORTED.things, parentId: null, name: UNSORTED_NAME, clothing: false, fields: [], order: 9999, updatedAt: T0 },
+];
+
 function buildKinds(): Kind[] {
   const out: Kind[] = [];
   let order = 0;
@@ -30,7 +39,7 @@ function buildKinds(): Kind[] {
     for (const k of kids) add(k, id, true);
   }
   for (const k of OTHER) add(k, null, false, 'o-');
-  return out;
+  return [...out, ...UNSORTED_KINDS];
 }
 
 /** Families in order; each family's shades deepest first, with more deep shades than pale. */
@@ -71,6 +80,7 @@ export const STARTER_PLACES: Place[] = [
 export async function seedIfEmpty(): Promise<void> {
   await db.transaction('rw', db.kinds, db.shades, db.places, async () => {
     if ((await db.kinds.count()) === 0) await db.kinds.bulkAdd(STARTER_KINDS);
+    else for (const k of UNSORTED_KINDS) if (!(await db.kinds.get(k.id))) await db.kinds.add(k);
     if ((await db.shades.count()) === 0) await db.shades.bulkAdd(STARTER_SHADES);
     if ((await db.places.count()) === 0) await db.places.bulkAdd(STARTER_PLACES);
     else if (!(await db.places.get(WITH_ME_ID))) await db.places.add(STARTER_PLACES[1]);

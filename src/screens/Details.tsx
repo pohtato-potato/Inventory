@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { letGo, setSetting, updateItem, undoLast } from '../db/actions';
-import { useItem, useItems, usePhoto, useTrees, type Trees } from '../db/hooks';
+import { useItem, useItems, usePhoto, useSetting, useTrees, type Trees } from '../db/hooks';
 import { parseRoughDate, parseRoughPrice } from '../domain/estimate';
-import { FIELD_LABEL, fieldsFor, nextNeedingDetails, suggestName } from '../domain/fields';
+import { FIELD_LABEL, fieldsFor, isUnsorted, kindChoices, nextNeedingDetails, singular, suggestName, UNSORTED } from '../domain/fields';
 import { roughDateText, roughPriceText } from '../domain/format';
 import type { Condition, Fit, Gone, Id, Item, StartWears, WearRange } from '../domain/types';
 import { back, go, useRoute } from '../router';
@@ -106,14 +106,19 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
   const [changing, setChanging] = useState(false);
   const [letting, setLetting] = useState(false);
   const photo = usePhoto(item.id);
+  const items = useItems();
   const set = (p: Partial<Draft>) => setD((o) => ({ ...o, ...p }));
   // A cut-out that lands while the form is open fills the shade the owner has not picked yet.
   useEffect(() => { if (item.shadeMain && !d.shadeMain) set({ shadeMain: item.shadeMain, shadeSecond: item.shadeSecond }); }, [item.shadeMain]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const shade = trees.shades.find((s) => s.id === d.shadeMain);
   const shade2 = trees.shades.find((s) => s.id === d.shadeSecond);
-  const kind = kindName(d.kindId, trees.kinds);
+  const unsorted = isUnsorted(d.kindId);
+  const clothing = trees.kinds.find((k) => k.id === d.kindId)?.clothing ?? true;
+  const last = useSetting<string>(clothing ? 'add.lastKind' : 'add.lastThingKind', '');
+  const kind = unsorted ? 'Piece' : kindName(d.kindId, trees.kinds);
   const fields = fieldsFor(d.kindId, trees.kinds);
+  const choices = kindChoices({ items: items ?? [], kinds: trees.kinds, last: last || undefined, clothing, n: 6 });
   const when = d.when.trim() ? parseRoughDate(d.when) : null;
   const price = d.price.trim() ? parseRoughPrice(d.price) : null;
   const whenBad = !!d.when.trim() && !when;
@@ -124,7 +129,7 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
   const homeOf = (id?: Id) => trees.places.find((p) => p.id === trees.places.find((s) => s.id === id)?.homeId)?.name;
 
   const save = async () => {
-    if (whenBad || priceBad || exactBad) return;
+    if (whenBad || priceBad || exactBad || unsorted) return;
     const startWears: StartWears | undefined = d.wears === 'exact' ? { exact: exactN } : d.wears ? { range: d.wears } : undefined;
     const name = d.name.trim() || suggestName(shade?.name, kind);
     const patch: Partial<Item> = {
@@ -151,7 +156,7 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
   };
 
   return (
-    <main className="screen details" style={{ paddingBottom: 'calc(96px + var(--safe-b))' }}>
+    <main className="screen details" style={{ paddingBottom: `calc(${unsorted ? 130 : 96}px + var(--safe-b))` }}>
       {edit ? <SubTop title={`Edit ${kind.toLowerCase()}`} /> : (
         <div className="top"><h1 className="caps">Needs details</h1><span className="m" style={{ marginLeft: 'auto', paddingRight: 10 }}>{position}</span></div>
       )}
@@ -166,11 +171,24 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
           <input id="d-name" className="field" value={d.name} onChange={(e) => set({ name: e.target.value })} placeholder={suggestName(shade?.name, kind)} />
         </div>
         <div className="q">
-          <p className="ql">Looks like</p>
+          <p className="ql">What is it?</p>
           <div className="chips">
-            <Chip on onClick={() => setChanging(true)}>{kind}</Chip>
+            {!unsorted && !choices.includes(d.kindId) && <Chip on>{kind}</Chip>}
+            {choices.map((id) => (
+              <Chip key={id} on={d.kindId === id} onClick={() => set({ kindId: id })}>
+                {id === last ? `Same as last: ${singular(kindName(id, trees.kinds))}` : kindName(id, trees.kinds)}
+              </Chip>
+            ))}
+            <Chip onClick={() => setChanging(true)}>More</Chip>
+          </div>
+          <button type="button" className="link" style={{ justifySelf: 'start' }} onClick={() => set({ kindId: clothing ? UNSORTED.things : UNSORTED.clothing })}>{clothing ? 'It is not clothing' : 'It is clothing'}</button>
+        </div>
+        <div className="q">
+          <p className="ql">Colour looks like</p>
+          <div className="chips">
             {shade && <Chip on dot={shade.hex} onClick={() => setChanging(true)}>{shade.name}</Chip>}
             {shade2 && <Chip on dot={shade2.hex} onClick={() => setChanging(true)}>{shade2.name}</Chip>}
+            {!shade && <span className="m" style={{ alignSelf: 'center' }}>{item.cutout === 'pending' ? 'Guessed once the cut-out is done' : 'Not guessed'}</span>}
             <Chip onClick={() => setChanging(true)}>Change</Chip>
           </div>
         </div>
@@ -228,8 +246,9 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
         )}
       </div>
       <div className="bottom-bar">
+        {unsorted && <p className="bar-why">Choose what it is to save it.</p>}
         {edit ? <button type="button" className="ghost" onClick={() => back()}>Cancel</button> : <button type="button" className="ghost" onClick={onSkip}>Skip</button>}
-        <button type="button" className="acc" style={{ flex: 1 }} onClick={save} disabled={whenBad || priceBad || exactBad}>{edit ? 'Save' : 'Save and next'}</button>
+        <button type="button" className="acc" style={{ flex: 1 }} onClick={save} disabled={whenBad || priceBad || exactBad || unsorted}>{edit ? 'Save' : 'Save and next'}</button>
       </div>
       <ChangeSheet open={changing} onClose={() => setChanging(false)} trees={trees} d={d} set={set} />
       <LetGoSheet open={letting} onClose={() => setLetting(false)} count={1} onDone={async (g) => { await letGo(item.id, g); setLetting(false); go('/piece', { id: item.id }, { replace: true }); showToast(`Let go of ${item.name}`, () => void undoLast()); }} />
@@ -263,7 +282,7 @@ function ChangeSheet({ open, onClose, trees, d, set }: { open: boolean; onClose:
   const [fam, setFam] = useState<Id | null>(null);
   const [which, setWhich] = useState<'main' | 'second'>('main');
   const clothing = trees.kinds.find((k) => k.id === d.kindId)?.clothing ?? true;
-  const kinds = trees.kinds.filter((k) => k.clothing === clothing);
+  const kinds = trees.kinds.filter((k) => k.clothing === clothing && !isUnsorted(k.id));
   const families = trees.shades.filter((s) => !s.familyId);
   const cur = which === 'main' ? d.shadeMain : d.shadeSecond;
   const famId = fam ?? trees.shades.find((s) => s.id === cur)?.familyId ?? null;
@@ -273,7 +292,7 @@ function ChangeSheet({ open, onClose, trees, d, set }: { open: boolean; onClose:
         <div className="q">
           <p className="ql">Kind</p>
           <Chips label="Kind" value={d.kindId} onChange={(v) => set({ kindId: v })} options={kinds.map((k) => ({ value: k.id, label: k.parentId ? k.name : k.name.toUpperCase() === k.name ? k.name : k.name }))} />
-          <button type="button" className="link" style={{ justifySelf: 'start' }} onClick={() => { const other = trees.kinds.find((k) => k.clothing !== clothing && !k.parentId); if (other) set({ kindId: other.id }); }}>{clothing ? 'It is not clothing' : 'It is clothing'}</button>
+          <button type="button" className="link" style={{ justifySelf: 'start' }} onClick={() => set({ kindId: clothing ? UNSORTED.things : UNSORTED.clothing })}>{clothing ? 'It is not clothing' : 'It is clothing'}</button>
         </div>
         <Chips label="Which colour" value={which} onChange={setWhich} options={[{ value: 'main', label: 'Main colour' }, { value: 'second', label: 'Second colour' }]} />
         <div className="q">
