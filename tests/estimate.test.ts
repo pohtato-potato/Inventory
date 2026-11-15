@@ -46,3 +46,21 @@ describe('parseRoughPrice', () => {
     expect(parseRoughPrice('-5')).toBeNull();
   });
 });
+
+describe('exact dates and prices', () => {
+  const now = new Date('2026-11-15T10:00:00');
+  const exact = { value: '2026-11-12', estimate: false };
+  it.each(['12 Nov 2026', '12/11/2026', '2026-11-12', '12.11.2026', '12-11-2026', '12th Nov 2026', '12 November 2026', 'Nov 12, 2026', '12/11/26'])('reads %s as an exact day, day first', (s) => {
+    expect(parseRoughDate(s, now)).toEqual(exact);
+  });
+  it('reads today and yesterday as exact days', () => {
+    expect(parseRoughDate('today', now)).toEqual({ value: '2026-11-15', estimate: false });
+    expect(parseRoughDate('yesterday', now)).toEqual({ value: '2026-11-14', estimate: false });
+  });
+  it('shows an exact day in full on the piece page', () => {
+    expect(roughDateText(parseRoughDate('12/11/2026', now)!)).toBe('12 Nov 2026');
+  });
+  it.each(['2000', '₹2,000', '2,000.00', 'Rs 2000'])('does not mark the exact price %s as a guess', (s) => {
+    expect(parseRoughPrice(s)).toEqual({ value: 2000, estimate: false });
+  });
+});

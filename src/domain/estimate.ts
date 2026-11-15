@@ -17,12 +17,29 @@ function validDay(y: number, m: number, d: number): boolean {
 
 const yearOk = (y: number, now: Date) => y >= 1950 && y <= now.getFullYear() + 1;
 
-/** Reads "about 2023", "Jan 2024", "4 Oct 2026", "2026-10-04", "03/2021", "last year". Null when unreadable. */
+const isoDay = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+/** A two-digit year: 26 is 2026, 99 is 1999 (anything after next year is last century). */
+const fullYear = (y: string, now: Date) => {
+  if (y.length === 4) return Number(y);
+  const n = Number(y);
+  return 2000 + n <= now.getFullYear() + 1 ? 2000 + n : 1900 + n;
+};
+
+/**
+ * Reads "about 2023", "Jan 2024", "4 Oct 2026", "12th Nov 2026", "2026-10-04", "12/11/2026", "12.11.26" (day first),
+ * "03/2021", "today", "last year". A full date with no "about" is exact. Null when unreadable.
+ */
 export function parseRoughDate(s: string, now = new Date()): Rough<string> | null {
   const estimate = GUESS.test(s);
-  const t = s.replace(GUESS, ' ').replace(/[,.]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+  const t = s.replace(GUESS, ' ')
+    .replace(/(\d)(st|nd|rd|th)\b/gi, '$1')
+    .replace(/(\d)\.(?=\d)/g, '$1/')
+    .replace(/[,.]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
   if (!t) return null;
   let m: RegExpMatchArray | null;
+  if (t === 'today') return { value: isoDay(now), estimate };
+  if (t === 'yesterday') return { value: isoDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)), estimate };
   if (t === 'last year') return { value: String(now.getFullYear() - 1), estimate: true };
   if (t === 'this year') return { value: String(now.getFullYear()), estimate: true };
   if ((m = t.match(/^(\d{1,2}) years? ago$/))) return { value: String(now.getFullYear() - Number(m[1])), estimate: true };
@@ -30,8 +47,8 @@ export function parseRoughDate(s: string, now = new Date()): Rough<string> | nul
     const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
     return yearOk(y, now) && validDay(y, mo, d) ? { value: `${y}-${pad(mo)}-${pad(d)}`, estimate } : null;
   }
-  if ((m = t.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/))) {
-    const [d, mo, y] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  if ((m = t.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4}|\d{2})$/))) {
+    const [d, mo, y] = [Number(m[1]), Number(m[2]), fullYear(m[3], now)];
     return yearOk(y, now) && validDay(y, mo, d) ? { value: `${y}-${pad(mo)}-${pad(d)}`, estimate } : null;
   }
   if ((m = t.match(/^(\d{4})-(\d{1,2})$/)) || (m = t.match(/^(\d{1,2})[/-](\d{4})$/))) {

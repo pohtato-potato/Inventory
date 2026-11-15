@@ -16,3 +16,4 @@ export const IconMenu = ({ size = 22 }: { size?: number }) => <Svg size={size} d
 export const IconClose = ({ size = 20 }: { size?: number }) => <Svg size={size} d={<path d="M6 6l12 12M18 6L6 18" />} />;
 export const IconPlus = ({ size = 22 }: { size?: number }) => <Svg size={size} d={<path d="M12 5v14M5 12h14" />} />;
 export const IconImage = ({ size = 22 }: { size?: number }) => <Svg size={size} d={<><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="9" cy="10" r="1.6" /><path d="M21 16l-5-5-8 8" /></>} />;
+export const IconCalendar = ({ size = 22 }: { size?: number }) => <Svg size={size} d={<><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 10h16M9 3v4M15 3v4" /></>} />;

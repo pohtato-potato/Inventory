@@ -10,7 +10,7 @@ import { Chip, Chips } from '../ui/Chips';
 import { Sheet } from '../ui/Sheet';
 import { showToast } from '../ui/Toast';
 import { Piece, Window } from '../ui/Window';
-import { IconPin } from '../ui/icons';
+import { IconCalendar, IconPin } from '../ui/icons';
 import { CONDITION_LABEL, FIT_LABEL, FIT_TONE } from './Piece';
 import { kindName, SubTop, UncutNote } from './shared';
 import { ReadReceipt } from './ReadReceipt';
@@ -185,9 +185,10 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
           <p className="ql">When and for how much? A guess is fine.</p>
           <div style={{ display: 'flex', gap: 8 }}>
             <input className="field" value={d.when} onChange={(e) => set({ when: e.target.value })} placeholder="About 2023" aria-label="When you bought it" aria-invalid={whenBad} />
+            <DayPicker value={when && /^\d{4}-\d{2}-\d{2}$/.test(when.value) ? when.value : ''} onPick={(day) => set({ when: roughDateText({ value: day, estimate: false }) })} />
             <input className="field" value={d.price} onChange={(e) => set({ price: e.target.value })} placeholder="About ₹800" aria-label="How much it cost" aria-invalid={priceBad} inputMode="text" />
           </div>
-          {(whenBad || priceBad) && <p className="warn-text">{whenBad ? 'Try a year or a month, like "about 2023" or "Jan 2024". ' : ''}{priceBad ? 'Try an amount, like "about ₹800".' : ''}</p>}
+          {(whenBad || priceBad) && <p className="warn-text">{whenBad ? 'Try a date, a month or a year, like "12 Nov 2026", "Jan 2024" or "about 2023". ' : ''}{priceBad ? 'Try an amount, like "about ₹800".' : ''}</p>}
           <ReadReceipt onUse={(r) => set({
             ...(r.when ? { when: r.when } : {}),
             ...(r.price ? { price: r.price } : {}),
@@ -316,3 +317,16 @@ export function LetGoSheet({ open, onClose, count, onDone }: { open: boolean; on
   );
 }
 
+
+/** The exact day, from the phone's own date picker. Writes "12 Nov 2026" into the text field, so it can still be edited. */
+function DayPicker({ value, onPick }: { value: string; onPick: (day: string) => void }) {
+  const today = new Date();
+  const max = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  return (
+    <label className="day-pick" aria-label="Pick the exact day">
+      <IconCalendar />
+      <input type="date" value={value} max={max} onChange={(e) => { if (e.target.value) onPick(e.target.value); }}
+        onClick={(e) => { try { e.currentTarget.showPicker(); } catch { /* the browser opens its own picker */ } }} />
+    </label>
+  );
+}
