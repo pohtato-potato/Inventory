@@ -1,0 +1,416 @@
+<title>Inventory Feature Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: one reading column, a wardrobe rail of sections; each feature is a tag-like row with its October history and a three-way pick. */
+:root {
+  --bg: #15171a; --surface: #1e2126; --fg: #eef0f2; --muted: #a9b0b8; --line: #343941;
+  --accent: #7fb4ff; --now: #6fd39a; --later: #e8bd62; --out: #9aa1a9; --new: #ff9f7a;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  --bg: #f2f3f1; --surface: #ffffff; --fg: #181b1f; --muted: #555d66; --line: #d2d6da;
+  --accent: #1f5fae; --now: #1f7a47; --later: #8a5a00; --out: #6b727a; --new: #b3451c; color-scheme: light; } }
+:root[data-theme="light"] {
+  --bg: #f2f3f1; --surface: #ffffff; --fg: #181b1f; --muted: #555d66; --line: #d2d6da;
+  --accent: #1f5fae; --now: #1f7a47; --later: #8a5a00; --out: #6b727a; --new: #b3451c; color-scheme: light; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 17px/1.5 var(--f-body); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 780px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 72px; }
+h1 { font: 800 clamp(30px, 7vw, 44px)/1.05 var(--f-display); margin: 0 0 10px; text-wrap: balance; }
+.lede { color: var(--muted); max-width: 62ch; margin: 0 0 14px; }
+.how { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 12px 16px; margin: 0 0 18px; }
+.how p { margin: 0 0 6px; } .how p:last-child { margin: 0; }
+.k { font-weight: 700; }
+.k.now { color: var(--now); } .k.later { color: var(--later); } .k.out { color: var(--out); }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; background: var(--bg); padding-block: 10px; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip { font: 700 15px var(--f-body); border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 8px 14px; min-height: 44px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.tally { font: 15px var(--f-body); color: var(--muted); font-variant-numeric: tabular-nums; width: 100%; }
+.save { font: 14px var(--f-body); color: var(--muted); width: 100%; }
+.accept { font: 700 15px var(--f-body); border: 1px solid var(--accent); background: none; color: var(--accent); border-radius: 8px; padding: 8px 14px; min-height: 44px; cursor: pointer; }
+section { margin-top: 36px; }
+section > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; border-bottom: 2px solid var(--fg); padding-bottom: 6px; }
+section h2 { font: 800 22px/1.2 var(--f-display); margin: 0; }
+section .count { margin-left: auto; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+section .why { width: 100%; color: var(--muted); font-size: 15px; margin: 0; }
+.item { display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: 4px 10px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.code { font: 700 14px var(--f-body); color: var(--accent); padding-top: 3px; font-variant-numeric: tabular-nums; }
+.name { font-weight: 700; }
+.desc { color: var(--muted); font-size: 16px; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; font-size: 14px; }
+.tag { border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; color: var(--muted); }
+.tag.new { color: var(--new); border-color: var(--new); font-weight: 700; }
+.tag.sug { color: var(--fg); }
+.picks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+.pick { font: 700 15px var(--f-body); min-height: 44px; padding: 6px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.pick[data-c="now"][aria-pressed="true"] { background: var(--now); border-color: var(--now); color: var(--bg); }
+.pick[data-c="later"][aria-pressed="true"] { background: var(--later); border-color: var(--later); color: var(--bg); }
+.pick[data-c="out"][aria-pressed="true"] { background: var(--out); border-color: var(--out); color: var(--bg); }
+.notebtn { font: 15px var(--f-body); background: none; border: 0; color: var(--accent); cursor: pointer; padding: 10px 6px; text-decoration: underline; }
+textarea { width: 100%; font: 16px/1.4 var(--f-body); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-top: 8px; resize: vertical; min-height: 68px; }
+button:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.general { margin-top: 44px; }
+.general h2 { font: 800 22px var(--f-display); margin: 0 0 4px; }
+</style>
+
+<div class="wrap">
+  <h1>Inventory feature board</h1>
+  <p class="lede">Every feature from October, plus new ones from this week's answers, re-sorted with clothes first. You said you've forgotten the old plan, so each line says what you chose back then and what I'd do now.</p>
+  <div class="how">
+    <p><span class="k now">First version</span> goes into the build we start now, so you can begin using the app soon.</p>
+    <p><span class="k later">Later</span> is kept on the list and added after you're using it.</p>
+    <p><span class="k out">Out</span> is dropped.</p>
+    <p>Tap "Note" on any line to change it or add an idea. Picks save as you go, and I read them before the next round.</p>
+  </div>
+
+  <div class="bar" role="toolbar" aria-label="Filter">
+    <button class="chip" data-f="all" aria-pressed="true">All</button>
+    <button class="chip" data-f="none" aria-pressed="false">Not picked</button>
+    <button class="chip" data-f="new" aria-pressed="false">New ideas</button>
+    <button class="chip" data-f="now" aria-pressed="false">First version</button>
+    <button class="chip" data-f="later" aria-pressed="false">Later</button>
+    <button class="chip" data-f="out" aria-pressed="false">Out</button>
+    <span class="tally" id="tally"></span>
+    <span class="save" id="save">Connecting…</span>
+  </div>
+
+  <div id="menu"></div>
+
+  <div class="general">
+    <h2>Anything else</h2>
+    <p class="desc">Features that are missing, or anything about how you want to use the app.</p>
+    <textarea id="general" aria-label="General notes" placeholder="Write anything here"></textarea>
+  </div>
+</div>
+
+<script>
+// [name, description, october, suggestion]  october: d = already decided, in, out, liked = liked on a pinboard, new
+// suggestion: n = first version, l = later, s = skip
+const MENU = [
+  ['W', 'Your wardrobe', 'The reason you came back: seeing and remembering what you own.', [
+    ['Every piece with a photo', 'One grid of all your clothes, shoes and accessories.', 'd', 'n'],
+    ['Counts by kind', 'The top of the wardrobe says "14 tees · 5 jeans · 3 jackets", and each count opens that group.', 'new', 'n'],
+    ['Cut-out photos', 'The background is removed on the phone, so each piece sits cleanly on a grey stage.', 'd', 'n'],
+    ['Fix a bad cut-out', 'A brush and tap-to-pick for when the cut-out keeps or drops the wrong part.', 'd', 'l'],
+    ['Kinds', 'A starter tree (tops, bottoms, shoes, accessories and so on) that you can edit.', 'd', 'n'],
+    ['Named colours', 'About 20 colour names, a main and a second colour per piece, easy to correct.', 'd', 'n'],
+    ['Views and sorting', 'Grid, list or by colour; sort by kind, date added or last worn.', 'in', 'n'],
+    ['Search and filters', 'Find by name, kind, colour, brand, place or tag; save a search you repeat.', 'd', 'n'],
+    ['Say-it search', 'Type "black tee bedroom" in one box and it works out kind, colour and place.', 'liked', 'l'],
+    ['Count per entry', 'One card for "socks ×4" instead of four cards.', 'd', 'n'],
+    ['Variants', 'The same tee in three colours grouped under one card.', 'in', 'l'],
+    ['Copy a piece', 'Duplicate a piece with a new colour or size.', 'in', 'n'],
+    ['Wardrobe palette', 'All your colours together as one strip.', 'in', 'l'],
+    ['Piece page', 'Photo, where it is, quick actions, details, then its history.', 'd', 'n'],
+    ['Basic details', 'Brand, size, bought when, where and for how much. Prices stay hidden while browsing.', 'd', 'n'],
+    ['Extra photos and close-ups', 'A main photo plus extras; tap two or three spots once to name close-ups.', 'd', 'l'],
+    ['Condition', 'New, good, worn, or needs replacing.', 'new', 'n'],
+    ['Care symbols', 'Pick wash, iron and dry-clean symbols for a piece.', 'in', 'l'],
+    ['Bracelets, rings and watches', 'Accessories with their own fields: metal, stones, watch battery.', 'in', 'l'],
+    ['Tags', 'Your own labels on anything.', 'd', 'n'],
+  ]],
+  ['A', 'Adding pieces', 'You will add everything on the phone, in one bulk afternoon and then one at a time.', [
+    ['Camera-first adding', 'Shoot piece after piece; each lands in "needs details" to fill in later.', 'd', 'n'],
+    ['Burst capture', 'Take several photos in a row before tagging any of them.', 'in', 'n'],
+    ['Photo check', 'A warning when a photo is blurry or too dark, before it is saved.', 'in', 'l'],
+    ['Batch edit', 'Select many pieces and set kind, place, season or tag at once.', 'in', 'n'],
+    ['Fields by kind', 'Shoes ask for UK size; fields that do not apply stay hidden.', 'in', 'n'],
+    ['Duplicate hint', 'While adding, a quiet "you already have something like this".', 'd', 'l'],
+    ['Read receipts', 'Photograph a receipt and the shop, date and price fill in.', 'in', 'l'],
+    ['Read order screenshots', 'A Myntra or Amazon order screenshot fills name, size, price and date.', 'in', 'l'],
+    ['Flat-lay polish', 'Straighten cut-outs and give them a soft shadow.', 'in', 'l'],
+    ['First load from the Mac', 'Move a folder of photos to the Mac, cut them all out there, and hand the phone one file.', 'new', 's'],
+    ['Barcode scan', 'Scan a barcode or serial number, offline only.', 'd', 'l'],
+  ]],
+  ['B', 'Fit and sizes', 'New this round: you are training toward a leaner look, so sizes will move. Health is the only app Inventory talks to.', [
+    ['My sizes', 'One page laid out like a tailor\'s book: your measurements and your size per brand.', 'liked', 'n'],
+    ['Measurements from Health', 'Chest, waist and the rest come from Health, not typed twice.', 'd', 'l'],
+    ['Fit now', 'Each piece is marked tight, fits or loose. Filter the wardrobe to what fits today.', 'new', 'n'],
+    ['Fit re-check', 'When your Health measurements change enough, a short swipe-through asks about pieces that may fit differently.', 'new', 'l'],
+    ['Size history', 'Your sizes over time, so you can see the change.', 'new', 'l'],
+    ['Fit notes', '"Runs small", "shrank", per piece.', 'in', 'n'],
+    ['Will fit again', 'A shelf for pieces you are keeping for the leaner you, kept out of "not worn" nudges.', 'new', 'l'],
+    ['Other people\'s sizes', 'Family sizes kept for buying gifts.', 'in', 'l'],
+  ]],
+  ['O', 'Outfits', 'Built on what you told me in October: you start from one piece you feel like wearing, or repeat a few known combinations.', [
+    ['Saved outfits', 'Your regular combinations, most worn first.', 'd', 'l'],
+    ['Builder: regulars and pieces on one screen', 'Regulars on top, pieces below. The direction you scored highest.', 'liked', 'l'],
+    ['Start from a piece', 'Pick one piece; it is pinned and the rest swipe past with "worn with it 3×" or "never tried".', 'liked', 'l'],
+    ['Change one piece', 'Open a regular and swap a single piece.', 'liked', 'l'],
+    ['True proportions', 'Shoes smaller than jeans, bracelets and rings at wrists and hands. You asked for this last.', 'liked', 'l'],
+    ['Shuffle with locks', 'Lock the pieces you want and shuffle the rest.', 'd', 'l'],
+    ['Pairs well with', 'Mark pieces that go together; shuffle favours them.', 'in', 'l'],
+    ['Never together', 'Mark clashes; shuffle avoids them.', 'in', 'l'],
+    ['Dress codes', 'Formal, smart casual, ethnic, gym, lounge and your own.', 'in', 'l'],
+    ['Weather filter', 'Today\'s temperature narrows the pieces offered (needs internet).', 'in', 'l'],
+    ['Layer lanes', 'Tee under shirt, jacket over.', 'in', 'l'],
+    ['Plan outfits on dates', 'A month grid of planned and worn outfits.', 'd', 'l'],
+    ['Mirror selfies', 'A photo of you wearing the outfit, kept on it.', 'd', 'l'],
+    ['Outfit notes', 'Where you wore it and what you would change.', 'in', 'l'],
+    ['Capsule builder', 'Pick a few pieces and see how many outfits they make.', 'in', 'l'],
+    ['Lookbook', 'Saved outfits as one scrolling gallery.', 'in', 'l'],
+    ['Compare two looks', 'Two outfit selfies side by side.', 'in', 's'],
+  ]],
+  ['L', 'Wearing and care', 'Logged in Inventory itself, only on the days you feel like it.', [
+    ['Quick wear log', 'A prefilled, timed log like Health\'s morning log: confirm what you wore in a few taps.', 'd', 'l'],
+    ['Last worn and times worn', 'Shown on each piece.', 'd', 'l'],
+    ['Cost per wear', 'On the piece page only, never per outfit.', 'd', 'l'],
+    ['Not-worn nudges', 'A few soft reminders at a time about pieces you have not worn, easy to dismiss.', 'd', 'l'],
+    ['Wear next', 'A queue of pieces you want to wear more.', 'in', 'l'],
+    ['Wardrobe in use', 'The share of your wardrobe worn in the last 90 days.', 'in', 'l'],
+    ['In the wash', 'Mark pieces as in the wash so they are not offered for outfits.', 'new', 's'],
+    ['At the dry-cleaner', 'The dry-cleaner as a place, with a pick-up date.', 'in', 'l'],
+    ['Repairs and tailoring', 'Out for repair or alteration, and what was done.', 'd', 'l'],
+    ['Season swap', 'A view for putting winter away and bringing summer out.', 'd', 'l'],
+    ['Upkeep schedules', 'Repeating care, like polishing shoes every two months.', 'd', 'l'],
+  ]],
+  ['P', 'Places and finding', 'Homes at the top, then rooms, furniture and boxes, plus "with me".', [
+    ['Nested places', 'Home → room → cupboard → shelf or box.', 'd', 'n'],
+    ['Usual place and where it is now', 'A piece can rotate between two or three places.', 'd', 'n'],
+    ['Move many at once', 'Select pieces and send them to one place.', 'd', 'n'],
+    ['Browse by place', 'Open a place and see what is in it, with counts.', 'in', 'n'],
+    ['Place codes', 'Short codes like DEL·BR·A2 for home, room and shelf.', 'liked', 'l'],
+    ['Throw to a place', 'Flick a piece toward a place to move it.', 'liked', 'l'],
+    ['Place photos', 'A photo of each shelf or box.', 'd', 'l'],
+    ['QR labels', 'Print a label for a box; scanning it opens the box.', 'd', 'l'],
+    ['Can\'t find it', 'Mark a piece missing with its last known place.', 'in', 'l'],
+    ['Lost or stolen', 'A record with date and where.', 'in', 'l'],
+    ['Recently moved', 'What changed place lately.', 'in', 'l'],
+    ['The locker', 'One place shown as a locker door you open.', 'liked', 'l'],
+  ]],
+  ['T', 'Other belongings', 'Clothes lead now. This is everything that is not clothing.', [
+    ['Things that are not clothes', 'Electronics, bags, tools and the rest, with the same photo, kind and place.', 'd', 'n'],
+    ['Item history', 'One timeline per item: bought, moved, lent, repaired.', 'in', 'l'],
+    ['Item story', 'A free-text memory for things that matter.', 'in', 'l'],
+    ['Memory box', 'All sentimental items in one place.', 'in', 'l'],
+    ['Receipts, warranty and return windows', 'Dates kept on the item, with a reminder before a return window closes.', 'd', 'l'],
+    ['Documents with expiry', 'Passport, licence and the like: expiry dates only, no numbers or scans.', 'd', 'l'],
+    ['Manuals', 'A manual kept with the item.', 'd', 'l'],
+    ['Expiry on anything', 'Medicines, sunscreen, a fire extinguisher.', 'in', 'l'],
+    ['Subscriptions', 'Cost, renewal date and how often, shown in coming up.', 'd', 'l'],
+    ['Sets and parts', 'A suit as jacket plus trousers; a camera with its lenses.', 'd', 'l'],
+    ['Running low', 'Mark things to restock.', 'd', 'l'],
+    ['Lent, borrowed and gifts', 'Who has it, whose it is, who gave it. Names are typed in.', 'd', 'l'],
+    ['Lending history', 'Everything ever lent to each person.', 'in', 'l'],
+    ['Thank-you done', 'A flag on gifts received.', 'in', 's'],
+  ]],
+  ['S', 'Wishes and buying', 'Things you plan to buy, for yourself or as gifts.', [
+    ['Wish-list', 'An image board of wishes with now, soon and someday.', 'd', 'l'],
+    ['Do I already own this?', 'A shop mode: pick a kind and colour and see what you have before buying.', 'new', 'n'],
+    ['Wait to buy until', 'A wish can wait for a date or a body goal, so you do not buy a size you are about to leave.', 'new', 'l'],
+    ['Save from a shop', 'Share a product page from Myntra or a browser into the wish-list.', 'd', 'l'],
+    ['Wish from a photo', 'Photograph something in a shop to save it.', 'in', 'l'],
+    ['Price log and target price', 'Note prices over time; highlight when one drops below your target.', 'd', 'l'],
+    ['Wish becomes owned', 'Buying a wish turns it into a piece and keeps its history.', 'd', 'l'],
+    ['Gap hints', '"You have no white tee" becomes a suggested wish.', 'd', 'l'],
+    ['Gift ideas', 'Ideas for other people, with the name typed in.', 'd', 'l'],
+    ['Alternatives', 'Group a few candidates for one need.', 'in', 'l'],
+    ['Cooling-off', 'A wish waits a few days before "Bought" is offered.', 'in', 'l'],
+    ['30 wears question', 'Before buying clothes: will you wear it 30 times?', 'in', 'l'],
+    ['Glad you bought it?', 'A 1–7 check-in thirty days after a purchase.', 'in', 'l'],
+    ['By shop', 'Wishes grouped by shop for one trip.', 'in', 'l'],
+    ['Share a wish-list', 'Send your list to someone.', 'd', 'l'],
+  ]],
+  ['K', 'Packing and trips', '', [
+    ['Packing lists', 'Pick pieces for a trip; packed pieces move to "with me".', 'd', 'l'],
+    ['One-tap unpack', 'Everything goes back to its usual place.', 'd', 'l'],
+    ['Packing templates', 'A saved list for a weekend, a work trip, the gym.', 'd', 'l'],
+    ['Outfits per day', 'Plan each day\'s outfit and the packing list builds itself.', 'in', 'l'],
+    ['Left behind', 'Unpacking flags anything that did not come back.', 'in', 'l'],
+    ['Several bags', 'Split a list across suitcase and backpack; bags are places.', 'in', 'l'],
+    ['Destination weather', 'The forecast where you are going (needs internet).', 'in', 'l'],
+    ['Last time there', 'What you packed last time for the same place.', 'in', 'l'],
+    ['To buy there', 'Free-text lines for things you do not own yet.', 'in', 'l'],
+    ['Trip story', 'After a trip, a page of what you took and wore, titled by the place.', 'liked', 'l'],
+  ]],
+  ['G', 'Letting go', '', [
+    ['Gone, with history', 'Sold, donated, given or thrown away: a status and date, the piece stays on record.', 'd', 'n'],
+    ['Let-go flag', 'Mark a piece "thinking of letting go".', 'd', 'l'],
+    ['Declutter session', 'Swipe through pieces: keep, let go, unsure.', 'in', 'l'],
+  ]],
+  ['N', 'Numbers and looking back', '', [
+    ['Numbers page', 'How many things, by kind and place, and what they cost.', 'd', 'l'],
+    ['Spend breakdown', 'By kind, shop and brand.', 'in', 'l'],
+    ['Best and worst value', 'Cost per wear, ranked.', 'in', 'l'],
+    ['Favourite brands', 'The brands you own most.', 'in', 'l'],
+    ['Year in review', 'Late December, your year shown as rooms.', 'liked', 'l'],
+    ['On this day', 'Bought or worn a year ago.', 'in', 'l'],
+    ['Item anniversaries', '"Your watch turns five today."', 'in', 's'],
+  ]],
+  ['X', 'The app itself', '', [
+    ['Works offline, phone only', 'Installed on the S23 like Health, with everything stored on the phone.', 'd', 'n'],
+    ['Backup to Drive', 'Photos included, only what changed each time.', 'd', 'n'],
+    ['Export', 'A spreadsheet and a full backup file.', 'in', 'n'],
+    ['Trash', 'Deleted pieces kept for 30 days.', 'in', 'n'],
+    ['Undo', 'Undo on every action.', 'in', 'n'],
+    ['Select many', 'Multi-select on every list.', 'in', 'n'],
+    ['Home page', 'Coming up, nudges and recent pieces. With clothes leading, the app could open straight on the wardrobe.', 'd', 'l'],
+    ['Coming up', 'The next 14 days: returns, renewals, trips, pick-ups.', 'd', 'l'],
+    ['Low-space warning', 'A warning when the phone is nearly full.', 'in', 'l'],
+    ['Share a card', 'Send one piece as an image.', 'in', 'l'],
+    ['Motion like Health', 'Numbers that roll, pieces that move with weight. No reduced-motion mode.', 'new', 'n'],
+  ]],
+  ['Z', 'Turned down in October', 'Listed so nothing is hidden. Pick one back in if your mind has changed.', [
+    ['Logbook links', 'Outfit postcards to Logbook and people from Logbook. Dropped this week because you do not use Logbook.', 'd', 's'],
+    ['Books, films and games', 'Physical media stays out of Inventory.', 'out', 's'],
+    ['Voice add', 'Say a piece aloud and the form fills in.', 'out', 's'],
+    ['Your own fields', 'Add a custom field to any kind.', 'out', 's'],
+    ['Rate outfits 1–7', '', 'out', 's'],
+    ['Shoe distance', 'Kilometres walked per pair, from Health steps.', 'out', 's'],
+    ['Repair costs', 'Which tailor and what it cost.', 'out', 's'],
+    ['Batteries, cables and "compatible with"', 'What each device takes and fits.', 'out', 's'],
+    ['Value now and insurance list', 'Depreciation and an export for insurers.', 'out', 's'],
+    ['Returns and warranty claims in progress', 'Tracking a refund or a claim to its outcome.', 'out', 's'],
+    ['Vehicles, spares and shared ownership', '', 'out', 's'],
+    ['Stocktake', 'Walk a room and tick what is there.', 'out', 's'],
+    ['Moving house', 'Numbered boxes with packed and unpacked status.', 'out', 's'],
+    ['Spot on a shelf photo', 'Tap a spot on a photo to see what is kept there.', 'out', 's'],
+    ['Gifts given per person and gift dates', '', 'out', 's'],
+    ['One in, one out', 'Adding clothes offers to let something go.', 'out', 's'],
+    ['Budget and sale seasons', 'A monthly cap; when each shop has its sales.', 'out', 's'],
+    ['Bag weight', 'Item weights against an airline limit.', 'out', 's'],
+    ['Selling, donations and "miss it?"', 'Where something was sold or donated, and a check three months later.', 'out', 's'],
+    ['Owned over time', 'Is the count of things growing or shrinking?', 'out', 's'],
+    ['App lock and hide prices', 'Fingerprint to open; blur values when showing your phone.', 'out', 's'],
+    ['Comparing wishes side by side', '', 'out', 's'],
+  ]],
+];
+const OCT = { d: 'October: already decided', in: 'October: in', out: 'October: out', liked: 'October: liked on a board', new: 'New' };
+const SUG = { n: 'first version', l: 'later', s: 'out' };
+const SUGKEY = { n: 'now', l: 'later', s: 'out' };
+
+const state = {}; // code -> {choice, note}
+const meta = {};  // code -> {oct, sug}
+let db = null, filter = 'all';
+const LS = 'inv-board-2-picks';
+try { Object.assign(state, JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) {}
+const keepLocal = () => { try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {} };
+const $ = (s, el = document) => el.querySelector(s);
+const setSave = (t) => { $('#save').textContent = t; };
+
+function build() {
+  const menu = $('#menu');
+  for (const [letter, title, why, items] of MENU) {
+    const sec = document.createElement('section');
+    const head = document.createElement('header');
+    const h2 = document.createElement('h2'); h2.textContent = title;
+    const count = document.createElement('span'); count.className = 'count'; count.dataset.sec = letter;
+    head.append(h2, count);
+    if (why) { const p = document.createElement('p'); p.className = 'why'; p.textContent = why; head.append(p); }
+    if (letter !== 'Z') {
+      const acc = document.createElement('button'); acc.className = 'accept'; acc.type = 'button'; acc.dataset.sec = letter;
+      acc.textContent = 'Use my suggestions for the unpicked ones here';
+      head.append(acc);
+    }
+    sec.append(head);
+    items.forEach(([name, desc, oct, sug], i) => {
+      const code = letter + (i + 1);
+      meta[code] = { oct, sug, letter };
+      const el = document.createElement('div');
+      el.className = 'item'; el.dataset.code = code;
+      el.innerHTML = `<div class="code"></div><div class="body"><div class="name"></div><div class="desc"></div>
+        <div class="tags"><span class="tag oct"></span><span class="tag sug"></span></div>
+        <div class="picks" role="group">
+          <button class="pick" data-c="now" aria-pressed="false">First version</button>
+          <button class="pick" data-c="later" aria-pressed="false">Later</button>
+          <button class="pick" data-c="out" aria-pressed="false">Out</button>
+          <button class="notebtn" type="button">Note</button>
+        </div>
+        <textarea id="note-${code}" hidden></textarea></div>`;
+      $('.code', el).textContent = code;
+      $('.name', el).textContent = name;
+      $('.desc', el).textContent = desc; $('.desc', el).hidden = !desc;
+      const o = $('.oct', el); o.textContent = OCT[oct]; if (oct === 'new') o.classList.add('new');
+      $('.sug', el).textContent = 'I suggest: ' + SUG[sug];
+      $('.picks', el).setAttribute('aria-label', 'Choice for ' + name);
+      $('textarea', el).setAttribute('aria-label', 'Note for ' + name);
+      sec.append(el);
+    });
+    menu.append(sec);
+  }
+}
+
+function paint() {
+  const counts = { now: 0, later: 0, out: 0, none: 0 };
+  const per = {};
+  document.querySelectorAll('.item').forEach((el) => {
+    const code = el.dataset.code, s = state[code] || {}, m = meta[code];
+    el.querySelectorAll('.pick').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.c === s.choice)));
+    const ta = $('textarea', el);
+    if (document.activeElement !== ta) ta.value = s.note || '';
+    if (s.note) ta.hidden = false;
+    const c = s.choice || 'none'; counts[c]++;
+    const p = per[m.letter] = per[m.letter] || [0, 0]; p[1]++; if (s.choice) p[0]++;
+    el.hidden = !(filter === 'all' || filter === c || (filter === 'new' && m.oct === 'new'));
+  });
+  document.querySelectorAll('.count').forEach((el) => { const p = per[el.dataset.sec] || [0, 0]; el.textContent = `${p[0]} of ${p[1]} picked`; });
+  $('#tally').textContent = `${counts.now} first version · ${counts.later} later · ${counts.out} out · ${counts.none} not picked`;
+}
+
+async function save(code) {
+  keepLocal(); paint();
+  if (!db) return;
+  const s = state[code] || {};
+  try {
+    await db.collection('picks').doc(code).set({ choice: s.choice || null, note: s.note || '', at: new Date().toISOString() });
+    setSave('Saved');
+  } catch (e) {
+    setSave('Not saved online; kept on this device only');
+  }
+}
+
+build(); paint();
+
+document.addEventListener('click', async (ev) => {
+  const chip = ev.target.closest('.chip');
+  if (chip) { filter = chip.dataset.f; document.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', String(c === chip))); paint(); return; }
+  const pick = ev.target.closest('.pick');
+  if (pick) {
+    const code = pick.closest('.item').dataset.code;
+    const s = state[code] = state[code] || {};
+    s.choice = s.choice === pick.dataset.c ? null : pick.dataset.c;
+    save(code); return;
+  }
+  const acc = ev.target.closest('.accept');
+  if (acc) {
+    const codes = Object.keys(meta).filter((c) => meta[c].letter === acc.dataset.sec && !(state[c] && state[c].choice));
+    for (const c of codes) { (state[c] = state[c] || {}).choice = SUGKEY[meta[c].sug]; await save(c); }
+    return;
+  }
+  const nb = ev.target.closest('.notebtn');
+  if (nb) { const ta = $('textarea', nb.closest('.item')); ta.hidden = false; ta.focus(); }
+});
+document.addEventListener('change', (ev) => {
+  const ta = ev.target;
+  if (ta.id === 'general') { saveGeneral(); return; }
+  const item = ta.closest && ta.closest('.item'); if (!item) return;
+  const code = item.dataset.code; (state[code] = state[code] || {}).note = ta.value.trim();
+  save(code);
+});
+
+let general = '';
+try { general = localStorage.getItem(LS + '-general') || ''; } catch (e) {}
+$('#general').value = general;
+async function saveGeneral() {
+  const v = $('#general').value.trim();
+  try { localStorage.setItem(LS + '-general', v); } catch (e) {}
+  if (db) { try { await db.doc('notes/general').set({ text: v, at: new Date().toISOString() }); setSave('Saved'); } catch (e) { setSave('Not saved online; kept on this device only'); } }
+}
+
+(async () => {
+  try { db = await window.claude?.use?.('db'); } catch (e) { db = null; }
+  if (!db) { setSave('Saving on this device only'); return; }
+  setSave('Connected. Picks save as you go.');
+  db.collection('picks').onSnapshot((snap) => {
+    snap.docs.forEach((d) => { const v = d.data(); state[d.id] = { choice: v.choice || null, note: v.note || '' }; });
+    keepLocal(); paint();
+  }, () => { setSave('Lost connection; picks kept on this device'); });
+  db.doc('notes/general').onSnapshot((d) => {
+    if (d.exists && document.activeElement !== $('#general')) $('#general').value = d.data().text || '';
+  });
+})();
+</script>

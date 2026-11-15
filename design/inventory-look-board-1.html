@@ -1,0 +1,349 @@
+<title>Inventory Look Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Archivo:wdth,wght@62..125,100..900&display=swap">
+<style>
+/* Layout: one column of groups; each group is a row of phone mock-ups with a reaction strip under each. Board chrome stays plain so the phones carry the look. */
+:root{
+  --bg:#EEF0F2; --panel:#FFFFFF; --ink:#12171C; --muted:#38434D; --rule:#BFC7CE; --chip:#E1E6EA; --focus:#1D4ED8;
+  --love:#9A3412; --like:#166534; --unsure:#6B4F00; --no:#475569;
+  --body:"Atkinson Hyperlegible", Verdana, system-ui, sans-serif;
+  --disp:Archivo, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#101418; --panel:#1A2027; --ink:#F1F3F5; --muted:#C3CBD2; --rule:#3B4651; --chip:#26303A; --focus:#93C5FD;
+  --love:#FDBA74; --like:#86EFAC; --unsure:#FDE68A; --no:#CBD5E1; color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#101418; --panel:#1A2027; --ink:#F1F3F5; --muted:#C3CBD2; --rule:#3B4651; --chip:#26303A; --focus:#93C5FD;
+  --love:#FDBA74; --like:#86EFAC; --unsure:#FDE68A; --no:#CBD5E1; color-scheme:dark; }
+*{box-sizing:border-box}
+body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--body); font-size:18px; line-height:1.55}
+body::before{content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); z-index:10; background:var(--bg)}
+::selection{background:var(--focus); color:var(--panel)}
+:focus-visible{outline:3px solid var(--focus); outline-offset:2px}
+h1,h2,h3{margin:0; line-height:1.15; text-wrap:balance; font-family:var(--disp); font-stretch:88%}
+p{margin:0}
+button,textarea{font-family:inherit; font-size:16px}
+.wrap{max-width:1280px; margin-inline:auto; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); padding-block:28px 96px; display:grid; grid-template-columns:minmax(0,1fr); gap:28px}
+.wrap > *{min-width:0}
+.hero{display:grid; gap:12px; max-width:40em}
+h1{font-size:clamp(34px,6vw,52px); font-weight:800}
+.hero ul{margin:0; padding-left:1.2em; display:grid; gap:4px}
+.bar{position:sticky; top:env(safe-area-inset-top,0px); z-index:5; background:var(--bg); border-bottom:2px solid var(--rule); padding-block:10px; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center}
+.bar .lab{font-weight:700}
+.seg{display:inline-flex; border:2px solid var(--ink); border-radius:10px; overflow:hidden}
+.seg button{min-height:44px; padding:6px 16px; border:0; background:var(--panel); color:var(--ink); font-weight:700; cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink); color:var(--bg)}
+.status{font-size:15px; color:var(--muted); margin-left:auto}
+.group{background:var(--panel); border:2px solid var(--rule); border-radius:16px; padding:18px; display:grid; gap:14px}
+.group h2{font-size:clamp(24px,3.4vw,30px); font-weight:800}
+.group .q{color:var(--muted); max-width:40em}
+.phones{display:flex; flex-wrap:wrap; gap:22px; justify-content:center}
+.card{display:grid; gap:8px; justify-items:center; width:300px; max-width:100%; align-content:start}
+.card h3{font-size:19px; font-weight:700; text-align:center}
+.card .why{font-size:15px; color:var(--muted); text-align:center}
+.row{display:flex; flex-wrap:wrap; gap:6px; justify-content:center}
+.v{min-height:44px; padding:6px 12px; border-radius:22px; border:2px solid var(--rule); background:transparent; color:var(--ink); cursor:pointer}
+.v[aria-pressed="true"][data-v="love"]{background:var(--love); border-color:var(--love); color:var(--panel)}
+.v[aria-pressed="true"][data-v="like"]{background:var(--like); border-color:var(--like); color:var(--panel)}
+.v[aria-pressed="true"][data-v="unsure"]{background:var(--unsure); border-color:var(--unsure); color:var(--panel)}
+.v[aria-pressed="true"][data-v="no"]{background:var(--no); border-color:var(--no); color:var(--panel)}
+.notebtn{min-height:44px; padding:6px 12px; border-radius:22px; border:2px dashed var(--rule); background:transparent; color:var(--ink); cursor:pointer}
+textarea{width:100%; min-height:84px; padding:10px; border-radius:10px; border:2px solid var(--rule); background:var(--bg); color:var(--ink); line-height:1.5}
+.secnote{display:grid; gap:6px; max-width:40em}
+.secnote label{font-weight:700}
+.credits{font-size:14px; color:var(--muted)}
+.credits a{color:inherit}
+
+/* ---- phones: dark app, grey stage. 300 px wide stands for the S23's 360, so 13 px here is about 16 px on the phone. ---- */
+.ph{--g:#0C0C0E; --t:#EEEAE4; --m:#A9A49C; --line:#26262B; --st:#2A2A30; --a:#7FA7FF; --ok:#7BD3A0; --warn:#F0B95B;
+  width:300px; max-width:100%; height:621px; border-radius:30px; overflow:hidden; position:relative; border:6px solid #050506; box-shadow:0 12px 26px #0005; background:var(--g); color:var(--t); font:13.5px/1.35 var(--body); flex:none; text-align:left}
+.ph p{margin:0}
+.ph .m{color:var(--m)}
+.ph .sm{font-size:12px}
+.ph .top{display:flex; align-items:center; gap:8px; padding:14px 16px 0}
+.ph .ttl{font:700 15px var(--body)}
+.ph .big{font-family:var(--disp); font-stretch:68%; font-weight:300; line-height:.85; font-variant-numeric:tabular-nums}
+.ph .disp{font-family:var(--disp); font-stretch:82%; font-weight:500; line-height:1.05}
+.ph .stage{background:var(--st); border-radius:14px; position:relative; overflow:hidden; display:grid; place-items:center}
+.ph .aura{position:absolute; inset:0; opacity:0; background:radial-gradient(ellipse 70% 62% at 50% 54%, var(--c, #888) 0%, transparent 74%)}
+.ph.hl .aura{opacity:.85}
+.ph .pc{display:block; object-fit:contain; position:relative; filter:drop-shadow(0 0 1.5px #FFFFFF99) drop-shadow(0 8px 7px #0009)}
+.ph .chip{display:inline-flex; align-items:center; gap:5px; border:1px solid #45454C; border-radius:15px; padding:5px 11px; font-size:12px; white-space:nowrap}
+.ph .chip b{font-variant-numeric:tabular-nums}
+.ph .chip.on{border-color:var(--t); background:var(--t); color:var(--g); font-weight:700}
+.ph.hl .chip.on{box-shadow:0 0 14px 0 #EEEAE455}
+.ph .dot{width:11px; height:11px; border-radius:50%; flex:none; box-shadow:inset 0 0 0 1px #FFFFFF33}
+.ph .scroll{display:flex; gap:6px; overflow:hidden; padding:0 16px}
+.ph .seg2{display:flex; margin:10px 16px 0; border:1px solid #45454C; border-radius:10px; overflow:hidden; font-size:12.5px}
+.ph .seg2 span{flex:1; text-align:center; padding:6px 0}
+.ph .seg2 .on{background:var(--t); color:var(--g); font-weight:700}
+.ph .acc{background:var(--a); color:#0C0C0E; font-weight:700; padding:9px 14px; border-radius:10px; text-align:center}
+.ph.hl .acc{box-shadow:0 0 18px 0 #7FA7FF66}
+.ph .ghost{border:1px solid #55555C; padding:8px 12px; border-radius:10px; text-align:center}
+.ph .nav{position:absolute; bottom:0; left:0; right:0; display:flex; justify-content:space-around; align-items:center; padding:9px 6px 12px; font-size:12px; color:var(--m); background:var(--g); border-top:1px solid var(--line)}
+.ph .nav b{color:var(--t)}
+.ph .nav .plus{width:34px; height:34px; border-radius:50%; background:var(--a); color:#0C0C0E; display:grid; place-items:center; font:700 22px/1 var(--body)}
+.ph .li{display:flex; align-items:center; gap:8px; padding:9px 16px; border-top:1px solid var(--line)}
+.ph .li .n{margin-left:auto; font-variant-numeric:tabular-nums; color:var(--m)}
+.ph .fit{color:var(--ok); border-color:var(--ok)}
+.ph .tag2{position:absolute; left:8px; top:8px; font-size:12px; background:#0C0C0ECC; border-radius:8px; padding:4px 9px}
+</style>
+<script src="inventory-photos.js"></script>
+
+<div class="wrap">
+  <header class="hero">
+    <h1>Inventory look board</h1>
+    <p>The October look, shown again on the screens you will get first: a dark app, your pieces on a grey stage, big numbers, and colour only from your clothes plus one blue for the main action.</p>
+    <ul>
+      <li>The first two groups show the same screen twice: as it was in October, and with traits borrowed from Health.</li>
+      <li>The switch below applies those traits to every other phone, so you can judge the whole board both ways.</li>
+      <li>The clothes are example photos, not yours. Counts, sizes and prices are made up.</li>
+    </ul>
+  </header>
+
+  <div class="bar">
+    <span class="lab" id="tl">Health's traits on the other phones</span>
+    <span class="seg" role="group" aria-labelledby="tl">
+      <button type="button" id="t-off" aria-pressed="true">Off</button>
+      <button type="button" id="t-on" aria-pressed="false">On</button>
+    </span>
+    <span class="status" id="status" role="status">Connecting…</span>
+  </div>
+
+  <div id="groups" style="display:grid; gap:24px"></div>
+
+  <section class="secnote" aria-labelledby="ov-h">
+    <h2 id="ov-h" style="font-size:26px">Your notes</h2>
+    <label for="note-board">Score out of 10, and what is missing for a 9?</label>
+    <textarea id="note-board" placeholder="Score, what feels wrong, what you want more of"></textarea>
+    <p class="credits">Photos: free-licence images from <a href="https://unsplash.com/license" target="_blank" rel="noopener">Unsplash</a>, cut out with the same tool the app will use.</p>
+  </section>
+</div>
+
+<script>
+const PH0 = window.PHOTOS || {};
+const COL = { 'flat-tee-white':'#E9E6DF', 'flat-tee-black':'#5B6472', 'flat-jeans-blue':'#3F5F96', 'flat-chinos':'#B9A07A', 'flat-jacket-leather':'#6B4A3A',
+  'white-shirt':'#DCE3EA', 'floral-shirt':'#B5546A', 'white-sneakers':'#E4E0D8', 'brown-loafers':'#8A5632', 'black-watch':'#5A6470', 'silver-watch':'#B8C0C8', 'headphones':'#6A6F78' };
+const im = (n, w, h, st='') => `<span class="aura" style="--c:${COL[n]||'#888'}"></span><img class="pc" src="${PH0[n]||''}" alt="" width="${w}" height="${h}" style="width:${w}px; height:${h}px; ${st}">`;
+const ico = (d, s=18) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const SEARCH = ico('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>');
+const CHEV = ico('<path d="M9 6l6 6-6 6"/>', 14);
+const DOWN = ico('<path d="M6 9l6 6 6-6"/>', 14);
+const PIN = ico('<path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>', 15);
+const NAV = on => `<div class="nav">${['Wardrobe','Things','+','Wishes','Home'].map(t => t==='+' ? `<span class="plus">+</span>` : (t===on?`<b>${t}</b>`:`<span>${t}</span>`)).join('')}</div>`;
+const roll = n => `<span data-roll="${n}">${n}</span>`;
+const PIECES = [['flat-jacket-leather','Leather jacket'],['flat-tee-white','White tee'],['flat-tee-black','Graphic tee'],['floral-shirt','Floral shirt'],['white-shirt','Crew tee'],['flat-jeans-blue','Blue jeans'],['flat-chinos','Cargo trousers'],['white-sneakers','Sneakers'],['brown-loafers','Loafers']];
+const tile = ([p,n], h=92, w=62) => `<div><div class="stage" style="height:${h}px">${im(p,w,h-18)}</div><p class="sm" style="padding:3px 2px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${n}</p></div>`;
+
+const S = {
+ wardrobe: () => `
+   <div class="top"><span class="ttl">Wardrobe</span><span style="margin-left:auto">${SEARCH}</span></div>
+   <div style="display:flex; align-items:flex-end; gap:10px; padding:10px 16px 0"><span class="big" style="font-size:74px">${roll(47)}</span><span class="m" style="padding-bottom:6px">pieces<br><span style="color:var(--ok)">39 fit now</span></span></div>
+   <div class="scroll" style="padding-top:12px"><span class="chip on">All <b>47</b></span><span class="chip">Tees <b>14</b></span><span class="chip">Shirts <b>6</b></span><span class="chip">Jeans <b>5</b></span><span class="chip">Shoes <b>7</b></span></div>
+   <div class="seg2"><span class="on">By kind</span><span>By colour</span><span>By place</span></div>
+   <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:12px 12px 0">${PIECES.map(p=>tile(p)).join('')}</div>
+   ${NAV('Wardrobe')}`,
+ piece: () => `
+   <div class="top"><span class="m">${ico('<path d="M15 6l-6 6 6 6"/>',16)}</span><span class="ttl">Jackets</span><span class="m" style="margin-left:auto">Edit</span></div>
+   <div class="stage" style="margin:10px 12px 0; height:236px">${im('flat-jacket-leather',190,214)}<span class="tag2">1 of 3 photos</span></div>
+   <div style="padding:12px 16px 0">
+     <p class="disp" style="font-size:25px">Leather jacket</p>
+     <p class="m" style="padding-top:3px">Black · Zara · M</p>
+     <div style="display:flex; gap:6px; padding-top:9px; flex-wrap:wrap"><span class="chip fit">Fits</span><span class="chip">Good condition</span></div>
+   </div>
+   <div class="li" style="margin-top:10px"><span class="m">${PIN}</span><span>Cupboard, left rail</span><span class="n" style="color:var(--a)">Move</span></div>
+   <div class="li" style="align-items:flex-end"><span class="big" style="font-size:46px">${roll(30)}</span><span class="m" style="padding-bottom:3px">wears, about<br>last worn 2 Nov</span></div>
+   <div class="li sm m" style="display:block">Bought Jan 2024 · ₹6,990 · about ₹230 a wear</div>
+   <div style="display:flex; gap:8px; padding:6px 16px 0"><span class="acc" style="flex:1">Worn today</span><span class="ghost">Copy</span></div>`,
+ colour: () => `
+   <div class="top"><span class="ttl">Wardrobe</span><span style="margin-left:auto">${SEARCH}</span></div>
+   <div class="seg2"><span>By kind</span><span class="on">By colour</span><span>By place</span></div>
+   <div class="li" style="margin-top:10px"><span class="disp" style="font-size:19px">Blue</span><span class="n">9</span><span class="m">${DOWN}</span></div>
+   <div style="display:flex; gap:6px; flex-wrap:wrap; padding:0 16px 8px">
+     ${[['#1F2F57','Navy',3],['#14193A','Midnight',1],['#20263F','Ink',1],['#3F5F96','Indigo',3],['#8FB4DC','Sky',1]].map(([c,n,k],i)=>`<span class="chip ${i==3?'on':''}"><span class="dot" style="background:${c}"></span>${n} <b>${k}</b></span>`).join('')}
+   </div>
+   <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:0 12px 8px">${[['flat-jeans-blue','Blue jeans'],['flat-jeans-blue','Slim jeans'],['flat-jeans-blue','Old jeans']].map(p=>tile(p,82,50)).join('')}</div>
+   ${[['Red',4,['#6D1A2B','#7A1F1F','#5A1620','#74213A','#B3202C']],['Green',5,['#1E3B2C','#4B5320','#2F4F3E','#7C8F5A']],['Brown',6,['#4A2F22','#8A5632','#B9A07A','#6B4A3A']],['Black',11,['#0E0E10','#1C1C20','#2A2B30']],['White',8,['#F2EFE8','#E9E6DF','#DCD6C8']],['Grey',4,['#5E636B','#8C9198','#B8BDC4']]].map(([n,k,sw])=>`<div class="li"><span class="disp" style="font-size:19px; width:62px">${n}</span><span style="display:flex; gap:4px">${sw.map(c=>`<span class="dot" style="background:${c}; width:15px; height:15px"></span>`).join('')}</span><span class="n">${k}</span><span class="m">${CHEV}</span></div>`).join('')}
+   ${NAV('Wardrobe')}`,
+ camera: () => `
+   <div style="position:absolute; inset:0 0 150px; background:linear-gradient(160deg,#B9B2A6,#8F887C); display:grid; place-items:center">
+     <img src="${PH0['flat-tee-white']||''}" alt="" style="width:210px; height:250px; object-fit:contain; filter:drop-shadow(0 6px 6px #0005)">
+     <span class="tag2" style="left:12px; top:14px; font-size:13px">Lay it flat, whole piece in frame</span>
+   </div>
+   <div style="position:absolute; left:0; right:0; bottom:0; height:150px; padding:10px 16px 0">
+     <div style="display:flex; gap:6px; align-items:center">${['flat-jeans-blue','flat-tee-black','floral-shirt','flat-chinos'].map(p=>`<span class="stage" style="width:40px; height:40px; border-radius:8px"><img src="${PH0[p]||''}" alt="" style="width:30px; height:32px; object-fit:contain"></span>`).join('')}<span class="m" style="margin-left:auto; text-align:right"><span class="big" style="font-size:34px; color:var(--t)">${roll(7)}</span> shot</span></div>
+     <div style="display:flex; align-items:center; justify-content:space-between; padding-top:12px"><span class="m">Cancel</span><span style="width:58px; height:58px; border-radius:50%; border:4px solid var(--t); display:grid; place-items:center"><span style="width:44px; height:44px; border-radius:50%; background:var(--t)"></span></span><span class="acc" style="padding:8px 12px">Done</span></div>
+   </div>`,
+ details: () => `
+   <div class="top"><span class="ttl">Needs details</span><span class="m" style="margin-left:auto">1 of 7</span></div>
+   <div class="stage" style="margin:10px 12px 0; height:150px">${im('flat-tee-white',118,134)}</div>
+   <div style="padding:12px 16px 0; display:grid; gap:11px">
+     <div><p class="m sm">Looks like</p><div style="display:flex; gap:6px; padding-top:4px; flex-wrap:wrap"><span class="chip on">Tee</span><span class="chip on"><span class="dot" style="background:#E9E6DF"></span>Off-white</span><span class="chip">Change</span></div></div>
+     <div><p class="m sm">How many times have you worn it?</p><div style="display:flex; gap:6px; padding-top:4px; flex-wrap:wrap"><span class="chip">Never</span><span class="chip">1–5</span><span class="chip on">5–20</span><span class="chip">20–50</span><span class="chip">50+</span><span class="chip">Exact</span></div></div>
+     <div><p class="m sm">How does it fit now?</p><div style="display:flex; gap:6px; padding-top:4px"><span class="chip">Tight</span><span class="chip on">Fits</span><span class="chip">Loose</span></div></div>
+     <div><p class="m sm">Where does it live?</p><div style="display:flex; gap:6px; padding-top:4px"><span class="chip on">${PIN} Cupboard, top shelf</span></div></div>
+   </div>
+   <div style="position:absolute; left:16px; right:16px; bottom:16px; display:flex; gap:8px"><span class="ghost">Skip</span><span class="acc" style="flex:1">Save and next</span></div>`,
+ placesA: () => `
+   <div class="top"><span class="ttl">Wardrobe</span><span style="margin-left:auto">${SEARCH}</span></div>
+   <div class="seg2"><span>By kind</span><span>By colour</span><span class="on">By place</span></div>
+   <div style="margin-top:10px">
+   ${[[0,'Delhi home',31,1],[1,'Bedroom',24,1],[2,'Cupboard',19,1],[3,'Left rail',6,0],[3,'Top shelf',5,0],[3,'Drawers',8,0],[2,'Bed box',5,0],[1,'Hallway',7,1],[2,'Shoe rack',7,0],[0,'Parents\' home',12,0],[0,'With me',4,0]].map(([d,n,k,open])=>`<div class="li" style="padding-left:${16+d*18}px"><span class="m">${open?DOWN:CHEV}</span><span class="${d==0?'disp':''}" style="${d==0?'font-size:18px':''}">${n}</span><span class="n">${k}</span></div>`).join('')}
+   </div>${NAV('Wardrobe')}`,
+ placesB: () => `
+   <div class="top"><span class="ttl">Wardrobe</span><span style="margin-left:auto">${SEARCH}</span></div>
+   <div class="seg2"><span>By kind</span><span>By colour</span><span class="on">By place</span></div>
+   <div style="display:flex; align-items:flex-end; gap:8px; padding:14px 16px 4px"><span class="disp" style="font-size:21px">Delhi home</span><span class="m" style="margin-left:auto">31</span></div>
+   ${[['Cupboard, left rail',6,'flat-jacket-leather'],['Cupboard, top shelf',5,'flat-tee-white'],['Cupboard, drawers',8,'flat-tee-black'],['Bed box',5,'flat-chinos'],['Shoe rack',7,'white-sneakers']].map(([n,k,p])=>`<div class="li"><span class="stage" style="width:34px; height:34px; border-radius:8px"><img src="${PH0[p]||''}" alt="" style="width:26px; height:28px; object-fit:contain"></span><span>${n}</span><span class="n">${k}</span></div>`).join('')}
+   <div style="display:flex; align-items:flex-end; gap:8px; padding:14px 16px 4px"><span class="disp" style="font-size:21px">Parents' home</span><span class="m" style="margin-left:auto">12</span></div>
+   ${[['My old cupboard',12,'white-shirt']].map(([n,k,p])=>`<div class="li"><span class="stage" style="width:34px; height:34px; border-radius:8px"><img src="${PH0[p]||''}" alt="" style="width:26px; height:28px; object-fit:contain"></span><span>${n}</span><span class="n">${k}</span></div>`).join('')}
+   <div class="li"><span class="disp" style="font-size:21px">With me</span><span class="n">4</span></div>
+   ${NAV('Wardrobe')}`,
+ sizes: () => `
+   <div class="top"><span class="m">${ico('<path d="M15 6l-6 6 6 6"/>',16)}</span><span class="ttl">My sizes</span><span class="m" style="margin-left:auto">Edit</span></div>
+   <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 14px; padding:12px 16px 0">
+     ${[['Chest','38'],['Waist','32'],['Hip','37'],['Shoulder','17.5'],['Sleeve','24.5'],['Inseam','30']].map(([n,v])=>`<div style="border-top:1px solid var(--line); padding:7px 0 5px; display:flex; align-items:flex-end; gap:6px"><span class="big" style="font-size:38px">${v}</span><span class="m sm" style="padding-bottom:2px">in<br>${n}</span></div>`).join('')}
+   </div>
+   <p class="m sm" style="padding:12px 16px 2px">Your size, brand by brand</p>
+   ${[['Uniqlo','M',''],['Zara','M','runs small'],['Levi\'s','32 × 30',''],['H&M','L','']].map(([b,s,n])=>`<div class="li"><span>${b}</span><span class="m sm">${n}</span><span class="n disp" style="font-size:18px; color:var(--t)">${s}</span></div>`).join('')}
+   <div class="li"><span>Shoes</span><span class="n disp" style="font-size:18px; color:var(--t)">UK 8</span></div>
+   <p class="m sm" style="padding:14px 16px 6px">How your wardrobe fits now</p>
+   <div style="display:flex; gap:3px; height:12px; margin:0 16px; border-radius:6px; overflow:hidden"><span style="flex:39; background:var(--ok)"></span><span style="flex:5; background:var(--warn)"></span><span style="flex:3; background:#8FA3BF"></span></div>
+   <div style="display:flex; gap:14px; padding:8px 16px 0"><span><b style="color:var(--ok)">39</b> fit</span><span><b style="color:var(--warn)">5</b> tight</span><span><b style="color:#8FA3BF">3</b> loose</span></div>`,
+ builder: () => `
+   <div class="top"><span class="ttl">Outfits</span><span class="m" style="margin-left:auto">Save</span></div>
+   <p class="m sm" style="padding:10px 16px 6px">Your regulars</p>
+   <div style="display:flex; gap:8px; padding:0 12px; overflow:hidden">
+     ${[['white-shirt','flat-jeans-blue','white-sneakers','black-watch','Worn 14 times'],['flat-tee-black','flat-chinos','brown-loafers','silver-watch','Worn 9 times'],['floral-shirt','flat-jeans-blue','white-sneakers','black-watch','Worn 6 times']].map(([a,b,c,w,t])=>`<div style="flex:none; width:128px"><div class="stage" style="height:238px; display:block">
+        <span class="aura" style="--c:${COL[a]}"></span>
+        <img class="pc" src="${PH0[a]}" alt="" style="position:absolute; left:19px; top:8px; width:90px; height:96px">
+        <img class="pc" src="${PH0[b]}" alt="" style="position:absolute; left:27px; top:98px; width:74px; height:104px">
+        <img class="pc" src="${PH0[c]}" alt="" style="position:absolute; left:42px; top:200px; width:44px; height:30px">
+        <img class="pc" src="${PH0[w]}" alt="" style="position:absolute; left:6px; top:92px; width:18px; height:22px">
+      </div><p class="sm m" style="padding-top:3px">${t}</p></div>`).join('')}
+   </div>
+   <p class="m sm" style="padding:12px 16px 6px">Or start from a piece</p>
+   <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; padding:0 12px">${PIECES.slice(0,8).map(([p])=>`<div class="stage" style="height:66px">${im(p,44,52)}</div>`).join('')}</div>
+   ${NAV('Wardrobe')}`,
+};
+
+// [id, title, why, screen, fixed traits: true/false/null (null follows the switch)]
+const GROUPS = [
+  ['The wardrobe, where the app opens', 'Same screen twice. With Health\'s traits, each piece is lit from behind by its own colour, the selected chip glows, and the count rolls up when the screen opens.', [
+    ['wardrobe-oct', 'As it was in October', 'Flat grey stage, no glow.', 'wardrobe', false],
+    ['wardrobe-health', 'With Health\'s traits', 'The glow is each piece\'s own colour, so it tells you something.', 'wardrobe', true],
+  ]],
+  ['One piece', 'Photo, name, fit and condition, where it lives, wears. The price stays at the bottom in small text.', [
+    ['piece-oct', 'As it was in October', '', 'piece', false],
+    ['piece-health', 'With Health\'s traits', 'The main action glows; the jacket sits in its own colour.', 'piece', true],
+  ]],
+  ['Browsing by colour', 'Your note asked for deeper shades and for burgundy to show under red. Each family opens into its shades; the dots are the shades you own.', [
+    ['colour', 'Colour families and shades', 'Blue is open, with Indigo picked.', 'colour', null],
+  ]],
+  ['Adding pieces', 'Shoot first, fill in later. The second screen is where you set the starting number of wears.', [
+    ['add-camera', 'Shooting', 'Piece after piece; the counter keeps score.', 'camera', null],
+    ['add-details', 'Details, one piece at a time', 'The app guesses kind and colour; you correct and move on.', 'details', null],
+  ]],
+  ['Places: which shape?', 'This is the open decision. Left: places inside places, as deep as you like. Right: each home holds a flat list of spots you name.', [
+    ['places-nested', 'A. Places inside places', 'Precise, but more to set up and more taps to reach a shelf.', 'placesA', null],
+    ['places-spots', 'B. Homes and named spots', 'Quick to set up and to read. No shelf-inside-cupboard structure.', 'placesB', null],
+  ]],
+  ['Fit, and a look ahead', 'My sizes is in the first build. The outfit screen comes in the second build and is here only so you can see where October ended.', [
+    ['sizes', 'My sizes', 'Measurements as big numbers, your size per brand, and how many pieces fit today.', 'sizes', null],
+    ['builder', 'Outfits (second build)', 'Regulars on top at true proportions, watch at the wrist; pieces below.', 'builder', null],
+  ]],
+];
+
+const state = {}; let db = null, traits = false, boardNote = '';
+const LS = 'inv-look-1';
+try { const s = JSON.parse(localStorage.getItem(LS) || '{}'); Object.assign(state, s.r || {}); boardNote = s.n || ''; } catch (e) {}
+const keep = () => { try { localStorage.setItem(LS, JSON.stringify({ r: state, n: boardNote })); } catch (e) {} };
+const $ = (s, el = document) => el.querySelector(s);
+const setStatus = t => { $('#status').textContent = t; };
+
+function build() {
+  const root = $('#groups');
+  for (const [title, q, cards] of GROUPS) {
+    const g = document.createElement('section'); g.className = 'group';
+    const h = document.createElement('h2'); h.textContent = title;
+    const p = document.createElement('p'); p.className = 'q'; p.textContent = q;
+    const row = document.createElement('div'); row.className = 'phones';
+    for (const [id, name, why, screen, fixed] of cards) {
+      const c = document.createElement('div'); c.className = 'card'; c.dataset.id = id;
+      const ph = document.createElement('div'); ph.className = 'ph'; ph.setAttribute('role', 'img'); ph.setAttribute('aria-label', name + ', phone mock-up');
+      if (fixed === null) ph.dataset.follow = '1'; else if (fixed) ph.classList.add('hl');
+      ph.innerHTML = S[screen]();
+      const h3 = document.createElement('h3'); h3.textContent = name;
+      const w = document.createElement('p'); w.className = 'why'; w.textContent = why; w.hidden = !why;
+      const r = document.createElement('div'); r.className = 'row'; r.setAttribute('role', 'group'); r.setAttribute('aria-label', 'Your reaction to ' + name);
+      r.innerHTML = ['love','like','unsure','no'].map(v => `<button type="button" class="v" data-v="${v}" aria-pressed="false">${v[0].toUpperCase() + v.slice(1)}</button>`).join('') + '<button type="button" class="notebtn">Note</button>';
+      const ta = document.createElement('textarea'); ta.id = 'note-' + id; ta.hidden = true; ta.setAttribute('aria-label', 'Note on ' + name);
+      c.append(h3, ph, w, r, ta); row.append(c);
+    }
+    g.append(h, p, row); root.append(g);
+  }
+}
+
+function paint() {
+  document.querySelectorAll('.card').forEach(c => {
+    const s = state[c.dataset.id] || {};
+    c.querySelectorAll('.v').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === s.v)));
+    const ta = $('textarea', c); if (document.activeElement !== ta) ta.value = s.note || ''; if (s.note) ta.hidden = false;
+  });
+  document.querySelectorAll('.ph[data-follow]').forEach(p => p.classList.toggle('hl', traits));
+  $('#t-off').setAttribute('aria-pressed', String(!traits)); $('#t-on').setAttribute('aria-pressed', String(traits));
+  if (document.activeElement !== $('#note-board')) $('#note-board').value = boardNote;
+}
+
+function rollNumbers(scope) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  scope.querySelectorAll('[data-roll]').forEach(el => {
+    const to = +el.dataset.roll, t0 = performance.now(), dur = 900;
+    const step = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(2, -10 * k); el.textContent = Math.round(to * (k === 1 ? 1 : e)); if (k < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  });
+}
+
+async function save(id) {
+  keep(); paint();
+  if (!db) return;
+  const s = state[id] || {};
+  try { await db.collection('reactions').doc(id).set({ v: s.v || null, note: s.note || '', traitsShown: traits, at: new Date().toISOString() }); setStatus('Saved'); }
+  catch (e) { setStatus('Not saved online; kept on this device only'); }
+}
+async function saveBoard() {
+  keep();
+  if (!db) return;
+  try { await db.doc('notes/board').set({ text: boardNote, at: new Date().toISOString() }); setStatus('Saved'); }
+  catch (e) { setStatus('Not saved online; kept on this device only'); }
+}
+
+build(); paint();
+
+document.addEventListener('click', ev => {
+  const t = ev.target.closest('#t-off, #t-on');
+  if (t) { traits = t.id === 't-on'; paint(); if (traits) document.querySelectorAll('.ph[data-follow]').forEach(rollNumbers); return; }
+  const v = ev.target.closest('.v');
+  if (v) { const id = v.closest('.card').dataset.id; const s = state[id] = state[id] || {}; s.v = s.v === v.dataset.v ? null : v.dataset.v; save(id); return; }
+  const nb = ev.target.closest('.notebtn');
+  if (nb) { const ta = $('textarea', nb.closest('.card')); ta.hidden = false; ta.focus(); }
+});
+document.addEventListener('change', ev => {
+  const ta = ev.target;
+  if (ta.id === 'note-board') { boardNote = ta.value.trim(); saveBoard(); return; }
+  const c = ta.closest && ta.closest('.card'); if (!c) return;
+  (state[c.dataset.id] = state[c.dataset.id] || {}).note = ta.value.trim(); save(c.dataset.id);
+});
+document.querySelectorAll('.ph.hl').forEach(rollNumbers);
+
+(async () => {
+  try { db = await window.claude?.use?.('db'); } catch (e) { db = null; }
+  if (!db) { setStatus('Saving on this device only'); return; }
+  setStatus('Connected. Reactions save as you go.');
+  db.collection('reactions').onSnapshot(snap => {
+    snap.docs.forEach(d => { const x = d.data(); state[d.id] = { v: x.v || null, note: x.note || '' }; });
+    keep(); paint();
+  }, () => setStatus('Lost connection; reactions kept on this device'));
+  db.doc('notes/board').onSnapshot(d => { if (d.exists) { boardNote = d.data().text || ''; paint(); } });
+})();
+</script>

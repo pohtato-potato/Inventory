@@ -1,0 +1,44 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "design/inventory-look-board-1.html"
+        ],
+        "createdAt": "2026-11-14T18:55:00.649Z",
+        "reason": "Claude: static scan pairs one theme's text with the other theme's ground; rendered probe found 0 texts under 4.5:1"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "design/inventory-look-board-2.html"
+        ],
+        "createdAt": "2026-11-14T19:07:42.705Z",
+        "reason": "Claude: static scan cannot see layered grounds (text over colour bands and gradients, two themes); rendered probe after darkening the light blocks leaves no real failures"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "design/inventory-look-board-1.html"
+        ],
+        "createdAt": "2026-11-14T19:08:23.959Z",
+        "reason": "Claude: flagged element is the sticky filter bar, whose ground matches the page and which has 10px above its only border; it sits inside the page gutter, so no text touches a visible edge"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "design/inventory-look-board-3.html"
+        ],
+        "createdAt": "2026-11-14T19:16:19.714Z",
+        "reason": "Claude: static scan cannot resolve text over lit windows and two themes; rendered probe found 0 texts under the floor and 0 under 12px"
+      }
+    ]
+  }
+}
