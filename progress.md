@@ -36,3 +36,8 @@ Task 8: Ruling: "Add to wishes" from a gap goes to Someday; a wish's shade is wi
 Task 9: complete — asksThirtyWears, gladDue, answerGlad; "Will you wear it 30 times?" sheet before Bought on clothing; GladCard (placed on Home in Task 11); glad answer on the piece page and in a gone piece's story (tests: TZ=UTC npm test and npm test → 275/275)
 Task 9: Ruling: gladDue takes an optional third argument, the pieces (signature deviation), to leave out a piece let go or deleted; without it the check is skipped — cost if wrong: none.
 Task 9: Ruling: the 1–7 scale is one segmented row of seven 44+ px buttons (fits 340 px), not seven separate buttons with gaps — cost if wrong: a restyle.
+Task 10: complete — spend per currency, unpricedCount, valueRanking, topBrands, onThisDay, anniversaries; Numbers screen at #/numbers (tests: TZ=UTC npm test and npm test → 287/287)
+Task 10: Ruling: costPerWear now also returns `value` (the amount per wear) so ranking reuses it rather than recomputing — extends Build 1's function as the brief asked — cost if wrong: none.
+Task 10: Ruling: unpriced pieces come from a separate unpricedCount(items) rather than a field on spend()'s array (signature addition) — cost if wrong: none.
+Task 10: Ruling: best and worst never share a piece; with fewer than ten ranked, the cheaper half is best — cost if wrong: a short list looks thin.
+Task 10: Ruling: spend "by kind" groups by top kind (Tops, Bottoms…); a price is the piece's price, not multiplied by its count; value ranking is owned clothing only — cost if wrong: totals differ for ×N pieces.

@@ -339,3 +339,19 @@ a.ghost { text-decoration: none; }
 .glad-scale button:first-child { border-left: 0; }
 .glad-scale button:active { background: var(--a); color: #0B0C0F; }
 .glad-ends { display: flex; justify-content: space-between; padding: 6px 0 0; }
+/* numbers */
+.num-pair { display: flex; gap: 28px; padding: 6px 18px 4px; }
+.num-big { font-size: 72px; display: block; }
+.spend-totals { display: grid; gap: 2px; padding: 0 18px 4px; }
+.spend-total { font: 600 40px/1.1 var(--f-num); font-stretch: 80%; }
+.spend-total .sm { font-family: var(--f-body); }
+.num-note { padding: 0 18px 10px; }
+.bars { padding: 10px 18px 0; display: grid; gap: 10px; }
+.bars-cur { padding-top: 8px; }
+.bar-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; }
+.bar-label { min-width: 0; overflow-wrap: anywhere; }
+.bar-amt { font-variant-numeric: tabular-nums; color: var(--m); }
+.bar { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: #23252B; overflow: hidden; }
+.bar > span { display: block; height: 100%; border-radius: 4px; background: var(--a); }
+.value-cell { min-width: 0; }
+.value-cell .sm { padding-top: 2px; }

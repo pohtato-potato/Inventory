@@ -23,17 +23,20 @@ export function totalWears(item: Pick<Item, 'startWears'>, logged: number): Wear
   return { n: s.n + logged, approx: s.approx, atLeast: s.atLeast };
 }
 
-/** Price ÷ wears, in words. Absent (null) with no price, no wears or a free piece — never NaN, Infinity or ₹0. */
-export function costPerWear(price: Rough<number> | undefined, wears: WearCount, currency = 'INR'): { text: string } | null {
+/** Price ÷ wears, in words (and the amount, for ranking). Absent (null) with no price, no wears or a free piece — never NaN, Infinity or ₹0. */
+export function costPerWear(price: Rough<number> | undefined, wears: WearCount, currency = 'INR'): { text: string; value: number } | null {
   if (!price || !Number.isFinite(price.value) || price.value <= 0 || !Number.isFinite(wears.n) || wears.n <= 0) return null;
-  const per = price.value / wears.n;
-  if (wears.atLeast) return { text: `under ${money(Math.max(1, Math.ceil(per / 10) * 10), currency)} a wear` };
-  if (per < 1) return { text: `under ${money(1, currency)} a wear` };
-  if (wears.approx || price.estimate) {
-    const r = Math.round(per / 10) * 10;
-    return { text: r ? `about ${money(r, currency)} a wear` : `under ${money(10, currency)} a wear` };
-  }
-  return { text: `${money(Math.round(per), currency)} a wear` };
+  const value = price.value / wears.n;
+  const text = (() => {
+    if (wears.atLeast) return `under ${money(Math.max(1, Math.ceil(value / 10) * 10), currency)} a wear`;
+    if (value < 1) return `under ${money(1, currency)} a wear`;
+    if (wears.approx || price.estimate) {
+      const r = Math.round(value / 10) * 10;
+      return r ? `about ${money(r, currency)} a wear` : `under ${money(10, currency)} a wear`;
+    }
+    return `${money(Math.round(value), currency)} a wear`;
+  })();
+  return { text, value };
 }
 
 export function wearsText(w: WearCount): string {
