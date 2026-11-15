@@ -1,0 +1,17 @@
+node_modules
+dist
+dev-dist
+*.local
+.DS_Store
+# Personal data never belongs in this repo: backups and exports stay on the phone.
+inventory-backup-*.zip
+*.csv
+!tests/fixtures/**/*.csv
+# The starter file holds the Google client id. Never publish it.
+private/
+.env
+.env.*
+.claude/
+# Local working folders (plan ledger)
+.superpowers/
+tsconfig.tsbuildinfo
