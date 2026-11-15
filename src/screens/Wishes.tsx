@@ -235,9 +235,18 @@ export function BuySheet({ open, onClose, wish }: { open: boolean; onClose: () =
   const [price, setPrice] = useState('');
   const parsed = price.trim() ? parseRoughPrice(price) : null;
   const bad = !!price.trim() && !parsed;
+  const [busy, setBusy] = useState(false);
   const buy = async () => {
-    if (bad) return;
-    const itemId: Id = await buyWish(wish.id, { boughtOn: day, ...(parsed ? { price: parsed } : {}) });
+    if (bad || busy) return;
+    setBusy(true);
+    let itemId: Id;
+    try {
+      itemId = await buyWish(wish.id, { boughtOn: day, ...(parsed ? { price: parsed } : {}) });
+    } catch (e) {
+      setBusy(false);
+      showToast(e instanceof Error ? e.message : 'Could not add it');
+      return;
+    }
     onClose();
     showToast(`Added ${wish.name}. It needs details.`, () => void undoLast());
     go('/piece', { id: itemId }, { replace: true });
@@ -258,7 +267,7 @@ export function BuySheet({ open, onClose, wish }: { open: boolean; onClose: () =
           <input id="buy-price" className="field" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={wish.price ? roughPriceText(wish.price, wish.currency) : 'About ₹800'} aria-invalid={bad} />
           {bad && <p className="warn-text">Try an amount, like "₹1,999".</p>}
         </div>
-        <button type="button" className="acc" onClick={() => void buy()}>Add to my things</button>
+        <button type="button" className="acc" disabled={busy} onClick={() => void buy()}>Add to my things</button>
         <button type="button" className="ghost" onClick={onClose}>Cancel</button>
       </div>
     </Sheet>

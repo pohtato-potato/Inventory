@@ -71,6 +71,14 @@ describe('wish actions', () => {
     expect((await db.wishes.get(wid))!.status).toBe('open');
   });
 
+  it('buying twice (a double tap) makes one piece (final review 3)', async () => {
+    const wid = await addWish({ name: 'Boots', tier: 'soon' });
+    const results = await Promise.allSettled([buyWish(wid, { boughtOn: '2026-11-15' }), buyWish(wid, { boughtOn: '2026-11-15' })]);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    expect(await db.items.where('name').equals('Boots').count()).toBe(1);
+    await expect(buyWish(wid, { boughtOn: '2026-11-15' })).rejects.toThrow('already bought');
+  });
+
   it('the price paid can differ from the wish’s', async () => {
     const wid = await addWish({ name: 'Boots', tier: 'soon' });
     const itemId = await buyWish(wid, { boughtOn: '2026-11-15', price: { value: 2500, estimate: false } });

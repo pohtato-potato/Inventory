@@ -20,21 +20,28 @@ beforeEach(async () => {
 
 describe('outfits', () => {
   it('saving the same pieces again gives the same outfit', async () => {
-    const a = await saveOutfit([tee, jeans]);
-    const b = await saveOutfit([jeans, tee]);
+    const a = (await saveOutfit([tee, jeans])).id;
+    const b = (await saveOutfit([jeans, tee])).id;
     expect(b).toBe(a);
     expect(await db.outfits.count()).toBe(1);
-    expect(await saveOutfit([tee, jeans, shirt])).not.toBe(a);
+    expect((await saveOutfit([tee, jeans, shirt])).id).not.toBe(a);
+  });
+  it('saving pieces already saved says so and leaves no undo step behind (final review 2)', async () => {
+    const a = (await saveOutfit([tee, jeans], 'Office')).id;
+    clearUndo();
+    expect(await saveOutfit([jeans, tee], 'Friday')).toEqual({ id: a, existed: true });
+    expect(await undoLast()).toBeNull();
+    expect((await db.outfits.get(a))!.name).toBe('Office');
   });
   it('keeps a name and dress codes, and edits are undoable', async () => {
-    const a = await saveOutfit([tee, jeans], 'Weekend', ['Casual']);
+    const a = (await saveOutfit([tee, jeans], 'Weekend', ['Casual'])).id;
     expect(await db.outfits.get(a)).toMatchObject({ name: 'Weekend', dressCodes: ['Casual'] });
     await updateOutfit(a, { name: 'Saturday' });
     expect(await undoLast()).toBe('Changed 1 outfit');
     expect((await db.outfits.get(a))!.name).toBe('Weekend');
   });
   it('removing is undoable', async () => {
-    const a = await saveOutfit([tee, jeans]);
+    const a = (await saveOutfit([tee, jeans])).id;
     await removeOutfit(a);
     expect(await db.outfits.count()).toBe(0);
     expect(await undoLast()).toBe('Removed 1 outfit');

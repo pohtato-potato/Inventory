@@ -47,3 +47,22 @@ Task 11: Ruling: a piece shown as an anniversary is not repeated on "On this day
 Task 11: Ruling: useMainPhotos falls back to an extra photo, so a piece bought from a wish shows the shop's photo in grids until it is photographed (no hook test exists; checked in the browser) — cost if wrong: an extra photo of a scratch shows as the tile.
 Task 12: complete — all checks green (TZ=UTC npm test and npm test → 296/296, typecheck, build, share_target in the manifest); built-preview audit of 19 screens and 4 sheets at 360 and 340 with lit-window contrast: 0 findings after two fixes (Wishes header light moved behind the picture; glad scale 45 px); share-in online and offline; Build 1 backup restored (12 pieces, 12 photos, 7 wear days); three states walked; note in docs/superpowers/notes/2026-11-build-2-verification.md
 Task 12: Ruling: the Wishes header's window light sits at 76 % across (behind the wish) instead of the kit's 50 % — at 50 % a white wish put "on the list" at 2.80:1 — cost if wrong: the header looks slightly different from Wardrobe's.
+Final review: opus reviewer, range 4f49307..27989a7 — Ready to merge: with fixes (0 Critical, 3 Important, 9 Minor)
+Final: fixed a wear could be logged for a let-go or deleted piece (saved outfit, suggestion) — setDay now only adds owned pieces, keeps pieces already on the day, drops the outfit id when pieces were dropped, throws "Nothing to log" when none are left; wear log's suggestion filtered like Home's; OutfitPage says when every piece is gone — wearlog.test.ts "logging an outfit that holds a let-go piece…" and "logging only let-go or deleted pieces…" RED→GREEN, suite 301/301 (TZ=UTC and IST)
+Final: fixed saving an outfit already saved offered an Undo that undid something else — saveOutfit returns { id, existed }; the screen says "You already have this outfit" with no Undo — outfits.test.ts "saving pieces already saved says so…" RED→GREEN, suite 301/301
+Final: fixed a double tap on "Add to my things" made two pieces — buyWish re-checks status 'open' inside its transaction; BuySheet has a busy guard and shows the error — wish.test.ts "buying twice (a double tap) makes one piece" RED→GREEN, suite 301/301
+Final: minor (deferred): deleted pieces show lit in tile lists (Tile dims only status 'gone')
+Final: minor (deferred): a gone piece can't be taken off an outfit being changed except by "Start again"
+Final: minor (deferred): Ethnic and pieces filed on the Tops/Bottoms/Accessories roots have no lane and stand at the side (plan's lane list gap; settle before first outfits)
+Final: minor (deferred): the year's room "wears" counts piece-days while the whole-year number counts days
+Final: minor (deferred): changing a wish's photo has no undo; setPairs pushes an undo step per toggle and Cancel does not revert
+Final: minor (deferred): wear counts drop on upgrade where Build 1 logged one piece twice on a day; a gone piece's story counts worn events, Numbers counts days
+Final: minor (deferred): the wear log left open past midnight logs against yesterday
+Final: minor (deferred): the "gone" label under a stage piece may be clipped by the window (check with gone shoes at 360 px)
+Final: minor (deferred): wishes are always ₹ (accepted ruling)
+Final: Ruling: an open Build 1 tab writing worn events after the upgrade — one installed phone app with registerType 'prompt'; a stray old tab can at worst add a worn event without a wear day, losing nothing — cost if wrong: one wear missing from counts
+Final: Ruling: useMainPhotos scanning every photo including mirror and wish photos — 300-piece timings were fine on the Mac; stands until an S23 test says otherwise — cost if wrong: slow screens with a year of mirror photos
+Final: Ruling: exact pixel and contrast numbers — covered by the verification audit (0 findings at both sizes) — cost if wrong: a contrast miss on the phone
+Final: Ruling: no "for whom" filter or currency picker on wishes — plan rulings and (my call) items; the owner decides — cost if wrong: a later small feature
+Final: Ruling: setKindLane and setKindHidden without undo — matches Build 1's kind settings — cost if wrong: one setting re-set by hand
+Final: Ruling: dangling ids after the 30-day trash sweep — screens skip missing ids; nothing breaks — cost if wrong: an outfit silently shrinks

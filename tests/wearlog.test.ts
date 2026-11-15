@@ -108,4 +108,24 @@ describe('logging wears', () => {
     expect(wearStats(await db.wears.toArray()).count.get(tee)).toBe(1);
     expect(await undoLast()).toBe('Let go of 1 piece');
   });
+  it('logging an outfit that holds a let-go piece adds no wear to that piece (final review 1)', async () => {
+    await letGo(tee, { on: '2026-11-16', how: 'donated' });
+    clearUndo();
+    await logWear('2026-11-20', [tee, jeans], 'office');
+    const w = (await db.wears.where('day').equals('2026-11-20').first())!;
+    expect(w.itemIds).toEqual([jeans]);
+    expect(w.outfitId).toBeUndefined();
+    expect(await db.events.where('itemId').equals(tee).filter((e) => e.type === 'worn').count()).toBe(0);
+  });
+  it('logging only let-go or deleted pieces logs nothing (final review 1)', async () => {
+    await letGo(tee, { on: '2026-11-16', how: 'donated' });
+    await expect(logWear('2026-11-20', [tee, 'no-such-piece'])).rejects.toThrow('Nothing to log');
+    expect(await db.wears.count()).toBe(0);
+  });
+  it('re-logging a past day keeps a piece already on it that was let go since', async () => {
+    await logWear('2026-11-14', [tee]);
+    await letGo(tee, { on: '2026-11-16', how: 'donated' });
+    await logWear('2026-11-14', [tee, jeans]);
+    expect((await db.wears.where('day').equals('2026-11-14').first())!.itemIds).toEqual([tee, jeans]);
+  });
 });

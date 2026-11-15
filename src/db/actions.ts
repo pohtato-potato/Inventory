@@ -245,14 +245,22 @@ function wornAt(day: string): number {
  * event (each piece's story); pieces taken off lose that day's. One step for Undo.
  */
 async function setDay(day: string, itemIds: Id[], outfitId: Id | undefined, label: string): Promise<Id | null> {
-  const ids = [...new Set(itemIds)];
+  const asked = [...new Set(itemIds)];
+  let ids = asked;
   let before: Wear | undefined;
   let beforeEvents: ItemEvent[] = [];
   let wearId: Id | null = null;
   const added: Id[] = [];
-  await db.transaction('rw', db.wears, db.events, async () => {
+  await db.transaction('rw', [db.wears, db.events, db.items], async () => {
     before = await db.wears.where('day').equals(day).first();
     const old = new Set(before?.itemIds ?? []);
+    // Only pieces still owned can be newly worn (a saved outfit or a suggestion may hold one let go or deleted
+    // since); a piece already on the day stays, so editing a past day keeps what was really worn.
+    const items = await db.items.bulkGet(asked);
+    ids = asked.filter((id, n) => old.has(id) || (items[n]?.status === 'owned' && items[n]?.deletedAt === undefined));
+    if (asked.length && !ids.length) throw new Error('Nothing to log');
+    // The outfit is kept only when all of its pieces are still worn.
+    if (ids.length !== asked.length) outfitId = undefined;
     const keep = new Set(ids);
     beforeEvents = await db.events.where('itemId').anyOf([...old]).filter((e) => e.type === 'worn' && dayKey(e.at) === day && !keep.has(e.itemId)).toArray();
     await db.events.bulkDelete(beforeEvents.map((e) => e.id));
@@ -308,18 +316,21 @@ export async function wornToday(id: Id): Promise<boolean> {
 
 // ---------- outfits ----------
 
-/** Saves an outfit. The same set of pieces again returns the outfit already saved. */
-export async function saveOutfit(itemIds: Id[], name?: string, dressCodes: string[] = []): Promise<Id> {
+/**
+ * Saves an outfit. The same set of pieces again changes nothing and returns the outfit already saved, with
+ * `existed` set (no undo step, so the screen must not offer one).
+ */
+export async function saveOutfit(itemIds: Id[], name?: string, dressCodes: string[] = []): Promise<{ id: Id; existed: boolean }> {
   const ids = [...new Set(itemIds)];
   if (!ids.length) throw new Error('An outfit needs at least one piece');
   const same = (await db.outfits.toArray()).find((o) => samePieces(o.itemIds, ids));
-  if (same) return same.id;
+  if (same) return { id: same.id, existed: true };
   const now = stamp();
   const o: Outfit = { id: newId(), itemIds: ids, dressCodes, createdAt: now, updatedAt: now };
   if (name?.trim()) o.name = name.trim();
   await db.outfits.add(o);
   pushUndo('Saved 1 outfit', async () => { await db.outfits.delete(o.id); });
-  return o.id;
+  return { id: o.id, existed: false };
 }
 
 export async function updateOutfit(id: Id, patch: Partial<Omit<Outfit, 'id'>>): Promise<void> {
@@ -622,6 +633,7 @@ export function answerGlad(id: Id, score: number | 'skip'): Promise<void> {
 export async function buyWish(id: Id, opts: { boughtOn: string; price?: Rough<number> }): Promise<Id> {
   const wish = await db.wishes.get(id);
   if (!wish) throw new Error('No such wish');
+  if (wish.status !== 'open') throw new Error('This wish is already bought or dropped');
   const now = stamp();
   const draft: Partial<Item> = {
     name: wish.name,
@@ -638,6 +650,8 @@ export async function buyWish(id: Id, opts: { boughtOn: string; price?: Rough<nu
   const wishPhotos = (await db.photos.where('itemId').equals(id).toArray()).filter((p) => p.role === 'wish');
   try {
     await db.transaction('rw', [db.items, db.photos, db.events, db.wishes], async () => {
+      // Checked again inside the transaction, so a double tap cannot buy it twice.
+      if ((await db.wishes.get(id))?.status !== 'open') throw new Error('This wish is already bought or dropped');
       await db.items.add(item);
       await db.photos.bulkAdd(wishPhotos.map((p) => ({ id: newId(), itemId: item.id, role: 'extra' as const, blob: p.blob, w: p.w, h: p.h, updatedAt: now })));
       await db.events.add(event(item.id, 'added', now));

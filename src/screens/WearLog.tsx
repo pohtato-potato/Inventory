@@ -3,7 +3,7 @@ import { logWear, NO_SPACE, removePhoto, removeWear, savePhotos, undoLast } from
 import { useAllItems, useMainPhotos, useOutfits, usePhotosOf, useTrees, useWears } from '../db/hooks';
 import { isUnsorted } from '../domain/fields';
 import { regulars, samePieces } from '../domain/outfit';
-import type { Id } from '../domain/types';
+import type { Id, Item } from '../domain/types';
 import { dayKey, dayStart, shiftDay, suggestWear } from '../domain/wearlog';
 import { wearLine } from '../domain/wears';
 import { bitmapFromFile } from '../photo/camera';
@@ -52,6 +52,14 @@ export function MirrorPhoto({ ownerId, label = 'Add a mirror photo' }: { ownerId
 
 const longDay = (day: string) => new Date(dayStart(day)).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 
+/** The suggestion without pieces let go or deleted since; the outfit only when none were dropped. */
+function stillOwned(s: { outfitId?: Id; itemIds: Id[] } | null, items: Item[]) {
+  if (!s) return null;
+  const itemIds = s.itemIds.filter((id) => items.some((i) => i.id === id && i.status === 'owned' && i.deletedAt === undefined));
+  if (!itemIds.length) return null;
+  return itemIds.length === s.itemIds.length ? s : { itemIds };
+}
+
 /** What was worn on a day: the suggestion in one tap, or pick an outfit or pieces. No reminders, no streaks. */
 export function WearLog() {
   const { params } = useRoute();
@@ -69,7 +77,7 @@ export function WearLog() {
 
   if (!trees || !all || !thumbs || !outfits || !wears) return <main className="screen" aria-busy="true" />;
   const w = wears.find((x) => x.day === day);
-  const s = w ? null : suggestWear(outfits, wears.filter((x) => x.day < day), day);
+  const s = w ? null : stillOwned(suggestWear(outfits, wears.filter((x) => x.day < day), day), all);
   const clothing = new Set(trees.kinds.filter((k) => k.clothing).map((k) => k.id));
   const owned = all.filter((i) => i.status === 'owned' && i.deletedAt === undefined && clothing.has(i.kindId) && !isUnsorted(i.kindId));
   const editing = draft !== null || (!w && !s);

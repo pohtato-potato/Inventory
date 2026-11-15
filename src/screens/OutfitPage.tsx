@@ -44,6 +44,10 @@ export function OutfitPage() {
       </div>
       <div className="piece-actions">
         <button type="button" className="acc" style={{ flex: '1 1 100%' }} onClick={async () => {
+          if (!outfit.itemIds.some((id) => all.some((i) => i.id === id && i.status === 'owned' && i.deletedAt === undefined))) {
+            showToast('Every piece in this outfit is gone');
+            return;
+          }
           await logWear(dayKey(Date.now()), outfit.itemIds, outfit.id);
           showToast(`Logged ${title.toLowerCase() === 'outfit' ? 'this outfit' : title} for today`, () => void undoLast());
           go('/wear');

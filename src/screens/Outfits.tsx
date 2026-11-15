@@ -128,8 +128,9 @@ export function Outfits() {
           showToast('Outfit changed', () => void undoLast());
           go('/outfit', { id: editing.id }, { replace: true });
         } else {
-          const id = await saveOutfit(picked, name, codes);
-          showToast('Outfit saved', () => void undoLast());
+          const { id, existed } = await saveOutfit(picked, name, codes);
+          if (existed) showToast('You already have this outfit');
+          else showToast('Outfit saved', () => void undoLast());
           setChosen([]);
           go('/outfit', { id });
         }

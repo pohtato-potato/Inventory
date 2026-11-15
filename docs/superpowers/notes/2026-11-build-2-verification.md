@@ -147,3 +147,14 @@ The app said "Restored 12 pieces and 12 photos." In the database afterwards:
 - **The year in review's rooms leave out pieces with no spot.** Their wears count in the year's totals, but no room shows them. With the 300 seed, 280 of 780 piece-wears belonged to pieces with no spot.
 - **"Your regulars" lists every saved outfit,** even ones worn 0 times, most worn first.
 - **Wardrobe's own window has the same contrast risk** that the Wishes header had. It is Build 1's design: text on the left, glow centred. It passed with this data, but a white piece in the window may push "pieces" under 4.5:1. Not changed: it is Build 1's approved look.
+
+## Final review and fixes
+
+One full review of `4f49307..27989a7` (Opus): **ready to merge with fixes**, 0 Critical, 3 Important, 9 Minor. The reviewer ran the suite in five time zones (all 296 passed). The three Important findings are fixed, each with a test that failed first:
+1. **A wear could be logged for a piece let go or deleted**, through a saved outfit ("Wore this today") or "Same as last time?". Only owned pieces are now added to a day; a piece already on a past day stays; the outfit is dropped from the wear when any of its pieces were. The wear log's suggestion leaves such pieces out, as Home's did.
+2. **Saving an outfit already saved** showed "Outfit saved" with an Undo that undid the step before. It now says "You already have this outfit", with no Undo.
+3. **A double tap on "Add to my things"** made two pieces. The wish is checked again inside the save, and the button waits.
+
+After the fixes: `TZ=UTC npm test` and `npm test` 33 files, **301 tests passed**; typecheck clean; build fine (precache 2,757.5 KiB). The layout audit was not re-run; the only visible change is the Bought button greying while it saves, and two toast texts.
+
+The 9 Minor findings are listed in `progress.md` as deferred. The one to settle first: **Ethnic has no outfit lane**, so ethnic pieces stand at the side of an outfit.
