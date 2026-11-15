@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
-import type { Id, Item, ItemEvent, Kind, Outfit, Photo, Place, Shade, Wear } from '../domain/types';
+import type { Id, Item, ItemEvent, Kind, Outfit, Photo, Place, Shade, Wear, Wish } from '../domain/types';
 import { dayStart, wearStats } from '../domain/wearlog';
 import { db } from './db';
 
@@ -59,6 +59,15 @@ export function useWears(): Wear[] | undefined {
 /** Every piece, trashed ones too: outfits and wear days still show a piece after it is let go or deleted. */
 export function useAllItems(): Item[] | undefined {
   return useLiveQuery(() => db.items.toArray(), []);
+}
+
+/** Every wish, in no order (sortWishes orders them). */
+export function useWishes(): Wish[] | undefined {
+  return useLiveQuery(() => db.wishes.toArray(), []);
+}
+
+export function useWish(id: Id | null | undefined): Wish | null | undefined {
+  return useLiveQuery(async () => (id ? ((await db.wishes.get(id)) ?? null) : null), [id]);
 }
 
 export function useOutfits(): Outfit[] | undefined {

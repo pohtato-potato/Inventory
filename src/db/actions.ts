@@ -1,4 +1,5 @@
-import type { EventType, Gone, Id, Item, ItemEvent, Kind, Lane, Outfit, Photo, Place, Shade, Wear } from '../domain/types';
+import type { EventType, Gone, Id, Item, ItemEvent, Kind, Lane, Outfit, Photo, Place, Rough, Shade, Wear, Wish } from '../domain/types';
+import { UNSORTED } from '../domain/fields';
 import { samePieces } from '../domain/outfit';
 import { dayKey, dayStart } from '../domain/wearlog';
 import { db, newId } from './db';
@@ -564,6 +565,87 @@ export async function setKindLane(id: Id, lane: Lane | undefined): Promise<void>
   delete next.lane; delete next.layer; delete next.baseScale;
   if (lane) Object.assign(next, { lane, baseScale: LANE_SCALE[lane] }, lane === 'top' ? { layer: 'over' } : {});
   await db.kinds.put(next);
+}
+
+// ---------- wishes ----------
+
+export type WishDraft = Partial<Omit<Wish, 'id' | 'status' | 'createdAt' | 'updatedAt'>> & Pick<Wish, 'name' | 'tier'>;
+
+/** Adds a wish, with its picture when there is one. */
+export async function addWish(draft: WishDraft, photo?: { blob: Blob; w: number; h: number }): Promise<Id> {
+  const now = stamp();
+  const w: Wish = { currency: 'INR', source: 'hand', ...draft, id: newId(), status: 'open', createdAt: now, updatedAt: now };
+  try {
+    await db.transaction('rw', db.wishes, db.photos, async () => {
+      await db.wishes.add(w);
+      if (photo) await db.photos.add({ id: newId(), itemId: w.id, role: 'wish', updatedAt: now, ...photo });
+    });
+  } catch (e) {
+    if (isQuota(e)) throw new Error(NO_SPACE);
+    throw e;
+  }
+  pushUndo('Added 1 wish', async () => {
+    await db.transaction('rw', db.wishes, db.photos, async () => {
+      await db.photos.where('itemId').equals(w.id).delete();
+      await db.wishes.delete(w.id);
+    });
+  });
+  return w.id;
+}
+
+async function changeWish(id: Id, patch: Partial<Wish>, label: string): Promise<void> {
+  const before = await db.wishes.get(id);
+  if (!before) return;
+  await db.wishes.put({ ...before, ...patch, id, updatedAt: stamp() });
+  pushUndo(label, async () => { await db.wishes.put({ ...before, updatedAt: stamp() }); });
+}
+
+export function updateWish(id: Id, patch: Partial<Omit<Wish, 'id'>>): Promise<void> {
+  return changeWish(id, patch, 'Changed 1 wish');
+}
+
+/** "Not any more": the wish stays in the record as dropped. */
+export function dropWish(id: Id): Promise<void> {
+  return changeWish(id, { status: 'dropped' }, 'Dropped 1 wish');
+}
+
+/**
+ * Bought: a new piece that needs details, carrying what the wish knew (name, kind, shade, price, shop) and its
+ * picture as an extra photo. The wish is kept as bought, pointing at the piece. One step for Undo.
+ */
+export async function buyWish(id: Id, opts: { boughtOn: string; price?: Rough<number> }): Promise<Id> {
+  const wish = await db.wishes.get(id);
+  if (!wish) throw new Error('No such wish');
+  const now = stamp();
+  const draft: Partial<Item> = {
+    name: wish.name,
+    kindId: wish.kindId ?? UNSORTED.clothing,
+    currency: wish.currency,
+    needsDetails: true,
+    boughtOn: { value: opts.boughtOn, estimate: false },
+  };
+  if (wish.shadeId) draft.shadeMain = wish.shadeId;
+  if (wish.shop) draft.shop = wish.shop;
+  const price = opts.price ?? wish.price;
+  if (price) draft.price = price;
+  const item = blankItem(draft, now);
+  const wishPhotos = (await db.photos.where('itemId').equals(id).toArray()).filter((p) => p.role === 'wish');
+  try {
+    await db.transaction('rw', [db.items, db.photos, db.events, db.wishes], async () => {
+      await db.items.add(item);
+      await db.photos.bulkAdd(wishPhotos.map((p) => ({ id: newId(), itemId: item.id, role: 'extra' as const, blob: p.blob, w: p.w, h: p.h, updatedAt: now })));
+      await db.events.add(event(item.id, 'added', now));
+      await db.wishes.put({ ...wish, status: 'bought', itemId: item.id, boughtOn: opts.boughtOn, updatedAt: now });
+    });
+  } catch (e) {
+    if (isQuota(e)) throw new Error(NO_SPACE);
+    throw e;
+  }
+  pushUndo('Bought 1 wish', async () => {
+    await hardDelete([item.id]);
+    await db.wishes.put({ ...wish, updatedAt: stamp() });
+  });
+  return item.id;
 }
 
 // ---------- settings ----------
