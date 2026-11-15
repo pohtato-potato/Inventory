@@ -96,3 +96,50 @@ describe('waitText and safeLink', () => {
     expect(safeLink('')).toBeUndefined();
   });
 });
+
+describe('the two buying questions (Task 9)', () => {
+  const bought: Wish = { ...w, id: 'b', status: 'bought', itemId: 'piece-1', boughtOn: '2026-10-01' };
+  it('asks "30 wears?" of clothing, and of a wish with no kind', async () => {
+    const { asksThirtyWears } = await import('../src/domain/wish');
+    const { STARTER_KINDS: kinds } = await import('../src/db/seed');
+    expect(asksThirtyWears({ ...w, kindId: 'k-tees' }, kinds)).toBe(true);
+    expect(asksThirtyWears({ ...w, kindId: 'k-o-electronics' }, kinds)).toBe(false);
+    expect(asksThirtyWears({ ...w, kindId: undefined }, kinds)).toBe(true);
+  });
+  it('the glad check is due 30 days after buying, once', async () => {
+    const { gladDue } = await import('../src/domain/wish');
+    expect(gladDue([{ ...bought, boughtOn: '2026-10-16' }], '2026-11-15').length).toBe(1);
+    expect(gladDue([{ ...bought, boughtOn: '2026-10-17' }], '2026-11-15').length).toBe(0);
+    expect(gladDue([{ ...bought, boughtOn: '2026-09-01', glad: 6 }], '2026-11-15').length).toBe(0);
+    expect(gladDue([{ ...bought, boughtOn: '2026-09-01', gladSkipped: true }], '2026-11-15').length).toBe(0);
+    expect(gladDue([{ ...w, boughtOn: '2026-09-01' }], '2026-11-15').length).toBe(0);
+  });
+  it('not for a piece let go or deleted since', async () => {
+    const { gladDue } = await import('../src/domain/wish');
+    const item = (status: 'owned' | 'gone', deletedAt?: number) => ({ id: 'piece-1', name: 'x', kindId: 'k-tees', count: 1, currency: 'INR', tags: [], usualSpotIds: [], status, needsDetails: false, extra: {}, createdAt: 1, updatedAt: 1, ...(deletedAt ? { deletedAt } : {}) });
+    expect(gladDue([bought], '2026-11-15', [item('owned')]).length).toBe(1);
+    expect(gladDue([bought], '2026-11-15', [item('gone')]).length).toBe(0);
+    expect(gladDue([bought], '2026-11-15', [item('owned', 5)]).length).toBe(0);
+    expect(gladDue([bought], '2026-11-15', []).length).toBe(0);
+  });
+});
+
+describe('answerGlad', () => {
+  beforeEach(async () => {
+    clearUndo();
+    await db.delete();
+    await db.open();
+    await seedIfEmpty();
+  });
+  it('saves 1 to 7 or a skip, and refuses anything else', async () => {
+    const { answerGlad } = await import('../src/db/actions');
+    const wid = await addWish({ name: 'Boots', tier: 'soon' });
+    await expect(answerGlad(wid, 9)).rejects.toThrow();
+    await expect(answerGlad(wid, 0)).rejects.toThrow();
+    await expect(answerGlad(wid, 2.5)).rejects.toThrow();
+    await answerGlad(wid, 6);
+    expect((await db.wishes.get(wid))!.glad).toBe(6);
+    await answerGlad(wid, 'skip');
+    expect((await db.wishes.get(wid))!.gladSkipped).toBe(true);
+  });
+});

@@ -66,6 +66,11 @@ export function useWishes(): Wish[] | undefined {
   return useLiveQuery(() => db.wishes.toArray(), []);
 }
 
+/** The wish a piece was bought from, if any. */
+export function useWishFor(itemId: Id | null | undefined): Wish | null | undefined {
+  return useLiveQuery(async () => (itemId ? ((await db.wishes.filter((w) => w.itemId === itemId).first()) ?? null) : null), [itemId]);
+}
+
 export function useWish(id: Id | null | undefined): Wish | null | undefined {
   return useLiveQuery(async () => (id ? ((await db.wishes.get(id)) ?? null) : null), [id]);
 }

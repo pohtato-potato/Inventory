@@ -609,6 +609,12 @@ export function dropWish(id: Id): Promise<void> {
   return changeWish(id, { status: 'dropped' }, 'Dropped 1 wish');
 }
 
+/** "Glad you bought it?": 1 (not at all) to 7 (very), or a skip. */
+export function answerGlad(id: Id, score: number | 'skip'): Promise<void> {
+  if (score !== 'skip' && !(Number.isInteger(score) && score >= 1 && score <= 7)) return Promise.reject(new Error('A score from 1 to 7'));
+  return changeWish(id, score === 'skip' ? { gladSkipped: true } : { glad: score, gladSkipped: undefined }, 'Answered');
+}
+
 /**
  * Bought: a new piece that needs details, carrying what the wish knew (name, kind, shade, price, shop) and its
  * picture as an extra photo. The wish is kept as bought, pointing at the piece. One step for Undo.

@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
-import { buyWish, dropWish, undoLast, updateWish } from '../db/actions';
+import { answerGlad, buyWish, dropWish, undoLast, updateWish } from '../db/actions';
 import { useItems, useTrees, useWish, useWishes, useWishPhotos, type Thumb } from '../db/hooks';
 import { parseRoughPrice } from '../domain/estimate';
 import { roughPriceText } from '../domain/format';
 import type { Id, Tier, Wish } from '../domain/types';
 import { dayKey } from '../domain/wearlog';
-import { isWaiting, safeLink, sortWishes, TIERS, waitText } from '../domain/wish';
+import { asksThirtyWears, isWaiting, safeLink, sortWishes, TIERS, waitText } from '../domain/wish';
+import { daysBetween } from '../domain/wearlog';
 import { bitmapFromFile } from '../photo/camera';
 import { shrinkToWebp } from '../photo/cutout';
 import { back, go, useRoute } from '../router';
@@ -156,6 +157,7 @@ export function WishPage() {
   const thumbs = useWishPhotos();
   const trees = useTrees();
   const [buying, setBuying] = useState(false);
+  const [asking, setAsking] = useState(false);
   const [moving, setMoving] = useState(false);
   if (w === undefined || !thumbs || !trees) return <main className="screen" aria-busy="true" />;
   if (!w) {
@@ -189,7 +191,7 @@ export function WishPage() {
 
         {w.status === 'open' && (
           <div className="wish-actions">
-            <button type="button" className="acc" onClick={() => setBuying(true)}>Bought</button>
+            <button type="button" className="acc" onClick={() => (asksThirtyWears(w, trees.kinds) ? setAsking(true) : setBuying(true))}>Bought</button>
             {link && <a className="ghost" href={link} target="_blank" rel="noopener noreferrer">Open the shop page</a>}
             <button type="button" className="ghost" onClick={() => go('/own', { kind: w.kindId, shade: shade?.familyId ?? w.shadeId })}>Do I already own this?</button>
             <button type="button" className="ghost" onClick={() => setMoving(true)}>Move to…</button>
@@ -209,6 +211,14 @@ export function WishPage() {
           </div>
         )}
       </div>
+      <Sheet open={asking} onClose={() => setAsking(false)} label="Will you wear it 30 times?">
+        <div style={{ display: 'grid', gap: 8 }}>
+          <p className="name" style={{ fontSize: 24, paddingBottom: 6 }}>Will you wear it 30 times?</p>
+          <button type="button" className="ghost" onClick={() => { setAsking(false); setBuying(true); }}>Yes, I will</button>
+          <button type="button" className="ghost" onClick={() => setAsking(false)}>Not sure, keep it as a wish</button>
+          <button type="button" className="ghost" onClick={() => { setAsking(false); setBuying(true); }}>Buying it anyway</button>
+        </div>
+      </Sheet>
       <BuySheet open={buying} onClose={() => setBuying(false)} wish={w} />
       <Sheet open={moving} onClose={() => setMoving(false)} label="Move to">
         <p className="name" style={{ fontSize: 22, paddingBottom: 10 }}>Move to…</p>
@@ -252,5 +262,35 @@ export function BuySheet({ open, onClose, wish }: { open: boolean; onClose: () =
         <button type="button" className="ghost" onClick={onClose}>Cancel</button>
       </div>
     </Sheet>
+  );
+}
+
+/** "Glad you bought it?", 30 days after a wish was bought: the piece in a window and a 1 to 7 scale (Home shows it). */
+export function GladCard({ wish, photo, cut, colour, today }: { wish: Wish; photo?: string; cut?: boolean; colour?: string; today: string }) {
+  const days = wish.boughtOn ? daysBetween(wish.boughtOn, today) : 30;
+  const answer = async (v: number | 'skip') => {
+    await answerGlad(wish.id, v);
+    showToast(v === 'skip' ? 'Skipped' : `Saved: ${v} of 7`, () => void undoLast());
+  };
+  return (
+    <section className="card glad" aria-label="Glad you bought it?">
+      <div className="glad-head">
+        <Window className="glad-win" colour={colour} lit>
+          <Piece src={photo} cut={cut} />
+        </Window>
+        <div>
+          <p className="m sm">Bought {days} days ago</p>
+          <p className="name glad-name">{wish.name}</p>
+          <p>Glad you bought it?</p>
+        </div>
+      </div>
+      <div className="glad-scale" role="group" aria-label="From 1, not at all, to 7, very">
+        {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+          <button key={n} type="button" aria-label={n === 1 ? '1, not at all' : n === 7 ? '7, very' : String(n)} onClick={() => void answer(n)}>{n}</button>
+        ))}
+      </div>
+      <div className="glad-ends m sm" aria-hidden="true"><span>not at all</span><span>very</span></div>
+      <button type="button" className="link" onClick={() => void answer('skip')}>Skip</button>
+    </section>
   );
 }

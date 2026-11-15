@@ -33,3 +33,6 @@ Task 8: complete — gaps/ownedLike on Build 1 matches, OwnThis screen (+ on Wis
 Task 8: Ruling: Staple.family is string | string[] (signature deviation) so "Brown or black leather shoes" and "Dark trousers" can name several families — cost if wrong: none for single-family staples.
 Task 8: Ruling: gap hints wait until the wardrobe holds one clothing piece, and skip a staple already on the wish list by name — an empty wardrobe would show all nine — cost if wrong: a new owner sees no hints until the first piece.
 Task 8: Ruling: "Add to wishes" from a gap goes to Someday; a wish's shade is widened to its family in OwnThis — cost if wrong: one tap to move tiers.
+Task 9: complete — asksThirtyWears, gladDue, answerGlad; "Will you wear it 30 times?" sheet before Bought on clothing; GladCard (placed on Home in Task 11); glad answer on the piece page and in a gone piece's story (tests: TZ=UTC npm test and npm test → 275/275)
+Task 9: Ruling: gladDue takes an optional third argument, the pieces (signature deviation), to leave out a piece let go or deleted; without it the check is skipped — cost if wrong: none.
+Task 9: Ruling: the 1–7 scale is one segmented row of seven 44+ px buttons (fits 340 px), not seven separate buttons with gaps — cost if wrong: a restyle.

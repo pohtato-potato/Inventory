@@ -1,12 +1,13 @@
 import { useRef, useState } from 'react';
 import { bringBack, copyItem, moveItems, savePhotos, trash, undoLast, updateItem, updatePhoto, wornToday, NO_SPACE } from '../db/actions';
-import { useEvents, useItem, usePhotos, useTrees, useWearLog, type Trees } from '../db/hooks';
+import { useEvents, useItem, usePhotos, useTrees, useWearLog, useWishFor, type Trees } from '../db/hooks';
+import type { Wish } from '../domain/types';
 import { dayText, money, monthText, roughDateText, roughPriceText } from '../domain/format';
 import type { Condition, Fit, Item, ItemEvent, Photo } from '../domain/types';
 import { costPerWear, lastWornText, totalWears, wearsText } from '../domain/wears';
 import { back, go, useRoute } from '../router';
 import { bitmapFromFile } from '../photo/camera';
-import { dayKey } from '../domain/wearlog';
+import { dayKey, dayStart, shiftDay } from '../domain/wearlog';
 import { shrinkToWebp } from '../photo/cutout';
 import { askConfirm, askText } from '../ui/Ask';
 import { Chips } from '../ui/Chips';
@@ -27,13 +28,14 @@ export function Piece() {
   const trees = useTrees();
   const photos = usePhotos(id);
   const events = useEvents(id);
+  const wish = useWishFor(id);
   const wear = useWearLog();
   if (item === null) return <Missing />;
   if (!item || !trees || !photos || !events || !wear) return <main className="screen" aria-busy="true" />;
   if (item.deletedAt) return <Missing trashed />;
   return item.status === 'gone'
-    ? <GonePiece item={item} trees={trees} photos={photos} events={events} />
-    : <OwnedPiece item={item} trees={trees} photos={photos} logged={wear.count.get(item.id) ?? 0} lastWorn={wear.last.get(item.id)} />;
+    ? <GonePiece item={item} trees={trees} photos={photos} events={events} wish={wish ?? undefined} />
+    : <OwnedPiece item={item} trees={trees} photos={photos} logged={wear.count.get(item.id) ?? 0} lastWorn={wear.last.get(item.id)} wish={wish} />;
 }
 
 function Missing({ trashed = false }: { trashed?: boolean }) {
@@ -82,7 +84,7 @@ function Photos({ item, photos, colour, lit, marking, onMark }: { item: Item; ph
   );
 }
 
-function OwnedPiece({ item, trees, photos, logged, lastWorn }: { item: Item; trees: Trees; photos: { url: string; photo: Photo }[]; logged: number; lastWorn?: number }) {
+function OwnedPiece({ item, trees, photos, logged, lastWorn, wish }: { item: Item; trees: Trees; photos: { url: string; photo: Photo }[]; logged: number; lastWorn?: number; wish?: Wish | null }) {
   const [moving, setMoving] = useState(false);
   const [fitting, setFitting] = useState(false);
   const [marking, setMarking] = useState(false);
@@ -144,6 +146,7 @@ function OwnedPiece({ item, trees, photos, logged, lastWorn }: { item: Item; tre
         <span className="m" style={{ paddingBottom: 2 }}>{wearsText(wears)}<br />{lastWorn ? `last worn ${lastWornText(dayKey(lastWorn), dayKey(Date.now()))}` : 'never logged'}</span>
       </div>
       {money_ && <div className="li sm m" style={{ display: 'block' }}>{money_}{item.shop ? ` · ${item.shop}` : ''}</div>}
+      {gladText(wish) && <div className="li sm m">{gladText(wish)}</div>}
       <div style={{ display: 'flex', gap: 8, padding: '8px 18px 0' }}>
         <button type="button" className="acc" style={{ flex: 1 }} onClick={async () => { if (await wornToday(item.id)) showToast(`Worn today · ${wears.n + 1} wears`, () => void undoLast()); else showToast('Already logged for today'); }}>Worn today</button>
         <button type="button" className="ghost" onClick={async () => { const c = await copyItem(item.id); go('/details', { id: c, edit: '1' }); showToast(`Copied ${item.name}`); }}>Copy</button>
@@ -199,7 +202,10 @@ export function MoveSheet({ open, onClose, trees, current, count, onMove }: { op
 
 // ---------- gone ----------
 
-function storyLines(item: Item, events: ItemEvent[], trees: Trees): { when: string; what: string }[] {
+/** The answer to "Glad you bought it?", for the piece's page and its story. */
+export const gladText = (w: Wish | null | undefined) => (w?.glad ? `Glad you bought it: ${w.glad} of 7` : '');
+
+function storyLines(item: Item, events: ItemEvent[], trees: Trees, wish?: Wish): { when: string; what: string }[] {
   const out: { when: string; what: string; at: number }[] = [];
   const worn = events.filter((e) => e.type === 'worn');
   for (const e of events) {
@@ -220,13 +226,14 @@ function storyLines(item: Item, events: ItemEvent[], trees: Trees): { when: stri
     const last = worn.length ? new Date(worn.at(-1)!.at).getFullYear() : item.gone?.on.slice(0, 4);
     out.push({ at: worn[0]?.at ?? item.createdAt - 1, when: first && last && !first.endsWith(String(last)) ? `${first} to ${last}` : first || '', what: `Worn ${w.approx ? 'about ' : w.atLeast ? 'at least ' : ''}${w.n} time${w.n === 1 ? '' : 's'}` });
   }
+  if (wish?.glad && wish.boughtOn) out.push({ at: 0, when: dayText(dayStart(shiftDay(wish.boughtOn, 30)), 0), what: gladText(wish) });
   if (item.boughtOn) out.push({ at: -1, when: roughDateText({ ...item.boughtOn, estimate: false }), what: `Bought${item.price ? `, ${roughPriceText(item.price, item.currency)}` : ''}${item.shop ? ` at ${item.shop}` : ''}` });
   return out.sort((a, b) => b.at - a.at);
 }
 
-function GonePiece({ item, trees, photos, events }: { item: Item; trees: Trees; photos: { url: string; photo: Photo }[]; events: ItemEvent[] }) {
+function GonePiece({ item, trees, photos, events, wish }: { item: Item; trees: Trees; photos: { url: string; photo: Photo }[]; events: ItemEvent[]; wish?: Wish }) {
   const shade = trees.shades.find((s) => s.id === item.shadeMain);
-  const lines = storyLines(item, events, trees);
+  const lines = storyLines(item, events, trees, wish);
   return (
     <main className="screen piece gone">
       <div style={{ position: 'relative' }}>

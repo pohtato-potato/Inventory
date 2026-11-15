@@ -1,5 +1,6 @@
 // Wishes: what a shared link brings in, whether a wish is waiting, and the order the board shows them.
-import type { Tier, Wish } from './types';
+import type { Item, Kind, Tier, Wish } from './types';
+import { daysBetween } from './wearlog';
 
 const SHOPS: Record<string, string> = { myntra: 'Myntra', amazon: 'Amazon', ajio: 'Ajio' };
 
@@ -92,4 +93,27 @@ export function waitText(w: Wish, today: string): string | null {
     return `Waiting until ${d.toLocaleDateString('en-GB', sameYear ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' })}`;
   }
   return `Waiting: ${w.waitUntil!.note!.trim()}`;
+}
+
+/** "Will you wear it 30 times?" is asked before buying clothing, and before buying a wish whose kind is not set. */
+export function asksThirtyWears(w: Wish, kinds: Kind[]): boolean {
+  if (!w.kindId) return true;
+  return kinds.find((k) => k.id === w.kindId)?.clothing ?? true;
+}
+
+/**
+ * Bought wishes due the "Glad you bought it?" check: bought 30 or more days ago, not answered or skipped.
+ * With the pieces given, a piece let go or deleted since is not asked about.
+ */
+export function gladDue(wishes: Wish[], today: string, items?: Item[]): Wish[] {
+  const byId = items ? new Map(items.map((i) => [i.id, i])) : null;
+  return wishes.filter((w) => {
+    if (w.status !== 'bought' || !w.boughtOn || w.glad !== undefined || w.gladSkipped) return false;
+    if (daysBetween(w.boughtOn, today) < 30) return false;
+    if (byId) {
+      const item = w.itemId ? byId.get(w.itemId) : undefined;
+      if (!item || item.status !== 'owned' || item.deletedAt !== undefined) return false;
+    }
+    return true;
+  });
 }
