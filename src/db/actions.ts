@@ -1,4 +1,5 @@
-import type { EventType, Gone, Id, Item, ItemEvent, Kind, Photo, Place, Shade, Wear } from '../domain/types';
+import type { EventType, Gone, Id, Item, ItemEvent, Kind, Lane, Outfit, Photo, Place, Shade, Wear } from '../domain/types';
+import { samePieces } from '../domain/outfit';
 import { dayKey, dayStart } from '../domain/wearlog';
 import { db, newId } from './db';
 import { WITH_ME_ID } from './seed';
@@ -304,6 +305,62 @@ export async function wornToday(id: Id): Promise<boolean> {
   return true;
 }
 
+// ---------- outfits ----------
+
+/** Saves an outfit. The same set of pieces again returns the outfit already saved. */
+export async function saveOutfit(itemIds: Id[], name?: string, dressCodes: string[] = []): Promise<Id> {
+  const ids = [...new Set(itemIds)];
+  if (!ids.length) throw new Error('An outfit needs at least one piece');
+  const same = (await db.outfits.toArray()).find((o) => samePieces(o.itemIds, ids));
+  if (same) return same.id;
+  const now = stamp();
+  const o: Outfit = { id: newId(), itemIds: ids, dressCodes, createdAt: now, updatedAt: now };
+  if (name?.trim()) o.name = name.trim();
+  await db.outfits.add(o);
+  pushUndo('Saved 1 outfit', async () => { await db.outfits.delete(o.id); });
+  return o.id;
+}
+
+export async function updateOutfit(id: Id, patch: Partial<Omit<Outfit, 'id'>>): Promise<void> {
+  const before = await db.outfits.get(id);
+  if (!before) return;
+  await db.outfits.put({ ...before, ...patch, updatedAt: stamp() });
+  pushUndo('Changed 1 outfit', async () => { await db.outfits.put(before); });
+}
+
+/** Removes an outfit and its mirror photos. Its wear days stay. */
+export async function removeOutfit(id: Id): Promise<void> {
+  const before = await db.outfits.get(id);
+  if (!before) return;
+  const photos = await db.photos.where('itemId').equals(id).toArray();
+  await db.transaction('rw', db.outfits, db.photos, async () => {
+    await db.photos.bulkDelete(photos.map((p) => p.id));
+    await db.outfits.delete(id);
+  });
+  pushUndo('Removed 1 outfit', async () => {
+    await db.transaction('rw', db.outfits, db.photos, async () => {
+      await db.outfits.put(before);
+      await db.photos.bulkPut(photos);
+    });
+  });
+}
+
+/** Marks two pieces as going well together (or not), on both of them. */
+export async function setPairs(a: Id, b: Id, on: boolean): Promise<void> {
+  if (a === b) return;
+  const before = (await db.items.bulkGet([a, b])).filter((i): i is Item => !!i);
+  if (before.length < 2) return;
+  const now = stamp();
+  await db.transaction('rw', db.items, async () => {
+    for (const [x, y] of [[a, b], [b, a]] as const) {
+      const it = before.find((i) => i.id === x)!;
+      const rest = (it.pairs ?? []).filter((p) => p !== y);
+      await db.items.update(x, { pairs: on ? [...rest, y] : rest, updatedAt: now });
+    }
+  });
+  pushUndo(on ? 'Marked as pairing well' : 'No longer pairing', async () => { await db.items.bulkPut(before); });
+}
+
 export async function copyItem(id: Id): Promise<Id> {
   const src = await db.items.get(id);
   if (!src) throw new Error('That piece is gone');
@@ -496,6 +553,17 @@ export async function rename(table: 'kinds' | 'shades' | 'places', id: Id, name:
 
 export async function setKindHidden(id: Id, hide: boolean): Promise<void> {
   await db.kinds.update(id, { hideFromWindow: hide, updatedAt: stamp() });
+}
+
+/** Where a kind stands in outfits. Each lane brings its usual size; tops sit as an over layer. */
+const LANE_SCALE: Record<Lane, number> = { head: 0.45, neck: 0.6, top: 1, waist: 0.7, bottom: 0.8, feet: 0.45, wrist: 0.16, hand: 0.08, carry: 0.6 };
+export async function setKindLane(id: Id, lane: Lane | undefined): Promise<void> {
+  const k = await db.kinds.get(id);
+  if (!k) return;
+  const next: Kind = { ...k, updatedAt: stamp() };
+  delete next.lane; delete next.layer; delete next.baseScale;
+  if (lane) Object.assign(next, { lane, baseScale: LANE_SCALE[lane] }, lane === 'top' ? { layer: 'over' } : {});
+  await db.kinds.put(next);
 }
 
 // ---------- settings ----------

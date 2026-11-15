@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { letGo, setSetting, updateItem, undoLast } from '../db/actions';
-import { useItem, useItems, usePhoto, useSetting, useTrees, type Trees } from '../db/hooks';
+import { letGo, setPairs, setSetting, updateItem, undoLast } from '../db/actions';
+import { useAllItems, useItem, useItems, useMainPhotos, useOutfits, usePhoto, useSetting, useTrees, type Trees } from '../db/hooks';
+import { DRESS_CODES } from '../domain/outfit';
 import { parseRoughDate, parseRoughPrice } from '../domain/estimate';
 import { FIELD_LABEL, fieldsFor, isUnsorted, kindChoices, nextNeedingDetails, singular, suggestName, UNSORTED } from '../domain/fields';
 import { roughDateText, roughPriceText } from '../domain/format';
@@ -12,7 +13,9 @@ import { showToast } from '../ui/Toast';
 import { Piece, Window } from '../ui/Window';
 import { IconCalendar, IconPin } from '../ui/icons';
 import { CONDITION_LABEL, FIT_LABEL, FIT_TONE } from './Piece';
-import { kindName, SubTop, UncutNote } from './shared';
+import { kindName, pieceColour, SubTop, UncutNote } from './shared';
+import { OutfitStage } from './Outfits';
+import { Tile } from '../ui/Tile';
 import { ReadReceipt } from './ReadReceipt';
 
 const RANGES: { value: WearRange | 'exact'; label: string }[] = [
@@ -85,6 +88,8 @@ interface Draft {
   shop: string;
   currency: string;
   hideFromWindow: boolean;
+  outfitScale: number;
+  dressCodes: string[];
 }
 
 function toDraft(i: Item): Draft {
@@ -98,6 +103,7 @@ function toDraft(i: Item): Draft {
     fit: i.fit, spotId: i.spotId, extra: { ...i.extra }, size: i.size ?? '', brand: i.brand ?? '',
     count: String(i.count), condition: i.condition, tags: i.tags.join(', '), fitNote: i.fitNote ?? '',
     shop: i.shop ?? '', currency: i.currency, hideFromWindow: !!i.hideFromWindow,
+    outfitScale: i.outfitScale ?? 1, dressCodes: i.dressCodes ?? [],
   };
 }
 
@@ -147,6 +153,8 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
         tags: d.tags.split(',').map((t) => t.trim().replace(/^#/, '')).filter(Boolean),
         fitNote: d.fitNote.trim() || undefined,
         currency: (d.currency.trim() || 'INR').toUpperCase(), hideFromWindow: d.hideFromWindow || undefined,
+        outfitScale: Math.abs(d.outfitScale - 1) < 0.001 ? undefined : d.outfitScale,
+        dressCodes: d.dressCodes.length ? d.dressCodes : undefined,
       });
     }
     await updateItem(item.id, patch);
@@ -242,6 +250,7 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
           </div>
         ))}
         {edit && <EditMore d={d} set={set} />}
+        {edit && clothing && !unsorted && <OutfitBits item={item} trees={trees} d={d} set={set} />}
         {edit && (
           <div style={{ display: 'grid', gap: 8 }}>
             <button type="button" className="ghost" aria-pressed={d.hideFromWindow} onClick={() => set({ hideFromWindow: !d.hideFromWindow })}>{d.hideFromWindow ? 'Show in the window again' : "Don't show in the window"}</button>
@@ -351,5 +360,62 @@ function DayPicker({ value, onPick }: { value: string; onPick: (day: string) => 
       <input type="date" value={value} max={max} onChange={(e) => { if (e.target.value) onPick(e.target.value); }}
         onClick={(e) => { try { e.currentTarget.showPicker(); } catch { /* the browser opens its own picker */ } }} />
     </label>
+  );
+}
+
+/** Edit, for clothing: its size on the outfit stage (with a live preview), what it pairs well with, its dress codes. */
+function OutfitBits({ item, trees, d, set }: { item: Item; trees: Trees; d: Draft; set: (p: Partial<Draft>) => void }) {
+  const all = useAllItems();
+  const thumbs = useMainPhotos();
+  const outfits = useOutfits();
+  const own = useSetting<string[]>('dressCodes', []);
+  const [pairing, setPairing] = useState(false);
+  if (!all || !thumbs || !outfits) return null;
+  const me = { ...item, outfitScale: d.outfitScale };
+  const withMe = [...outfits].sort((a, b) => b.createdAt - a.createdAt).find((o) => o.itemIds.includes(item.id));
+  const ids = withMe ? withMe.itemIds : [item.id];
+  const items = all.map((i) => (i.id === item.id ? me : i));
+  const pairs = (item.pairs ?? []).map((id) => all.find((i) => i.id === id)).filter((i): i is Item => !!i);
+  const codes = [...DRESS_CODES, ...own.filter((c) => !DRESS_CODES.includes(c))];
+  const clothing = new Set(trees.kinds.filter((k) => k.clothing).map((k) => k.id));
+  const others = all.filter((i) => i.id !== item.id && i.status === 'owned' && i.deletedAt === undefined && clothing.has(i.kindId) && !isUnsorted(i.kindId));
+  return (
+    <>
+      <div className="q">
+        <label className="ql" htmlFor="d-scale">Size in outfits</label>
+        <div className="scale-row">
+          <OutfitStage ids={ids} items={items} trees={trees} thumbs={thumbs} height={200} label={`${item.name} in an outfit, at this size`} />
+          <div style={{ flex: 1, display: 'grid', gap: 8 }}>
+            <input id="d-scale" type="range" min={0.6} max={1.5} step={0.05} value={d.outfitScale} onChange={(e) => set({ outfitScale: Number(e.target.value) })} aria-valuetext={`${Math.round(d.outfitScale * 100)} percent`} />
+            <p className="m">{Math.round(d.outfitScale * 100)} %{Math.abs(d.outfitScale - 1) > 0.001 ? '' : ', as it is'}</p>
+            {Math.abs(d.outfitScale - 1) > 0.001 && <button type="button" className="link" style={{ justifySelf: 'start' }} onClick={() => set({ outfitScale: 1 })}>Back to 100 %</button>}
+          </div>
+        </div>
+      </div>
+      <div className="q">
+        <p className="ql">Pairs well with</p>
+        <div className="chips">
+          {pairs.map((p) => <Chip key={p.id} on onClick={() => setPairing(true)}>{p.name}</Chip>)}
+          <Chip onClick={() => setPairing(true)}>{pairs.length ? 'Change' : 'Pick pieces'}</Chip>
+        </div>
+      </div>
+      <div className="q">
+        <p className="ql">Dress codes</p>
+        <Chips label="Dress codes" value={d.dressCodes} onChange={(v) => set({ dressCodes: d.dressCodes.includes(v) ? d.dressCodes.filter((c) => c !== v) : [...d.dressCodes, v] })} options={codes.map((c) => ({ value: c, label: c }))} />
+      </div>
+      <Sheet open={pairing} onClose={() => setPairing(false)} label="Pairs well with">
+        <div style={{ display: 'grid', gap: 12 }}>
+          <p className="name" style={{ fontSize: 22 }}>Pairs well with {item.name}</p>
+          <div className="grid" style={{ padding: 0 }}>
+            {others.map((o, n) => {
+              const t = thumbs.get(o.id);
+              const on = !!item.pairs?.includes(o.id);
+              return <Tile key={o.id} item={o} photo={t?.url} cut={t?.cut ?? true} colour={pieceColour(o, trees.shades)} index={n} selected={on} selecting onPress={() => void setPairs(item.id, o.id, !on)} />;
+            })}
+          </div>
+          <button type="button" className="acc" onClick={() => setPairing(false)}>Done</button>
+        </div>
+      </Sheet>
+    </>
   );
 }

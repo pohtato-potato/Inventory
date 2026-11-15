@@ -15,6 +15,8 @@ import { Details } from './screens/Details';
 import { Settings } from './screens/Settings';
 import { Sizes } from './screens/Sizes';
 import { Fix } from './screens/Fix';
+import { Outfits } from './screens/Outfits';
+import { OutfitPage } from './screens/OutfitPage';
 import { startConveyor } from './photo/conveyor';
 
 const SCREENS: Record<string, React.ComponentType> = {
@@ -28,10 +30,12 @@ const SCREENS: Record<string, React.ComponentType> = {
   '/sizes': Sizes,
   '/settings': Settings,
   '/fix': Fix,
+  '/outfits': Outfits,
+  '/outfit': OutfitPage,
 };
 
 /** Screens that show the tab bar. The rest (a piece, the camera, details) use the whole screen. */
-const WITH_TABS = new Set(['/wardrobe', '/things', '/spot', '/search']);
+const WITH_TABS = new Set(['/wardrobe', '/things', '/spot', '/search', '/outfits']);
 
 export function App() {
   const { path } = useRoute();
@@ -39,7 +43,7 @@ export function App() {
     void seedIfEmpty().then(() => sweepTrash(Date.now())).then(() => startConveyor());
   }, []);
   const Screen = SCREENS[path] ?? Wardrobe;
-  const tab = path === '/things' ? '/things' : path === '/wardrobe' ? '/wardrobe' : '';
+  const tab = path === '/things' ? '/things' : path === '/wardrobe' || path === '/outfits' ? '/wardrobe' : '';
   return (
     <>
       <Suspense fallback={<main className="screen" aria-busy="true" />}>

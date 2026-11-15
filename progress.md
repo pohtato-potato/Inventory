@@ -15,3 +15,7 @@ Task 3: complete — layout/placeIn/pairedFirst/laneOf/lightPiece in src/domain/
 Task 3: Ruling: Placed gains `h` (height fraction, from the photo's aspect and a fixed stage shape 0.53 = the board's 128×240) — the Stage needs it — cost if wrong: none, additive.
 Task 3: Ruling: a kind with no lane uses its parent's, else stands at the side ("carry", 0.6) — the plan leaves lane-less kinds undefined — cost if wrong: an owner's kind shows at the side until a lane is chosen in Settings.
 Task 3: Ruling: placeIn toggles (a chosen piece tapped again is taken out) — the builder needs a way to remove — cost if wrong: none.
+Task 4: complete — saveOutfit/updateOutfit/removeOutfit/setPairs/setKindLane, regulars/DRESS_CODES; Outfits (regulars, builder pinned under header, lane chips, pairs well), OutfitPage, Pieces/Outfits switch (my call, as planned), Edit: size in outfits (slider + live stage), pairs well with, dress codes; Settings kind sheet: where it goes in outfits. Tests 243/243.
+Task 4: Ruling: added setKindLane and a "Where it goes in outfits" choice on the kind sheet — Task 1 says owner kinds get a lane "in the kind's settings" but no task builds it — cost if wrong: one extra control on the kind sheet.
+Task 4: Ruling: "Or start from a piece" is three across, as the plan says (the board drew four) — plan wins over board on density since Build 1 chose three — cost if wrong: denser grid wanted.
+Task 4: Ruling: the size preview in Edit shows the piece inside the newest outfit that holds it, else alone — a lone piece shows no proportion — cost if wrong: none.

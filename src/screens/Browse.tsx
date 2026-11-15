@@ -18,6 +18,7 @@ import { UNKNOWN_LIGHT, windowColour } from '../ui/light';
 import { IconDown, IconMenu, IconSearch, IconChev } from '../ui/icons';
 import { byId, homesWithSpots, kindName, pieceColour } from './shared';
 import { Selection, useSelection } from './Selection';
+import { WardrobeSwitch } from './Outfits';
 
 export type Scope = 'clothing' | 'things';
 type By = 'kind' | 'colour' | 'place';
@@ -63,6 +64,7 @@ export function Browse({ scope }: { scope: Scope }) {
       ) : (
         <Header scope={scope} total={total} pick={pick} thumbs={thumbs} trees={trees} items={items} onMenu={() => setMenu(true)} />
       )}
+      {scope === 'clothing' && !sel.ids.size && <WardrobeSwitch on="pieces" />}
       {items.length > 0 && (
         <>
           <Seg label="Browse by" value={by} onChange={setBy} options={[{ value: 'kind', label: 'By kind' }, { value: 'colour', label: 'By colour' }, { value: 'place', label: 'By place' }]} />

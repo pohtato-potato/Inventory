@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
-import type { Id, Item, ItemEvent, Kind, Photo, Place, Shade, Wear } from '../domain/types';
+import type { Id, Item, ItemEvent, Kind, Outfit, Photo, Place, Shade, Wear } from '../domain/types';
 import { dayStart, wearStats } from '../domain/wearlog';
 import { db } from './db';
 
@@ -54,6 +54,28 @@ export function useWearLog(): { last: Map<Id, number>; count: Map<Id, number> } 
 /** Every wear, oldest day first. */
 export function useWears(): Wear[] | undefined {
   return useLiveQuery(() => db.wears.orderBy('day').toArray(), []);
+}
+
+/** Every piece, trashed ones too: outfits and wear days still show a piece after it is let go or deleted. */
+export function useAllItems(): Item[] | undefined {
+  return useLiveQuery(() => db.items.toArray(), []);
+}
+
+export function useOutfits(): Outfit[] | undefined {
+  return useLiveQuery(() => db.outfits.toArray(), []);
+}
+
+export function useOutfit(id: Id | null | undefined): Outfit | null | undefined {
+  return useLiveQuery(async () => (id ? ((await db.outfits.get(id)) ?? null) : null), [id]);
+}
+
+/** Photos kept against an outfit, a wear or a wish (mirror photos, a wish's picture), oldest first. */
+export function usePhotosOf(ownerId: Id | null | undefined): { url: string; photo: Photo }[] | undefined {
+  return useLiveQuery(async () => {
+    if (!ownerId) return [];
+    const list = await db.photos.where('itemId').equals(ownerId).sortBy('updatedAt');
+    return list.map((p) => ({ url: urlFor(p), photo: p }));
+  }, [ownerId]);
 }
 
 // Object URLs for stored photos, kept per photo version so tiles do not flicker.

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { addKind, emptyTrash, OTHER_KIND, removeKind, rename, restore, setKindHidden, setSetting, TRASH_DAYS, undoLast } from '../db/actions';
+import { addKind, emptyTrash, OTHER_KIND, removeKind, rename, restore, setKindHidden, setKindLane, setSetting, TRASH_DAYS, undoLast } from '../db/actions';
+import { Chips } from '../ui/Chips';
+import type { Lane } from '../domain/types';
 import { db } from '../db/db';
 import { useItems, useMainPhotos, useSetting, useTrashed, useTrees } from '../db/hooks';
 import { toCsv } from '../domain/csv';
@@ -167,6 +169,9 @@ export function Settings() {
   );
 }
 
+/** The outfit lanes in plain words. */
+const LANES: [Lane | 'none', string][] = [['head', 'Head'], ['neck', 'Neck'], ['top', 'Top'], ['waist', 'Waist'], ['bottom', 'Bottom'], ['feet', 'Feet'], ['wrist', 'Wrist'], ['hand', 'Hand'], ['carry', 'Carried'], ['none', 'Not set']];
+
 function KindSheet({ kind, onClose }: { kind: Kind | null; onClose: () => void }) {
   if (!kind) return <Sheet open={false} onClose={onClose} label="Kind">{null}</Sheet>;
   const removable = kind.id !== OTHER_KIND;
@@ -182,6 +187,13 @@ function KindSheet({ kind, onClose }: { kind: Kind | null; onClose: () => void }
         <button type="button" className="ghost" onClick={async () => { await setKindHidden(kind.id, !kind.hideFromWindow); onClose(); }}>
           {kind.hideFromWindow ? 'Show in the window again' : 'Keep out of the window'}
         </button>
+        {kind.clothing && (
+          <div className="q">
+            <p className="ql">Where it goes in outfits</p>
+            <Chips label="Where it goes in outfits" value={kind.lane ?? 'none'} onChange={async (v) => { await setKindLane(kind.id, v === 'none' ? undefined : (v as Lane)); onClose(); }}
+              options={LANES.map(([value, label]) => ({ value, label }))} />
+          </div>
+        )}
         {!kind.parentId && (
           <button type="button" className="ghost" onClick={async () => {
             const name = await askText(`A kind inside ${kind.name}`, 'For example: Linen shirts');

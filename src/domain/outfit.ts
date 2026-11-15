@@ -1,6 +1,6 @@
 // The head-to-toe outfit stage: where each piece stands and how big, at true proportions.
-import type { Id, Item, Kind, Lane, Layer } from './types';
-import { pairKey } from './wearlog';
+import type { Id, Item, Kind, Lane, Layer, Outfit, Wear } from './types';
+import { outfitCount, pairKey } from './wearlog';
 
 /** One piece on the stage. x is its centre and y its top, w its width and h its height, all fractions of the box. */
 export interface Placed {
@@ -101,4 +101,20 @@ export function lightPiece(placed: Placed[]): Id | undefined {
   const live = placed.filter((p) => !p.gone);
   const tops = live.filter((p) => p.lane === 'top').sort((a, b) => b.z - a.z);
   return (tops[0] ?? live[0])?.itemId;
+}
+
+export const DRESS_CODES = ['Formal', 'Smart casual', 'Casual', 'Ethnic', 'Gym', 'Lounge'];
+
+/** Saved outfits, most worn first, then newest. */
+export function regulars(outfits: Outfit[], wears: Wear[]): Outfit[] {
+  return outfits
+    .map((o) => ({ o, n: outfitCount(o, wears) }))
+    .sort((a, b) => b.n - a.n || b.o.createdAt - a.o.createdAt)
+    .map((x) => x.o);
+}
+
+/** The same set of pieces, in any order. */
+export function samePieces(a: Id[], b: Id[]): boolean {
+  const s = new Set(a);
+  return s.size === new Set(b).size && b.every((id) => s.has(id));
 }
