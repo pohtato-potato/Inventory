@@ -14,6 +14,7 @@ import { Camera } from './screens/Camera';
 import { Details } from './screens/Details';
 import { Settings } from './screens/Settings';
 import { Sizes } from './screens/Sizes';
+import { Fix } from './screens/Fix';
 import { startConveyor } from './photo/conveyor';
 
 const SCREENS: Record<string, React.ComponentType> = {
@@ -26,6 +27,7 @@ const SCREENS: Record<string, React.ComponentType> = {
   '/details': Details,
   '/sizes': Sizes,
   '/settings': Settings,
+  '/fix': Fix,
 };
 
 /** Screens that show the tab bar. The rest (a piece, the camera, details) use the whole screen. */

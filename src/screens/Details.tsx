@@ -106,6 +106,7 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
   const [changing, setChanging] = useState(false);
   const [letting, setLetting] = useState(false);
   const photo = usePhoto(item.id);
+  const original = usePhoto(item.id, 'original');
   const items = useItems();
   const set = (p: Partial<Draft>) => setD((o) => ({ ...o, ...p }));
   // A cut-out that lands while the form is open fills the shade the owner has not picked yet.
@@ -165,6 +166,9 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
         {item.cutout === 'pending' && <span className="sm details-wait">Cutting out…</span>}
       </Window>
       <UncutNote item={item} />
+      {edit && original && item.cutout !== 'uncut' && (
+        <div className="fix-entry"><button type="button" className="ghost" onClick={() => go('/fix', { id: item.id })}>Fix the cut-out</button></div>
+      )}
       <div className="details-body">
         <div className="q">
           <label className="ql" htmlFor="d-name">Name</label>

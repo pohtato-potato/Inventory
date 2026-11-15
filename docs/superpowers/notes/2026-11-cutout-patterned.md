@@ -52,7 +52,9 @@ The photo is kept uncut when any of these hold:
 - **A bigger model:** BiRefNet or RMBG-2.0 might separate better. Neither was tested; both are several times larger to download and slower on a phone. RMBG-2.0's licence is non-commercial, which is fine for a personal app but worth knowing.
 - **The practical fix is the photo:** a plain surface. The camera hint now says so, and a failed cut-out says so and offers Retake.
 
-## What a tap-to-fix tool would take (not built)
+## What a tap-to-fix tool would take
+
+Built on `feat/tap-to-fix`; measurements in `2026-11-tap-to-fix.md`. The estimate below is kept as it was written.
 
 A "tap the piece" fix needs a promptable segmentation model: SlimSAM or SAM through transformers.js, which take a tapped point and return the object under it.
 - **Download:** a second model of roughly 50–100 MB, cached like RMBG.

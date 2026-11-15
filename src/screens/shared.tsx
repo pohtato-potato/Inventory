@@ -47,7 +47,7 @@ export function SubTop({ title, right, onBack }: { title: string; right?: ReactN
 
 export type { Trees, Thumb };
 
-/** After a failed cut-out: say so plainly and offer Retake or Keep as it is. */
+/** After a failed cut-out: say so plainly and offer Retake, Keep as it is, or Fix it by tapping. */
 export function UncutNote({ item }: { item: Item }) {
   if (item.cutout !== 'uncut') return null;
   return (
@@ -56,6 +56,7 @@ export function UncutNote({ item }: { item: Item }) {
       <div className="uncut-actions">
         <button type="button" className="acc" onClick={() => go('/add', { retake: item.id })}>Retake</button>
         <button type="button" className="ghost" onClick={() => void keepUncut(item.id)}>Keep as it is</button>
+        <button type="button" className="ghost" onClick={() => go('/fix', { id: item.id })}>Fix it by tapping</button>
       </div>
     </div>
   );

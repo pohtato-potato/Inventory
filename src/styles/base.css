@@ -234,7 +234,8 @@ button.li { width: 100%; border-left: 0; border-right: 0; border-bottom: 0; back
 
 /* a failed cut-out */
 .uncut-note { margin: 12px 14px 0; padding: 12px 14px; border: 1px solid var(--edge); border-radius: 14px; display: grid; gap: 10px; }
-.uncut-actions { display: flex; gap: 8px; }
+.uncut-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.uncut-actions .ghost { flex: 1 1 auto; }
 .uncut-actions .acc { flex: 1; }
 /* An uncut photo fills its window, cropped, with no rim light or shadow: it reads as a photo, not a tilted card. */
 .win > .pc.uncut { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; object-fit: cover; filter: none; border-radius: 0; }
@@ -245,3 +246,22 @@ button.li { width: 100%; border-left: 0; border-right: 0; border-bottom: 0; back
 .day-pick input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; cursor: pointer; }
 .day-pick:focus-within { outline: 2px solid var(--a); outline-offset: 2px; }
 .bar-why { flex: 0 0 100%; margin: 0; color: var(--m); }
+
+/* Tap to fix: the photo as taken, sized to sit above the controls and the bar; points are 44 px and ringed light and dark so they show on any photo. */
+.fix { padding-bottom: calc(84px + var(--safe-b)); }
+.fix-stage { display: flex; justify-content: center; padding: 4px 14px 0; }
+.fix-photo { position: relative; display: inline-block; line-height: 0; }
+.fix-photo img { display: block; max-width: 100%; max-height: max(240px, calc(100dvh - 310px - var(--safe-b))); border-radius: 12px; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.fix-tint { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 12px; pointer-events: none; }
+.fix-pt { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; padding: 0; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px #0B0C0F, 0 2px 8px #0009; color: #0B0C0F; font: 700 26px/1 var(--f-body); display: grid; place-items: center; }
+.fix-pt.keep { background: var(--a); }
+.fix-pt.remove { background: var(--bad); }
+.fix-controls { display: grid; gap: 0; padding-bottom: 8px; }
+.fix-controls > p, .fix-ask { margin: 0; padding: 12px 18px 0; }
+.fix-ask { display: grid; gap: 10px; }
+.fix-hint { margin: 0; padding: 10px 18px 0; min-height: 24px; }
+.fix-edits { display: flex; gap: 8px; padding: 10px 14px 0; }
+.fix-edits .ghost { flex: 1; }
+.fix-bar .ghost { flex: 1; }
+.fix-bar .acc { flex: 2; }
+.fix-entry { display: grid; padding: 12px 14px 0; }
