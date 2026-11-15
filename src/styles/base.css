@@ -334,7 +334,7 @@ a.ghost { text-decoration: none; }
 .glad-win { width: 96px; height: 110px; flex: none; border-radius: 12px; display: grid; place-items: center; }
 .glad-win .pc { max-width: 80%; max-height: 86%; }
 .glad-name { font-size: 22px; padding: 2px 0 4px; }
-.glad-scale { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin: 14px -13px 0; border: 1px solid #5A5C66; border-radius: 12px; overflow: hidden; }
+.glad-scale { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin: 14px -14px 0; border: 1px solid #5A5C66; border-radius: 12px; overflow: hidden; }
 .glad-scale button { min-height: 48px; border: 0; border-left: 1px solid #5A5C66; background: none; color: var(--t); font: 600 20px/1 var(--f-num); }
 .glad-scale button:first-child { border-left: 0; }
 .glad-scale button:active { background: var(--a); color: #0B0C0F; }
@@ -383,3 +383,6 @@ button.card { display: flex; width: calc(100% - 28px); text-align: left; color: 
 .year-num { font-size: 56px; display: block; }
 .year-spend { display: grid; gap: 4px; }
 .year-hint { text-align: center; padding: 0 18px 20px; }
+/* The wish in the window stands on the right; its light sits behind it, so the words on the left stay legible over any colour. */
+.hero-wish::before { background: radial-gradient(ellipse 60% 70% at 76% 60%, var(--c, #555) 0%, transparent 70%); }
+.card.glad { margin-inline: 10px; }
