@@ -356,6 +356,7 @@ function ViewMenu({ open, onClose, layout, sort, scope }: { open: boolean; onClo
         </div>
         <div style={{ display: 'grid', gap: 0, margin: '0 -18px' }}>
           {scope === 'clothing' && <button type="button" className="li" onClick={() => { onClose(); go('/wear'); }}>What you wore<span className="n"><IconChev /></span></button>}
+          {scope === 'clothing' && <button type="button" className="li" onClick={() => { onClose(); go('/own'); }}>Do I already own this?<span className="n"><IconChev /></span></button>}
           {scope === 'clothing' && <button type="button" className="li" onClick={() => { onClose(); go('/sizes'); }}>My sizes<span className="n"><IconChev /></span></button>}
           <button type="button" className="li" onClick={() => { onClose(); go('/details'); }}>Pieces that need details<span className="n"><IconChev /></span></button>
           <button type="button" className="li" onClick={() => { onClose(); go('/search', { gone: '1' }); }}>Pieces you let go<span className="n"><IconChev /></span></button>

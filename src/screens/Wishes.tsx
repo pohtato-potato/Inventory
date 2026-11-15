@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { buyWish, dropWish, undoLast, updateWish } from '../db/actions';
-import { useTrees, useWish, useWishes, useWishPhotos, type Thumb } from '../db/hooks';
+import { useItems, useTrees, useWish, useWishes, useWishPhotos, type Thumb } from '../db/hooks';
 import { parseRoughPrice } from '../domain/estimate';
 import { roughPriceText } from '../domain/format';
 import type { Id, Tier, Wish } from '../domain/types';
@@ -17,6 +17,7 @@ import { showToast } from '../ui/Toast';
 import { Piece, Window } from '../ui/Window';
 import { DayPicker, kindName, SubTop, type Trees } from './shared';
 import { setPendingWishPhoto } from './WishForm';
+import { GapHints } from './OwnThis';
 
 const tierLabel = (t: Tier) => TIERS.find((x) => x.value === t)!.label;
 
@@ -31,6 +32,7 @@ export function Wishes() {
   const wishes = useWishes();
   const thumbs = useWishPhotos();
   const trees = useTrees();
+  const items = useItems();
   const [past, setPast] = useState(false);
   if (!wishes || !thumbs) return <main className="screen" aria-busy="true" />;
 
@@ -95,6 +97,8 @@ export function Wishes() {
         </section>
       )}
 
+      {items && trees && <GapHints items={items} wishes={wishes} trees={trees} />}
+
       <AddWishSheet open={params.get('add') === '1'} onClose={() => go('/wishes', params0, { replace: true })} />
     </main>
   );
@@ -137,6 +141,7 @@ function AddWishSheet({ open, onClose }: { open: boolean; onClose: () => void })
         <button type="button" className="ghost" onClick={() => go('/wish-new', undefined, { replace: true })}>Type it in</button>
         <button type="button" className="ghost" onClick={() => file.current?.click()}>Photo from a shop</button>
         <input ref={file} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) void pickPhoto(f); e.target.value = ''; }} />
+        <button type="button" className="ghost" onClick={() => go('/own', undefined, { replace: true })}>Do I already own this?</button>
         <button type="button" className="ghost" onClick={onClose}>Cancel</button>
       </div>
     </Sheet>
@@ -186,6 +191,7 @@ export function WishPage() {
           <div className="wish-actions">
             <button type="button" className="acc" onClick={() => setBuying(true)}>Bought</button>
             {link && <a className="ghost" href={link} target="_blank" rel="noopener noreferrer">Open the shop page</a>}
+            <button type="button" className="ghost" onClick={() => go('/own', { kind: w.kindId, shade: shade?.familyId ?? w.shadeId })}>Do I already own this?</button>
             <button type="button" className="ghost" onClick={() => setMoving(true)}>Move to…</button>
             <button type="button" className="ghost" onClick={async () => { await dropWish(w.id); showToast('Taken off your wishes', () => void undoLast()); back('/wishes'); }}>Not any more</button>
           </div>

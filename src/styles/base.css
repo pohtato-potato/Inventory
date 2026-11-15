@@ -322,3 +322,10 @@ button.li { width: 100%; border-left: 0; border-right: 0; border-bottom: 0; back
 .wish-note { white-space: pre-wrap; }
 a.ghost { text-decoration: none; }
 .wish-actions { display: grid; gap: 8px; padding-top: 10px; }
+.own-count { display: flex; align-items: baseline; gap: 10px; padding: 18px 18px 10px; }
+.own-num { font-size: 72px; }
+.own-none { font-size: 24px; padding: 18px 18px 10px; }
+.gaps { padding: 22px 0 8px; }
+.gap-row { display: flex; align-items: center; flex-wrap: wrap; gap: 0 8px; min-height: 52px; padding: 4px 12px 4px 18px; border-top: 1px solid var(--line); }
+.gap-label { flex: 1 1 140px; font-weight: 700; }
+.gap-acts { display: flex; flex-wrap: wrap; }

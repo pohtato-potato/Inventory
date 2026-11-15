@@ -29,3 +29,7 @@ Task 7: Ruling: the Home tab and a stub Home screen land now, because the plan's
 Task 7: Ruling: "Photo from a shop" picks the photo inside the + sheet (a real tap) and hands it to the form, so the file picker is never opened without a tap — cost if wrong: none.
 Task 7: Ruling: added safeLink and waitText to wish.ts (tested); a typed link without http gets https; anything not http/https is refused — cost if wrong: an odd link needs retyping.
 Task 7: Ruling: no currency field on a wish (INR unless a later edit adds it) — the form already has nine fields — cost if wrong: a USD wish shows ₹.
+Task 8: complete — gaps/ownedLike on Build 1 matches, OwnThis screen (+ on Wishes, wardrobe menu, wish page prefilled), gap hints on Wishes, staples editable in Settings (tests: TZ=UTC npm test and npm test → 271/271)
+Task 8: Ruling: Staple.family is string | string[] (signature deviation) so "Brown or black leather shoes" and "Dark trousers" can name several families — cost if wrong: none for single-family staples.
+Task 8: Ruling: gap hints wait until the wardrobe holds one clothing piece, and skip a staple already on the wish list by name — an empty wardrobe would show all nine — cost if wrong: a new owner sees no hints until the first piece.
+Task 8: Ruling: "Add to wishes" from a gap goes to Someday; a wish's shade is widened to its family in OwnThis — cost if wrong: one tap to move tiers.

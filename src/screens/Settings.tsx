@@ -17,6 +17,7 @@ import { Sheet } from '../ui/Sheet';
 import { showToast } from '../ui/Toast';
 import { IconChev } from '../ui/icons';
 import { SubTop } from './shared';
+import { StaplesSection } from './Staples';
 
 function save(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -142,6 +143,8 @@ export function Settings() {
           if (name?.trim()) await addKind(name, null, false);
         }}>Add a kind</button>
       </div>
+
+      {trees && <StaplesSection trees={trees} />}
 
       <KindSheet kind={kind} onClose={() => setKind(null)} />
       <Sheet open={trashOpen} onClose={() => setTrashOpen(false)} label="Trash">
