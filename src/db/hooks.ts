@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
-import type { Id, Item, ItemEvent, Kind, Photo, Place, Shade } from '../domain/types';
+import type { Id, Item, ItemEvent, Kind, Photo, Place, Shade, Wear } from '../domain/types';
+import { dayStart, wearStats } from '../domain/wearlog';
 import { db } from './db';
 
 export interface Trees {
@@ -42,17 +43,17 @@ export function useEvents(itemId: Id | null | undefined): ItemEvent[] | undefine
   return useLiveQuery(async () => (itemId ? db.events.where('itemId').equals(itemId).sortBy('at') : []), [itemId]);
 }
 
-/** The last time each piece was logged as worn, and how many logged wears it has. */
+/** The last time each piece was worn (local midnight of that day), and on how many days. Read from the wear record. */
 export function useWearLog(): { last: Map<Id, number>; count: Map<Id, number> } | undefined {
   return useLiveQuery(async () => {
-    const last = new Map<Id, number>();
-    const count = new Map<Id, number>();
-    await db.events.filter((e) => e.type === 'worn').each((e) => {
-      count.set(e.itemId, (count.get(e.itemId) ?? 0) + 1);
-      if ((last.get(e.itemId) ?? 0) < e.at) last.set(e.itemId, e.at);
-    });
-    return { last, count };
+    const s = wearStats(await db.wears.toArray());
+    return { last: new Map([...s.last].map(([id, day]) => [id, dayStart(day)])), count: s.count };
   }, []);
+}
+
+/** Every wear, oldest day first. */
+export function useWears(): Wear[] | undefined {
+  return useLiveQuery(() => db.wears.orderBy('day').toArray(), []);
 }
 
 // Object URLs for stored photos, kept per photo version so tiles do not flicker.

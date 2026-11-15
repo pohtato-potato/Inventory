@@ -1,4 +1,5 @@
-import type { EventType, Gone, Id, Item, ItemEvent, Kind, Photo, Place, Shade } from '../domain/types';
+import type { EventType, Gone, Id, Item, ItemEvent, Kind, Photo, Place, Shade, Wear } from '../domain/types';
+import { dayKey, dayStart } from '../domain/wearlog';
 import { db, newId } from './db';
 import { WITH_ME_ID } from './seed';
 
@@ -230,13 +231,77 @@ export async function moveItems(ids: Id[], spotId: Id | undefined): Promise<void
   await changeItems(ids, `Moved ${pieces(ids.length)}`, 'moved', () => ({ spotId }), (b) => ({ from: b.spotId ?? null, to: spotId ?? null }));
 }
 
-/** Records a wear for today (or the given time). */
-export async function wornToday(id: Id, at = Date.now()): Promise<void> {
-  const e = event(id, 'worn', at);
-  await db.events.add(e);
-  pushUndo('Worn today', async () => {
-    await db.events.delete(e.id);
+// ---------- wears ----------
+
+/** A worn event's time for a day: now for today, else noon that day (so the story sorts it into the right day). */
+function wornAt(day: string): number {
+  return day === dayKey(Date.now()) ? stamp() : dayStart(day) + 12 * 3600_000;
+}
+
+/**
+ * What was worn on a day: one wear per day, so this replaces the day's wear. Pieces newly on the day get a 'worn'
+ * event (each piece's story); pieces taken off lose that day's. One step for Undo.
+ */
+async function setDay(day: string, itemIds: Id[], outfitId: Id | undefined, label: string): Promise<Id | null> {
+  const ids = [...new Set(itemIds)];
+  let before: Wear | undefined;
+  let beforeEvents: ItemEvent[] = [];
+  let wearId: Id | null = null;
+  const added: Id[] = [];
+  await db.transaction('rw', db.wears, db.events, async () => {
+    before = await db.wears.where('day').equals(day).first();
+    const old = new Set(before?.itemIds ?? []);
+    const keep = new Set(ids);
+    beforeEvents = await db.events.where('itemId').anyOf([...old]).filter((e) => e.type === 'worn' && dayKey(e.at) === day && !keep.has(e.itemId)).toArray();
+    await db.events.bulkDelete(beforeEvents.map((e) => e.id));
+    for (const id of ids) {
+      if (old.has(id)) continue;
+      const e = event(id, 'worn', wornAt(day), { day });
+      added.push(e.id);
+      await db.events.add(e);
+    }
+    if (!ids.length) {
+      if (before) await db.wears.delete(before.id);
+      return;
+    }
+    const w: Wear = { ...(before ?? {}), id: before?.id ?? newId(), day, itemIds: ids, updatedAt: stamp() };
+    if (outfitId) w.outfitId = outfitId;
+    else delete w.outfitId;
+    wearId = w.id;
+    await db.wears.put(w);
   });
+  pushUndo(label, async () => {
+    await db.transaction('rw', db.wears, db.events, async () => {
+      await db.events.bulkDelete(added);
+      await db.events.bulkPut(beforeEvents);
+      const now = await db.wears.where('day').equals(day).first();
+      if (now) await db.wears.delete(now.id);
+      if (before) await db.wears.put(before);
+    });
+  });
+  return wearId;
+}
+
+/** Logs what was worn on a day (replacing that day's wear). Returns the wear's id. */
+export async function logWear(day: string, itemIds: Id[], outfitId?: Id): Promise<Id> {
+  if (!itemIds.length) throw new Error('Nothing to log');
+  return (await setDay(day, itemIds, outfitId, 'Logged what you wore'))!;
+}
+
+/** Clears a day's wear. */
+export async function removeWear(day: string): Promise<void> {
+  if (!(await db.wears.where('day').equals(day).count())) return;
+  await setDay(day, [], undefined, 'Cleared a day');
+}
+
+/** Adds the piece to today's wear. False when it was already there. */
+export async function wornToday(id: Id): Promise<boolean> {
+  const day = dayKey(Date.now());
+  const w = await db.wears.where('day').equals(day).first();
+  if (w?.itemIds.includes(id)) return false;
+  // An added piece makes it no longer exactly the outfit; outfitCount still finds the outfit by its pieces.
+  await setDay(day, [...(w?.itemIds ?? []), id], undefined, 'Worn today');
+  return true;
 }
 
 export async function copyItem(id: Id): Promise<Id> {

@@ -144,7 +144,7 @@ function OwnedPiece({ item, trees, photos, logged, lastWorn }: { item: Item; tre
       </div>
       {money_ && <div className="li sm m" style={{ display: 'block' }}>{money_}{item.shop ? ` · ${item.shop}` : ''}</div>}
       <div style={{ display: 'flex', gap: 8, padding: '8px 18px 0' }}>
-        <button type="button" className="acc" style={{ flex: 1 }} onClick={async () => { await wornToday(item.id); showToast(`Worn today · ${wears.n + 1} wears`, () => void undoLast()); }}>Worn today</button>
+        <button type="button" className="acc" style={{ flex: 1 }} onClick={async () => { if (await wornToday(item.id)) showToast(`Worn today · ${wears.n + 1} wears`, () => void undoLast()); else showToast('Already logged for today'); }}>Worn today</button>
         <button type="button" className="ghost" onClick={async () => { const c = await copyItem(item.id); go('/details', { id: c, edit: '1' }); showToast(`Copied ${item.name}`); }}>Copy</button>
       </div>
       <div className="piece-more">
