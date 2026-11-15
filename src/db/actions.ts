@@ -154,6 +154,43 @@ export async function savePhotos(itemId: Id, photos: { role: Photo['role']; blob
   }
 }
 
+/**
+ * Tap to fix: the owner's new cut-out replaces the main photo (the original stays), the cut-out counts as done,
+ * and the shades are re-guessed from it (none guessed: the old ones stay). One step for Undo.
+ */
+export async function replaceCutout(itemId: Id, main: { blob: Blob; w: number; h: number }, shades: { shadeMain?: Id; shadeSecond?: Id }): Promise<void> {
+  const before = await db.items.get(itemId);
+  if (!before) return;
+  const oldMain = await db.photos.where('itemId').equals(itemId).filter((p) => p.role === 'main').toArray();
+  const photoId = newId();
+  const now = stamp();
+  const e = event(itemId, 'edited', now, { fields: ['photo'] });
+  const patch: Partial<Item> = { cutout: 'done', updatedAt: now };
+  if (shades.shadeMain) {
+    patch.shadeMain = shades.shadeMain;
+    patch.shadeSecond = shades.shadeSecond;
+  }
+  try {
+    await db.transaction('rw', db.photos, db.items, db.events, async () => {
+      await db.photos.bulkDelete(oldMain.map((p) => p.id));
+      await db.photos.add({ id: photoId, itemId, role: 'main', updatedAt: now, ...main });
+      await db.items.update(itemId, patch);
+      await db.events.add(e);
+    });
+  } catch (err) {
+    if (isQuota(err)) throw new Error(NO_SPACE);
+    throw err;
+  }
+  pushUndo(`Fixed the cut-out of ${before.name}`, async () => {
+    await db.transaction('rw', db.photos, db.items, db.events, async () => {
+      await db.photos.delete(photoId);
+      await db.photos.bulkPut(oldMain);
+      await db.items.put({ ...before, updatedAt: stamp() });
+      await db.events.delete(e.id);
+    });
+  });
+}
+
 export async function removePhoto(photoId: Id): Promise<void> {
   const p = await db.photos.get(photoId);
   if (!p) return;

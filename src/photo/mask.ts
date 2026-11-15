@@ -27,6 +27,50 @@ export function cleanMask(alpha: Uint8Array, w: number, h: number): Uint8Array |
   return blur1(kept, w, h);
 }
 
+export type Refusal = 'empty' | 'whole';
+
+/**
+ * Tap to fix: the owner chose this mask, so the busy-background rules (mid-grey, over 75 %, along the edge)
+ * do not apply. It is still opened, hole-filled and softened like any cut-out, and keeps every part holding
+ * a tapped keep point (`keepAt`, pixel indices; none held: the part nearest the centre). Refused only when
+ * it is almost nothing (under 2 %) or the whole photo (over 95 %).
+ */
+export function trustMask(alpha: Uint8Array, w: number, h: number, keepAt: number[]): { mask: Uint8Array } | { refused: Refusal } {
+  const n = w * h;
+  let bin: Uint8Array = new Uint8Array(n);
+  for (let i = 0; i < n; i++) bin[i] = alpha[i] >= 128 ? 1 : 0;
+  bin = dilate(erode(bin, w, h, 3), w, h, 3);
+  fillHoles(bin, w, h);
+  const kept = keepTapped(bin, w, h, keepAt) ?? keepNearestCentre(bin, w, h);
+  if (!kept) return { refused: 'empty' };
+  let area = 0;
+  for (let i = 0; i < n; i++) area += kept[i];
+  if (area < 0.02 * n) return { refused: 'empty' };
+  if (area > 0.95 * n) return { refused: 'whole' };
+  return { mask: blur1(kept, w, h) };
+}
+
+export function refusalText(r: Refusal): string {
+  return r === 'empty'
+    ? 'That’s too small to be the piece. Tap on the piece itself.'
+    : 'That takes in the whole photo. Switch to Remove and tap the background.';
+}
+
+/** Every connected part that holds one of the given pixels, or null when none does. */
+function keepTapped(bin: Uint8Array, w: number, h: number, at: number[]): Uint8Array | null {
+  const out = new Uint8Array(w * h);
+  const stack = at.filter((i) => i >= 0 && i < w * h && bin[i]);
+  if (!stack.length) return null;
+  for (const i of stack) out[i] = 1;
+  while (stack.length) {
+    const i = stack.pop()!;
+    const x = i % w;
+    const nb = [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, i - w, i + w];
+    for (const j of nb) if (j >= 0 && j < w * h && bin[j] && !out[j]) { out[j] = 1; stack.push(j); }
+  }
+  return out;
+}
+
 /** The share of the frame's edge pixels the mask covers. A piece laid flat in frame barely touches it. */
 function edgeShare(m: Uint8Array, w: number, h: number): number {
   let on = 0, all = 0;

@@ -4,7 +4,7 @@ import { db } from '../src/db/db';
 import { seedIfEmpty } from '../src/db/seed';
 import {
   DAY, addPlace, bringBack, copyItem, createItemWithPhoto, letGo, moveItems, removeKind, removePlace, removeShade,
-  restore, sweepTrash, trash, undoLast, updateItem, updateMany, clearUndo,
+  restore, sweepTrash, trash, undoLast, updateItem, updateMany, clearUndo, replaceCutout,
 } from '../src/db/actions';
 
 const tees = 'k-tees', tops = 'k-tops', burgundy = 's-red-burgundy', red = 's-red';
@@ -183,5 +183,40 @@ describe('editMany', () => {
     expect(back.brand).toBeUndefined();
     expect(back.tags).toEqual(['old']);
     expect(await undoLast()).toBeNull();
+  });
+});
+
+describe('replaceCutout (tap to fix)', () => {
+  const blob = (s: string) => new Blob([s], { type: 'image/webp' });
+  async function piece() {
+    const id = await createItemWithPhoto({ name: 'Chinos', kindId: tees, cutout: 'uncut', shadeMain: red }, [
+      { role: 'original', blob: blob('orig'), w: 12, h: 16 },
+      { role: 'main', blob: blob('old cut'), w: 10, h: 10 },
+    ]);
+    clearUndo();
+    return id;
+  }
+  const roles = async (id: string) =>
+    Object.fromEntries(await Promise.all((await db.photos.where('itemId').equals(id).toArray()).map(async (p) => [p.role, await p.blob.text()])));
+
+  it('replaces the main photo, keeps the original, marks the cut-out done and overwrites the shades', async () => {
+    const id = await piece();
+    await replaceCutout(id, { blob: blob('new cut'), w: 6, h: 9 }, { shadeMain: burgundy });
+    expect(await roles(id)).toEqual({ original: 'orig', main: 'new cut' });
+    expect(await db.items.get(id)).toMatchObject({ cutout: 'done', shadeMain: burgundy });
+    expect((await db.items.get(id))!.shadeSecond).toBeUndefined();
+  });
+  it('is one undoable step that puts the old photo, shades and state back', async () => {
+    const id = await piece();
+    await replaceCutout(id, { blob: blob('new cut'), w: 6, h: 9 }, { shadeMain: burgundy });
+    expect(await undoLast()).toBe('Fixed the cut-out of Chinos');
+    expect(await roles(id)).toEqual({ original: 'orig', main: 'old cut' });
+    expect(await db.items.get(id)).toMatchObject({ cutout: 'uncut', shadeMain: red });
+    expect(await undoLast()).toBeNull();
+  });
+  it('with no shade guess, keeps the shades the piece had', async () => {
+    const id = await piece();
+    await replaceCutout(id, { blob: blob('new cut'), w: 6, h: 9 }, {});
+    expect((await db.items.get(id))!.shadeMain).toBe(red);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanMask } from '../src/photo/mask';
+import { cleanMask, refusalText, trustMask } from '../src/photo/mask';
 
 const W = 40, H = 40;
 const at = (x: number, y: number) => y * W + x;
@@ -66,5 +66,41 @@ describe('cleanMask', () => {
     const m = draw((x, y) => (y >= 6 && y < 16 && x >= 6 && x < 34) || (y >= 16 && y < 36 && x >= 13 && x < 27));
     for (let i = 0; i < m.length; i += 3) if (!m[i]) m[i] = 110; // a third of the background half-believed
     expect(cleanMask(m, W, H)).toBeNull();
+  });
+});
+
+describe('trustMask (tap to fix: the owner chose the mask)', () => {
+  it('keeps a mask the busy-background rules would refuse (over 75 % of the frame, along the edge)', () => {
+    const m = draw((x, y) => x >= 2 && x < 38 && y >= 0 && y < 36); // 81 %, touches the top edge
+    expect(cleanMask(m, W, H)).toBeNull();
+    const r = trustMask(m, W, H, [at(20, 20)]);
+    expect('mask' in r && r.mask[at(20, 20)]).toBe(255);
+  });
+  it('keeps every part the owner tapped, not just the one nearest the centre (a pair of shoes)', () => {
+    const m = draw((x, y) => (x >= 2 && x < 14 && y >= 10 && y < 30) || (x >= 26 && x < 38 && y >= 10 && y < 30));
+    const r = trustMask(m, W, H, [at(8, 20), at(32, 20)]);
+    if (!('mask' in r)) throw new Error('refused');
+    expect(r.mask[at(8, 20)]).toBe(255);
+    expect(r.mask[at(32, 20)]).toBe(255);
+  });
+  it('drops parts nobody tapped', () => {
+    const m = draw((x, y) => (x >= 2 && x < 14 && y >= 10 && y < 30) || (x >= 26 && x < 38 && y >= 10 && y < 30));
+    const r = trustMask(m, W, H, [at(8, 20)]);
+    if (!('mask' in r)) throw new Error('refused');
+    expect(r.mask[at(32, 20)]).toBe(0);
+  });
+  it('refuses an empty mask, with a plain reason', () => {
+    const r = trustMask(new Uint8Array(W * H), W, H, [at(20, 20)]);
+    expect(r).toEqual({ refused: 'empty' });
+  });
+  it('refuses a mask that is almost nothing (under 2 %)', () => {
+    expect(trustMask(draw((x, y) => x >= 19 && x < 24 && y >= 19 && y < 24), W, H, [at(20, 20)])).toEqual({ refused: 'empty' });
+  });
+  it('refuses a mask that is the whole photo (over 95 %)', () => {
+    expect(trustMask(draw(() => true), W, H, [at(20, 20)])).toEqual({ refused: 'whole' });
+  });
+  it('has a plain message for each refusal', () => {
+    expect(refusalText('empty')).toMatch(/tap/i);
+    expect(refusalText('whole')).toMatch(/Remove/);
   });
 });
