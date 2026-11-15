@@ -10,6 +10,9 @@ import { Things } from './screens/Things';
 import { SpotPage } from './screens/SpotPage';
 import { Search } from './screens/Search';
 import { Piece } from './screens/Piece';
+import { Camera } from './screens/Camera';
+import { Details } from './screens/Details';
+import { startConveyor } from './photo/conveyor';
 
 const SCREENS: Record<string, React.ComponentType> = {
   '/wardrobe': Wardrobe,
@@ -17,6 +20,8 @@ const SCREENS: Record<string, React.ComponentType> = {
   '/spot': SpotPage,
   '/search': Search,
   '/piece': Piece,
+  '/add': Camera,
+  '/details': Details,
 };
 
 /** Screens that show the tab bar. The rest (a piece, the camera, details) use the whole screen. */
@@ -25,7 +30,7 @@ const WITH_TABS = new Set(['/wardrobe', '/things', '/spot', '/search']);
 export function App() {
   const { path } = useRoute();
   useEffect(() => {
-    void seedIfEmpty().then(() => sweepTrash(Date.now()));
+    void seedIfEmpty().then(() => sweepTrash(Date.now())).then(() => startConveyor());
   }, []);
   const Screen = SCREENS[path] ?? Wardrobe;
   const tab = path === '/things' ? '/things' : path === '/wardrobe' ? '/wardrobe' : '';

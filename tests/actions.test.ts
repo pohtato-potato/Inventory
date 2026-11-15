@@ -156,3 +156,16 @@ describe('copyItem', () => {
     expect((await db.photos.where('itemId').equals(c).toArray()).map((p) => p.role)).toEqual(['main']);
   });
 });
+
+describe('addTags', () => {
+  it('adds tags to each piece without dropping the ones it had', async () => {
+    const { addTags } = await import('../src/db/actions');
+    const a = await createItemWithPhoto({ name: 'A', kindId: tees, tags: ['old'] }, []);
+    const b = await createItemWithPhoto({ name: 'B', kindId: tees }, []);
+    await addTags([a, b], ['gym', 'old']);
+    expect((await db.items.get(a))!.tags).toEqual(['old', 'gym']);
+    expect((await db.items.get(b))!.tags).toEqual(['gym', 'old']);
+    expect(await undoLast()).toBe('Edited 2 pieces');
+    expect((await db.items.get(b))!.tags).toEqual([]);
+  });
+});

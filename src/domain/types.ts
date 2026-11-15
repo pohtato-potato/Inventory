@@ -72,6 +72,8 @@ export interface Item extends Base {
   status: 'owned' | 'gone';
   gone?: Gone;
   needsDetails: boolean;
+  /** pending: waiting in the cut-out queue; uncut: the cut-out failed and the photo is kept as taken. */
+  cutout?: 'pending' | 'done' | 'uncut';
   hideFromWindow?: boolean;
   extra: Record<string, string>;
   createdAt: number;

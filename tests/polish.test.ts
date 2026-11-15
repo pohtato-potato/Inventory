@@ -15,7 +15,27 @@ function rectTiltedBy(deg: number, w = 80, h = 80): Uint8Array {
   return a;
 }
 
+/** A tee: a body with two sleeves, turned by `deg`. Nearly square, so its long axis says little. */
+function teeTiltedBy(deg: number, w = 120, h = 120): Uint8Array {
+  const a = new Uint8Array(w * h);
+  const t = (deg * Math.PI) / 180, c = Math.cos(t), s = Math.sin(t);
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const dx = x - w / 2, dy = y - h / 2;
+      const qx = c * dx + s * dy, qy = -s * dx + c * dy;
+      const body = Math.abs(qx) < 22 && Math.abs(qy) < 30;
+      const sleeves = Math.abs(qx) < 40 && qy > -30 && qy < -12;
+      if (body || sleeves) a[y * w + x] = 255;
+    }
+  return a;
+}
+
 describe('straightening', () => {
+  it('straightens a nearly square tee', () => {
+    expect(tiltDegrees(teeTiltedBy(0), 120, 120)).toBe(0);
+    expect(tiltDegrees(teeTiltedBy(9), 120, 120)).toBeCloseTo(9, 0);
+    expect(tiltDegrees(teeTiltedBy(-7), 120, 120)).toBeCloseTo(-7, 0);
+  });
   it('measures a 10° tilt', () => {
     expect(tiltDegrees(rectTiltedBy(10), 80, 80)).toBeCloseTo(10, 0);
     expect(tiltDegrees(rectTiltedBy(-12), 80, 80)).toBeCloseTo(-12, 0);

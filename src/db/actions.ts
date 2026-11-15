@@ -178,6 +178,10 @@ export async function updateMany(ids: Id[], patch: Partial<Item>): Promise<void>
   await changeItems(ids, `Edited ${pieces(ids.length)}`, 'edited', () => patch, () => ({ fields: Object.keys(patch) }));
 }
 
+export async function addTags(ids: Id[], tags: string[]): Promise<void> {
+  await changeItems(ids, `Edited ${pieces(ids.length)}`, 'edited', (i) => ({ tags: [...new Set([...i.tags, ...tags])] }), () => ({ fields: ['tags'] }));
+}
+
 export async function moveItems(ids: Id[], spotId: Id | undefined): Promise<void> {
   await changeItems(ids, `Moved ${pieces(ids.length)}`, 'moved', () => ({ spotId }), (b) => ({ from: b.spotId ?? null, to: spotId ?? null }));
 }
