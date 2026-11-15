@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cutOut, createQueue, type CutDeps } from '../src/photo/cutout';
+import { cutOut, createQueue, ModelUnavailable, runModel, _setWorkerFactory, _setJobTimeout, type CutDeps } from '../src/photo/cutout';
 
 const bitmap = { width: 80, height: 60, close() {} } as unknown as ImageBitmap; // shrinks to fit 1600: stays 80 × 60
 const rgba = (w: number, h: number) => new Uint8ClampedArray(w * h * 4).fill(200);
@@ -42,6 +42,57 @@ describe('cutOut', () => {
     expect(r.cutout).toBeNull();
     expect(r.original).toBeInstanceOf(Blob);
   });
+
+  it('does not give up on the photo when the cut-out tool could not load', async () => {
+    await expect(cutOut(bitmap, { ...deps(box), runModel: async () => { throw new ModelUnavailable(); } })).rejects.toBeInstanceOf(ModelUnavailable);
+  });
+});
+
+/** A stand-in for the model worker: answers load at once; what it does with a run is up to the test. */
+function fakeWorker(onRun: (w: FakeWorker, id: number) => void) {
+  const made: FakeWorker[] = [];
+  _setWorkerFactory(() => {
+    const w = new FakeWorker(onRun);
+    made.push(w);
+    return w as unknown as Worker;
+  });
+  return made;
+}
+class FakeWorker {
+  onmessage: ((ev: MessageEvent) => void) | null = null;
+  onerror: ((ev: unknown) => void) | null = null;
+  onmessageerror: ((ev: unknown) => void) | null = null;
+  private extra = new Set<(ev: MessageEvent) => void>();
+  terminated = false;
+  constructor(private onRun: (w: FakeWorker, id: number) => void) {}
+  addEventListener(_t: string, f: (ev: MessageEvent) => void) { this.extra.add(f); }
+  removeEventListener(_t: string, f: (ev: MessageEvent) => void) { this.extra.delete(f); }
+  emit(data: unknown) { const ev = { data } as MessageEvent; this.onmessage?.(ev); this.extra.forEach((f) => f(ev)); }
+  postMessage(m: { type: string; id?: number }) {
+    if (m.type === 'load') setTimeout(() => this.emit({ type: 'ready', device: 'fake' }), 0);
+    else this.onRun(this, m.id!);
+  }
+  terminate() { this.terminated = true; }
+}
+
+describe('the model worker', () => {
+  it('a crashed worker fails its jobs as "tool unavailable", and the next job starts a fresh worker', async () => {
+    const made = fakeWorker((w, id) => {
+      if (made.length === 1) setTimeout(() => w.onerror?.({ message: 'killed' }), 0);
+      else setTimeout(() => w.emit({ type: 'mask', id, alpha: new Uint8Array(4) }), 0);
+    });
+    await expect(runModel(rgba(2, 2), 2, 2)).rejects.toBeInstanceOf(ModelUnavailable);
+    expect(made[0].terminated).toBe(true);
+    await expect(runModel(rgba(2, 2), 2, 2)).resolves.toHaveLength(4);
+    expect(made).toHaveLength(2);
+  });
+
+  it('a job that never answers times out as "tool unavailable"', async () => {
+    _setJobTimeout(20);
+    const made = fakeWorker(() => {});
+    await expect(runModel(rgba(2, 2), 2, 2)).rejects.toBeInstanceOf(ModelUnavailable);
+    expect(made[0].terminated).toBe(true);
+  });
 });
 
 describe('queue', () => {
@@ -60,5 +111,14 @@ describe('queue', () => {
     await done;
     expect(most).toBe(1);
     expect(order).toEqual(ids.map((id, i) => `${id}:${'ABC'[i]}`));
+  });
+
+  it('knows which jobs are waiting, so a piece is never queued twice', async () => {
+    const q = createQueue(async (job: string) => job);
+    q.add('x', 'p1');
+    expect(q.has('p1')).toBe(true);
+    expect(q.has('p2')).toBe(false);
+    await new Promise((r) => q.onDone(r));
+    expect(q.has('p1')).toBe(false);
   });
 });

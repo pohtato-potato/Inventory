@@ -79,35 +79,93 @@ async function compose(pixels: Uint8ClampedArray, mask: Uint8Array, w: number, h
 // ---------- the model, in a worker ----------
 
 type State = 'missing' | 'loading' | 'ready';
+
+/** The cut-out tool could not run at all (no download yet, worker crashed, a job stuck): the photo is fine, try again later. */
+export class ModelUnavailable extends Error {
+  constructor(why = 'The cut-out tool is not available yet') {
+    super(why);
+    this.name = 'ModelUnavailable';
+  }
+}
+
 let state: State = 'missing';
 let worker: Worker | null = null;
 let device = '';
 let nextId = 1;
-const waiting = new Map<number, { resolve: (a: Uint8Array) => void; reject: (e: Error) => void }>();
+const waiting = new Map<number, { resolve: (a: Uint8Array) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }>();
 let loadPromise: Promise<void> | null = null;
+let rejectLoad: ((e: Error) => void) | null = null;
 const progressListeners = new Set<(f: number) => void>();
+const readyListeners = new Set<() => void>();
 let lastMs = 0;
+let makeWorker = (): Worker => new Worker(new URL('./cutout.worker.ts', import.meta.url), { type: 'module' });
+/** A phone on WASM takes seconds per photo; two minutes means the worker is stuck. */
+let jobTimeout = 120_000;
+
+/** Tests only. */
+export function _setWorkerFactory(f: () => Worker): void {
+  resetWorker(new ModelUnavailable());
+  makeWorker = f;
+}
+export function _setJobTimeout(ms: number): void {
+  jobTimeout = ms;
+}
+
+/** Called once the model is loaded and ready (so pieces left waiting can be tried again). */
+export function onModelReady(cb: () => void): () => void {
+  readyListeners.add(cb);
+  return () => readyListeners.delete(cb);
+}
+
+/** The worker died or hung: fail everything it held as "unavailable" and start afresh next time. */
+function resetWorker(why: Error) {
+  const w = worker;
+  worker = null;
+  state = 'missing';
+  loadPromise = null;
+  const rl = rejectLoad;
+  rejectLoad = null;
+  rl?.(why);
+  for (const [id, job] of waiting) {
+    clearTimeout(job.timer);
+    job.reject(why);
+    waiting.delete(id);
+  }
+  try {
+    w?.terminate();
+  } catch {
+    /* already gone */
+  }
+}
 
 function getWorker(): Worker {
   if (worker) return worker;
-  worker = new Worker(new URL('./cutout.worker.ts', import.meta.url), { type: 'module' });
-  worker.onmessage = (ev: MessageEvent) => {
+  const w = makeWorker();
+  worker = w;
+  w.onerror = () => { if (worker === w) resetWorker(new ModelUnavailable('The cut-out tool stopped')); };
+  w.onmessageerror = () => { if (worker === w) resetWorker(new ModelUnavailable('The cut-out tool stopped')); };
+  w.onmessage = (ev: MessageEvent) => {
     const m = ev.data as { type: string; id?: number; alpha?: Uint8Array; fraction?: number; message?: string; ms?: number; device?: string };
     if (m.type === 'progress') progressListeners.forEach((l) => l(m.fraction ?? 0));
     else if (m.type === 'mask' && m.id) {
       lastMs = m.ms ?? 0;
-      waiting.get(m.id)?.resolve(m.alpha!);
-      waiting.delete(m.id);
+      const job = waiting.get(m.id);
+      if (job) {
+        clearTimeout(job.timer);
+        job.resolve(m.alpha!);
+        waiting.delete(m.id);
+      }
     } else if (m.type === 'error') {
-      const w = m.id !== undefined ? waiting.get(m.id) : undefined;
-      if (w) {
-        w.reject(new Error(m.message));
+      const job = m.id !== undefined ? waiting.get(m.id) : undefined;
+      if (job) {
+        clearTimeout(job.timer);
+        job.reject(new Error(m.message));
         waiting.delete(m.id!);
       }
     }
     if (m.device) device = m.device;
   };
-  return worker;
+  return w;
 }
 
 export function modelState(): State {
@@ -137,15 +195,19 @@ export function loadModel(onProgress: (fraction: number) => void = () => {}): Pr
   }
   loadPromise ??= new Promise<void>((resolve, reject) => {
     state = 'loading';
+    rejectLoad = reject;
     const w = getWorker();
     const onMsg = (ev: MessageEvent) => {
       if (ev.data.type === 'ready') {
         state = 'ready';
+        rejectLoad = null;
         w.removeEventListener('message', onMsg);
         resolve();
+        readyListeners.forEach((l) => l());
       } else if (ev.data.type === 'error' && ev.data.id === -1) {
         state = 'missing';
         loadPromise = null;
+        rejectLoad = null;
         w.removeEventListener('message', onMsg);
         reject(new Error(ev.data.message));
       }
@@ -156,13 +218,20 @@ export function loadModel(onProgress: (fraction: number) => void = () => {}): Pr
   return loadPromise.finally(() => progressListeners.delete(onProgress));
 }
 
-async function runModel(pixels: Uint8ClampedArray, w: number, h: number): Promise<Uint8Array> {
-  await loadModel();
+/** One mask from the worker. Any failure to load, a crash, or a stuck job is ModelUnavailable. */
+export async function runModel(pixels: Uint8ClampedArray, w: number, h: number): Promise<Uint8Array> {
+  try {
+    await loadModel();
+  } catch (e) {
+    throw e instanceof ModelUnavailable ? e : new ModelUnavailable((e as Error)?.message);
+  }
   const id = nextId++;
+  const wk = getWorker();
   return new Promise((resolve, reject) => {
-    waiting.set(id, { resolve, reject });
+    const timer = setTimeout(() => resetWorker(new ModelUnavailable('The cut-out tool took too long')), jobTimeout);
+    waiting.set(id, { resolve, reject, timer });
     const copy = new Uint8ClampedArray(pixels);
-    getWorker().postMessage({ type: 'run', id, rgba: copy, w, h }, [copy.buffer]);
+    wk.postMessage({ type: 'run', id, rgba: copy, w, h }, [copy.buffer]);
   });
 }
 
@@ -178,7 +247,8 @@ export async function cutOut(bitmap: ImageBitmap, deps: CutDeps = {}): Promise<C
   let alpha: Uint8Array;
   try {
     alpha = await d.runModel(pixels, w, h);
-  } catch {
+  } catch (e) {
+    if (e instanceof ModelUnavailable) throw e; // the photo is fine; it waits for the tool
     return { original, cutout: null, w, h, pixels: null };
   }
   const mask = cleanMask(alpha, w, h);
@@ -195,6 +265,7 @@ export interface Queue<J, R> {
   add(job: J, id?: string): string;
   onDone(cb: (id: string, res: { value?: R; error?: unknown }) => void): () => void;
   pending(): number;
+  has(id: string): boolean;
 }
 
 /** Runs jobs one at a time in the order added. `add` returns at once, so shooting never waits. */
@@ -231,11 +302,10 @@ export function createQueue<J, R>(run: (job: J) => Promise<R>): Queue<J, R> {
       return () => listeners.delete(cb);
     },
     pending: () => jobs.length,
+    has: (id) => jobs.some((j) => j.id === id),
   };
 }
 
-/** The app's one cut-out queue. Each job is a photo; the result lands when its turn comes. */
-export const queue = createQueue<ImageBitmap, CutResult>((bitmap) => cutOut(bitmap).finally(() => bitmap.close?.()));
 
 /** Shrinks a photo to a long edge and saves it as WebP (extra photos, receipts). */
 export async function shrinkToWebp(bitmap: ImageBitmap, longEdge: number = LONG_EDGE.original): Promise<{ blob: Blob; w: number; h: number }> {
