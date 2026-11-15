@@ -1,0 +1,53 @@
+import 'fake-indexeddb/auto';
+import { strToU8, zipSync } from 'fflate';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { db } from '../src/db/db';
+import { seedIfEmpty } from '../src/db/seed';
+import { createItemWithPhoto, setSetting } from '../src/db/actions';
+import { exportAll, importAll, lastBackup } from '../src/backup/file';
+
+const ph = (role: 'main' | 'original' | 'extra', text: string) => ({ role, blob: new Blob([text], { type: 'image/webp' }), w: 4, h: 3 });
+
+beforeEach(async () => {
+  await db.delete();
+  await db.open();
+  await seedIfEmpty();
+});
+
+describe('backup file', () => {
+  it('round-trips pieces and photos', async () => {
+    await createItemWithPhoto({ name: 'A', kindId: 'k-tees' }, [ph('main', 'a1'), ph('original', 'a2')]);
+    await createItemWithPhoto({ name: 'B', kindId: 'k-tees' }, [ph('main', 'b1'), ph('original', 'b2')]);
+    await createItemWithPhoto({ name: 'C', kindId: 'k-o-tools' }, [ph('extra', 'c1')]);
+    await setSetting('sizes.unit', 'cm');
+    const zip = await exportAll();
+    await db.delete();
+    await db.open();
+    expect(await importAll(zip)).toEqual({ items: 3, photos: 5 });
+    expect(await db.items.count()).toBe(3);
+    const a = (await db.items.where('name').equals('A').first())!;
+    const main = (await db.photos.where('itemId').equals(a.id).toArray()).find((p) => p.role === 'main')!;
+    expect(await main.blob.text()).toBe('a1');
+    expect(main.blob.type).toBe('image/webp');
+    expect((await db.settings.get('sizes.unit'))?.value).toBe('cm');
+    expect(await db.kinds.count()).toBeGreaterThan(10);
+  });
+
+  it('refuses a backup made by a newer version', async () => {
+    const zipWithVersion = (v: number) => new Blob([zipSync({ 'data.json': strToU8(JSON.stringify({ app: 'inventory', version: v, tables: {} })) })]);
+    await expect(importAll(zipWithVersion(2))).rejects.toThrow('This backup was made by a newer version of Inventory');
+  });
+
+  it('refuses a file that is not a backup, and changes nothing', async () => {
+    await createItemWithPhoto({ name: 'Keep me', kindId: 'k-tees' }, []);
+    await expect(importAll(new Blob(['nope']))).rejects.toThrow('This file is not an Inventory backup');
+    await expect(importAll(new Blob([zipSync({ 'x.txt': strToU8('hi') })]))).rejects.toThrow('This file is not an Inventory backup');
+    expect(await db.items.count()).toBe(1);
+  });
+
+  it('remembers when the last backup was made', async () => {
+    expect(await lastBackup()).toBeNull();
+    await exportAll();
+    expect(await lastBackup()).toBeGreaterThan(0);
+  });
+});

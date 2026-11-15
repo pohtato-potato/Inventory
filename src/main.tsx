@@ -6,8 +6,11 @@ import './styles/base.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { handleAuthReturn } from './backup/google';
 import { startPwa } from './pwa';
 
+// Google sending the owner back: take the token out of the address before anything reads it.
+handleAuthReturn();
 startPwa();
 
 if (import.meta.env.DEV) {
