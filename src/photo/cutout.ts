@@ -236,3 +236,11 @@ export function createQueue<J, R>(run: (job: J) => Promise<R>): Queue<J, R> {
 
 /** The app's one cut-out queue. Each job is a photo; the result lands when its turn comes. */
 export const queue = createQueue<ImageBitmap, CutResult>((bitmap) => cutOut(bitmap).finally(() => bitmap.close?.()));
+
+/** Shrinks a photo to a long edge and saves it as WebP (extra photos, receipts). */
+export async function shrinkToWebp(bitmap: ImageBitmap, longEdge: number = LONG_EDGE.original): Promise<{ blob: Blob; w: number; h: number }> {
+  const { w, h } = fitWithin(bitmap.width, bitmap.height, longEdge);
+  const c = canvas(w, h);
+  c.getContext('2d')!.drawImage(bitmap, 0, 0, w, h);
+  return { blob: await toWebp(c), w, h };
+}

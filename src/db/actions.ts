@@ -169,7 +169,9 @@ export async function updatePhoto(photoId: Id, patch: Partial<Photo>): Promise<v
 
 export async function updateItem(id: Id, patch: Partial<Item>, type: EventType = 'edited'): Promise<void> {
   const item = await db.items.get(id);
-  await changeItems([id], `Edited ${item?.name ?? 'the piece'}`, type, () => patch, () => ({ fields: Object.keys(patch) }));
+  const told: Record<string, unknown> = { fields: Object.keys(patch) };
+  for (const k of ['fit', 'condition'] as const) if (k in patch) told[k] = patch[k];
+  await changeItems([id], `Edited ${item?.name ?? 'the piece'}`, type, () => patch, () => told);
 }
 
 export async function updateMany(ids: Id[], patch: Partial<Item>): Promise<void> {
