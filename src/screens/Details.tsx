@@ -129,7 +129,7 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
     const name = d.name.trim() || suggestName(shade?.name, kind);
     const patch: Partial<Item> = {
       name, kindId: d.kindId, shadeMain: d.shadeMain, shadeSecond: d.shadeSecond, startWears,
-      boughtOn: when ?? undefined, price: price ?? undefined, fit: d.fit, spotId: d.spotId,
+      boughtOn: when ?? undefined, price: price ?? undefined, fit: d.fit, spotId: d.spotId, shop: d.shop.trim() || undefined,
       usualSpotIds: d.spotId ? [d.spotId, ...item.usualSpotIds.filter((s) => s !== d.spotId)].slice(0, 3) : item.usualSpotIds,
       size: fields.includes('size') ? d.size.trim() || undefined : item.size,
       extra: Object.fromEntries(Object.entries(d.extra).filter(([k, v]) => k !== 'size' && v.trim())),
@@ -139,7 +139,7 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
       Object.assign(patch, {
         brand: d.brand.trim() || undefined, count: Math.max(1, Math.round(Number(d.count)) || 1), condition: d.condition,
         tags: d.tags.split(',').map((t) => t.trim().replace(/^#/, '')).filter(Boolean),
-        fitNote: d.fitNote.trim() || undefined, shop: d.shop.trim() || undefined,
+        fitNote: d.fitNote.trim() || undefined,
         currency: (d.currency.trim() || 'INR').toUpperCase(), hideFromWindow: d.hideFromWindow || undefined,
       });
     }
@@ -188,11 +188,11 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
           </div>
           {(whenBad || priceBad) && <p className="warn-text">{whenBad ? 'Try a year or a month, like "about 2023" or "Jan 2024". ' : ''}{priceBad ? 'Try an amount, like "about ₹800".' : ''}</p>}
           <ReadReceipt onUse={(r) => set({
-            ...(r.date ? { when: roughDateText(parseRoughDate(r.date) ?? undefined) } : {}),
-            ...(r.price ? { price: `₹${r.price}` } : {}),
-            ...(r.name && !d.name ? { name: r.name } : {}),
+            ...(r.when ? { when: r.when } : {}),
+            ...(r.price ? { price: r.price } : {}),
+            ...(r.name ? { name: r.name } : {}),
             ...(r.size ? { size: r.size } : {}),
-            ...(r.shop && edit ? { shop: r.shop } : {}),
+            ...(r.shop ? { shop: r.shop } : {}),
           })} />
         </div>
         <div className="q">

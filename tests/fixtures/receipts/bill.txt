@@ -1,0 +1,17 @@
+LEVI STRAUSS (INDIA) PVT LTD
+LEVI'S STORE - PHOENIX MARKETCITY
+GSTIN: 29AAACL1234F1Z5
+TAX INVOICE
+Bill No: 4521        Date: 21/09/2026
+Cashier: 07
+Item              Qty   Rate      Amt
+511 SLIM JEANS 32X32  1  3999.00   3999.00
+Discount                          -918.00
+Taxable Value                     3081.25
+CGST @ 6%                          184.88
+SGST @ 6%                          184.87
+Round Off                            0.00
+TOTAL                             3450.00
+Net Amount  Rs. 3,450.00
+Paid by Card XXXX1234 3450.00
+Thank you for shopping with us!
