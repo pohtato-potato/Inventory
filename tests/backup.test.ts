@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { strToU8, zipSync } from 'fflate';
+import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../src/db/db';
 import { seedIfEmpty } from '../src/db/seed';
@@ -43,6 +43,22 @@ describe('backup file', () => {
     await expect(importAll(new Blob(['nope']))).rejects.toThrow('This file is not an Inventory backup');
     await expect(importAll(new Blob([zipSync({ 'x.txt': strToU8('hi') })]))).rejects.toThrow('This file is not an Inventory backup');
     expect(await db.items.count()).toBe(1);
+  });
+
+  it('refuses a backup that looks right but is missing tables or photos, and changes nothing', async () => {
+    await createItemWithPhoto({ name: 'Keep me', kindId: 'k-tees' }, []);
+    const zipOf = (data: unknown, extra: Record<string, Uint8Array> = {}) => new Blob([zipSync({ 'data.json': strToU8(JSON.stringify(data)), ...extra })]);
+    const good = JSON.parse(strFromU8(unzipSync(new Uint8Array(await (await exportAll()).arrayBuffer()))['data.json']));
+    const bad = [
+      { app: 'inventory', version: 1, tables: {} },
+      { app: 'inventory', version: 1, tables: null },
+      { ...good, tables: { ...good.tables, kinds: 'nope' } },
+      { ...good, tables: { ...good.tables, items: [{ name: 'no id' }] } },
+      { ...good, tables: { ...good.tables, photos: [{ id: 'p1', itemId: 'x', role: 'main', w: 1, h: 1, updatedAt: 0, type: 'image/webp' }] } },
+    ];
+    for (const d of bad) await expect(importAll(zipOf(d))).rejects.toThrow('This file is not an Inventory backup');
+    expect(await db.items.count()).toBe(1);
+    expect(await db.kinds.count()).toBeGreaterThan(10);
   });
 
   it('remembers when the last backup was made', async () => {

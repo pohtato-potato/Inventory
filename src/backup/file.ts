@@ -38,6 +38,24 @@ export async function exportAll(): Promise<Blob> {
   return new Blob([zipSync(files)], { type: 'application/zip' });
 }
 
+const REQUIRED = ['items', 'kinds', 'shades', 'places'] as const;
+
+/** Every table present is a list of rows with an id (settings: a key); the trees and pieces must be there. */
+function checkTables(t: unknown): t is Record<string, unknown[]> {
+  if (!t || typeof t !== 'object') return false;
+  const tables = t as Record<string, unknown>;
+  if (REQUIRED.some((k) => !Array.isArray(tables[k]))) return false;
+  if (!(tables.kinds as unknown[]).length) return false;
+  for (const name of TABLES) {
+    const rows = tables[name];
+    if (rows === undefined) continue;
+    if (!Array.isArray(rows)) return false;
+    const key = name === 'settings' ? 'key' : 'id';
+    if (rows.some((r) => !r || typeof r !== 'object' || typeof (r as Record<string, unknown>)[key] !== 'string')) return false;
+  }
+  return true;
+}
+
 /** Replaces everything with the backup. Checks the whole file before touching the database. */
 export async function importAll(zip: Blob): Promise<{ items: number; photos: number }> {
   let files: Record<string, Uint8Array>;
@@ -48,13 +66,14 @@ export async function importAll(zip: Blob): Promise<{ items: number; photos: num
   } catch {
     throw new Error(NOT_A_BACKUP);
   }
-  if (!data || data.app !== 'inventory' || typeof data.version !== 'number' || typeof data.tables !== 'object') throw new Error(NOT_A_BACKUP);
+  if (!data || typeof data !== 'object' || data.app !== 'inventory' || typeof data.version !== 'number') throw new Error(NOT_A_BACKUP);
   if (data.version > BACKUP_VERSION) throw new Error(TOO_NEW);
+  if (!checkTables(data.tables)) throw new Error(NOT_A_BACKUP);
   const photoRows = (data.tables.photos ?? []) as PhotoRow[];
   const photos: Photo[] = [];
   for (const { type, ...row } of photoRows) {
     const bytes = files[`photos/${row.id}.webp`];
-    if (!bytes) continue;
+    if (!bytes) throw new Error(NOT_A_BACKUP); // a photo named but missing: the file is incomplete
     photos.push({ ...row, blob: new Blob([bytes as Uint8Array<ArrayBuffer>], { type: type || 'image/webp' }) });
   }
   await db.transaction('rw', TABLES.map((t) => db.table(t)), async () => {
