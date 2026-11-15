@@ -1,4 +1,5 @@
 import { cleanMask } from './mask';
+import { createModelWorker, ModelUnavailable } from './modelWorker';
 import { LONG_EDGE, fitWithin, toWebp } from './encode';
 import { maskBounds, tiltDegrees } from './polish';
 
@@ -28,7 +29,7 @@ function canvas(w: number, h: number): OffscreenCanvas {
   return new OffscreenCanvas(w, h);
 }
 
-async function readPixels(bitmap: ImageBitmap, w: number, h: number): Promise<Uint8ClampedArray> {
+export async function readPixels(bitmap: ImageBitmap, w: number, h: number): Promise<Uint8ClampedArray> {
   const c = canvas(w, h);
   const ctx = c.getContext('2d')!;
   ctx.drawImage(bitmap, 0, 0, w, h);
@@ -41,12 +42,12 @@ function put(pixels: Uint8ClampedArray, w: number, h: number): OffscreenCanvas {
   return c;
 }
 
-async function encode(pixels: Uint8ClampedArray, w: number, h: number): Promise<Blob> {
+export async function encode(pixels: Uint8ClampedArray, w: number, h: number): Promise<Blob> {
   return toWebp(put(pixels, w, h));
 }
 
 /** Applies the mask, turns the piece square, crops to it with a little room, and shrinks to 1000 px. */
-async function compose(pixels: Uint8ClampedArray, mask: Uint8Array, w: number, h: number) {
+export async function compose(pixels: Uint8ClampedArray, mask: Uint8Array, w: number, h: number) {
   const px = new Uint8ClampedArray(pixels);
   for (let i = 0; i < w * h; i++) px[i * 4 + 3] = mask[i];
   let src = put(px, w, h);
@@ -78,161 +79,35 @@ async function compose(pixels: Uint8ClampedArray, mask: Uint8Array, w: number, h
 
 // ---------- the model, in a worker ----------
 
-type State = 'missing' | 'loading' | 'ready';
+export { ModelUnavailable } from './modelWorker';
 
-/** The cut-out tool could not run at all (no download yet, worker crashed, a job stuck): the photo is fine, try again later. */
-export class ModelUnavailable extends Error {
-  constructor(why = 'The cut-out tool is not available yet') {
-    super(why);
-    this.name = 'ModelUnavailable';
-  }
-}
-
-let state: State = 'missing';
-let worker: Worker | null = null;
-let device = '';
-let nextId = 1;
-const waiting = new Map<number, { resolve: (a: Uint8Array) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }>();
-let loadPromise: Promise<void> | null = null;
-let rejectLoad: ((e: Error) => void) | null = null;
-const progressListeners = new Set<(f: number) => void>();
-const readyListeners = new Set<() => void>();
-let lastMs = 0;
-let makeWorker = (): Worker => new Worker(new URL('./cutout.worker.ts', import.meta.url), { type: 'module' });
 /** A phone on WASM takes seconds per photo; two minutes means the worker is stuck. */
-let jobTimeout = 120_000;
+const rmbg = createModelWorker({
+  make: () => new Worker(new URL('./cutout.worker.ts', import.meta.url), { type: 'module' }),
+  name: 'cut-out tool',
+  timeout: 120_000,
+  cacheMatch: (url) => url.includes('RMBG-1.4') && url.includes('.onnx'),
+});
+let lastMs = 0;
 
 /** Tests only. */
-export function _setWorkerFactory(f: () => Worker): void {
-  resetWorker(new ModelUnavailable());
-  makeWorker = f;
-}
-export function _setJobTimeout(ms: number): void {
-  jobTimeout = ms;
-}
+export const _setWorkerFactory = (f: () => Worker): void => rmbg._setFactory(f);
+export const _setJobTimeout = (ms: number): void => rmbg._setTimeout(ms);
 
 /** Called once the model is loaded and ready (so pieces left waiting can be tried again). */
-export function onModelReady(cb: () => void): () => void {
-  readyListeners.add(cb);
-  return () => readyListeners.delete(cb);
-}
-
-/** The worker died or hung: fail everything it held as "unavailable" and start afresh next time. */
-function resetWorker(why: Error) {
-  const w = worker;
-  worker = null;
-  state = 'missing';
-  loadPromise = null;
-  const rl = rejectLoad;
-  rejectLoad = null;
-  rl?.(why);
-  for (const [id, job] of waiting) {
-    clearTimeout(job.timer);
-    job.reject(why);
-    waiting.delete(id);
-  }
-  try {
-    w?.terminate();
-  } catch {
-    /* already gone */
-  }
-}
-
-function getWorker(): Worker {
-  if (worker) return worker;
-  const w = makeWorker();
-  worker = w;
-  w.onerror = () => { if (worker === w) resetWorker(new ModelUnavailable('The cut-out tool stopped')); };
-  w.onmessageerror = () => { if (worker === w) resetWorker(new ModelUnavailable('The cut-out tool stopped')); };
-  w.onmessage = (ev: MessageEvent) => {
-    const m = ev.data as { type: string; id?: number; alpha?: Uint8Array; fraction?: number; message?: string; ms?: number; device?: string };
-    if (m.type === 'progress') progressListeners.forEach((l) => l(m.fraction ?? 0));
-    else if (m.type === 'mask' && m.id) {
-      lastMs = m.ms ?? 0;
-      const job = waiting.get(m.id);
-      if (job) {
-        clearTimeout(job.timer);
-        job.resolve(m.alpha!);
-        waiting.delete(m.id);
-      }
-    } else if (m.type === 'error') {
-      const job = m.id !== undefined ? waiting.get(m.id) : undefined;
-      if (job) {
-        clearTimeout(job.timer);
-        job.reject(new Error(m.message));
-        waiting.delete(m.id!);
-      }
-    }
-    if (m.device) device = m.device;
-  };
-  return w;
-}
-
-export function modelState(): State {
-  return state;
-}
-
-export function modelDevice(): string {
-  return device;
-}
-
+export const onModelReady = (cb: () => void): (() => void) => rmbg.onReady(cb);
+export const modelState = () => rmbg.state();
+export const modelDevice = () => rmbg.device();
 /** Whether the model has been downloaded before (so loading needs no internet). */
-export async function modelCached(): Promise<boolean> {
-  try {
-    const c = await caches.open('transformers-cache');
-    const keys = await c.keys();
-    return keys.some((k) => k.url.includes('RMBG-1.4') && k.url.includes('.onnx'));
-  } catch {
-    return false;
-  }
-}
-
-export function loadModel(onProgress: (fraction: number) => void = () => {}): Promise<void> {
-  progressListeners.add(onProgress);
-  if (state === 'ready') {
-    progressListeners.delete(onProgress);
-    return Promise.resolve();
-  }
-  loadPromise ??= new Promise<void>((resolve, reject) => {
-    state = 'loading';
-    rejectLoad = reject;
-    const w = getWorker();
-    const onMsg = (ev: MessageEvent) => {
-      if (ev.data.type === 'ready') {
-        state = 'ready';
-        rejectLoad = null;
-        w.removeEventListener('message', onMsg);
-        resolve();
-        readyListeners.forEach((l) => l());
-      } else if (ev.data.type === 'error' && ev.data.id === -1) {
-        state = 'missing';
-        loadPromise = null;
-        rejectLoad = null;
-        w.removeEventListener('message', onMsg);
-        reject(new Error(ev.data.message));
-      }
-    };
-    w.addEventListener('message', onMsg);
-    w.postMessage({ type: 'load' });
-  });
-  return loadPromise.finally(() => progressListeners.delete(onProgress));
-}
+export const modelCached = () => rmbg.cached();
+export const loadModel = (onProgress?: (fraction: number) => void) => rmbg.load(onProgress);
 
 /** One mask from the worker. Any failure to load, a crash, or a stuck job is ModelUnavailable. */
 export async function runModel(pixels: Uint8ClampedArray, w: number, h: number): Promise<Uint8Array> {
-  try {
-    await loadModel();
-  } catch (e) {
-    throw e instanceof ModelUnavailable ? e : new ModelUnavailable((e as Error)?.message);
-  }
-  const id = nextId++;
-  const wk = getWorker();
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => resetWorker(new ModelUnavailable('The cut-out tool took too long')), jobTimeout);
-    waiting.set(id, { resolve, reject, timer });
-    const copy = new Uint8ClampedArray(pixels);
-    wk.postMessage({ type: 'run', id, rgba: copy, w, h }, [copy.buffer]);
-  });
+  const copy = new Uint8ClampedArray(pixels);
+  const r = await rmbg.request<{ type: string; alpha: Uint8Array; ms?: number }>({ type: 'run', rgba: copy, w, h }, [copy.buffer]);
+  lastMs = r.ms ?? 0;
+  return r.alpha;
 }
 
 // ---------- the cut-out ----------
