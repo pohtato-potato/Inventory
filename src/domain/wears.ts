@@ -1,5 +1,6 @@
 import { money } from './format';
-import type { Item, Kind, Rough, StartWears } from './types';
+import type { Id, Item, Kind, Outfit, Rough, StartWears, Wear } from './types';
+import { daysBetween } from './wearlog';
 
 export interface WearCount {
   n: number;
@@ -48,4 +49,25 @@ export function fitSummary(items: Item[], kinds: Kind[]): { fits: number; tight:
     out[i.fit ?? 'unset'] += i.count;
   }
   return out;
+}
+
+/** Two names, then "and N more": "Navy tee, Blue jeans and 2 more". */
+export function namesLine(ids: Id[], items: Item[]): string {
+  const names = ids.map((id) => items.find((i) => i.id === id)?.name).filter((n): n is string => !!n);
+  if (names.length <= 2) return names.join(' and ');
+  return `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`;
+}
+
+/** A day's wear in a line: the outfit's name when it was a named outfit, else its pieces. */
+export function wearLine(wear: Wear | undefined, outfits: Outfit[], items: Item[]): string {
+  if (!wear) return 'Nothing logged';
+  const name = wear.outfitId ? outfits.find((o) => o.id === wear.outfitId)?.name : undefined;
+  return name || namesLine(wear.itemIds, items) || 'Nothing logged';
+}
+
+/** "today", "yesterday", "13 days ago" or "never logged". */
+export function lastWornText(day: string | undefined, today: string): string {
+  if (!day) return 'never logged';
+  const n = daysBetween(day, today);
+  return n <= 0 ? 'today' : n === 1 ? 'yesterday' : `${n} days ago`;
 }

@@ -11,9 +11,9 @@ import { Chip, Chips } from '../ui/Chips';
 import { Sheet } from '../ui/Sheet';
 import { showToast } from '../ui/Toast';
 import { Piece, Window } from '../ui/Window';
-import { IconCalendar, IconPin } from '../ui/icons';
+import { IconPin } from '../ui/icons';
 import { CONDITION_LABEL, FIT_LABEL, FIT_TONE } from './Piece';
-import { kindName, pieceColour, SubTop, UncutNote } from './shared';
+import { DayPicker, kindName, pieceColour, SubTop, UncutNote } from './shared';
 import { OutfitStage } from './Outfits';
 import { Tile } from '../ui/Tile';
 import { ReadReceipt } from './ReadReceipt';
@@ -349,19 +349,6 @@ export function LetGoSheet({ open, onClose, count, onDone }: { open: boolean; on
   );
 }
 
-
-/** The exact day, from the phone's own date picker. Writes "12 Nov 2026" into the text field, so it can still be edited. */
-function DayPicker({ value, onPick }: { value: string; onPick: (day: string) => void }) {
-  const today = new Date();
-  const max = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  return (
-    <label className="day-pick" aria-label="Pick the exact day">
-      <IconCalendar />
-      <input type="date" value={value} max={max} onChange={(e) => { if (e.target.value) onPick(e.target.value); }}
-        onClick={(e) => { try { e.currentTarget.showPicker(); } catch { /* the browser opens its own picker */ } }} />
-    </label>
-  );
-}
 
 /** Edit, for clothing: its size on the outfit stage (with a live preview), what it pairs well with, its dress codes. */
 function OutfitBits({ item, trees, d, set }: { item: Item; trees: Trees; d: Draft; set: (p: Partial<Draft>) => void }) {

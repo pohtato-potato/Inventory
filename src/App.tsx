@@ -17,6 +17,7 @@ import { Sizes } from './screens/Sizes';
 import { Fix } from './screens/Fix';
 import { Outfits } from './screens/Outfits';
 import { OutfitPage } from './screens/OutfitPage';
+import { WearLog } from './screens/WearLog';
 import { startConveyor } from './photo/conveyor';
 
 const SCREENS: Record<string, React.ComponentType> = {
@@ -32,6 +33,7 @@ const SCREENS: Record<string, React.ComponentType> = {
   '/fix': Fix,
   '/outfits': Outfits,
   '/outfit': OutfitPage,
+  '/wear': WearLog,
 };
 
 /** Screens that show the tab bar. The rest (a piece, the camera, details) use the whole screen. */

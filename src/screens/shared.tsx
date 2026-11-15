@@ -3,7 +3,7 @@ import type { Trees, Thumb } from '../db/hooks';
 import type { Id, Item, Kind, Place, Shade } from '../domain/types';
 import { back, go } from '../router';
 import { keepUncut } from '../photo/conveyor';
-import { IconBack } from '../ui/icons';
+import { IconBack, IconCalendar } from '../ui/icons';
 import { UNKNOWN_LIGHT } from '../ui/light';
 
 /** The colour that lights a piece's window: its main shade. */
@@ -61,3 +61,17 @@ export function UncutNote({ item }: { item: Item }) {
     </div>
   );
 }
+
+/** The exact day, from the phone's own date picker. Writes "12 Nov 2026" into the text field, so it can still be edited. */
+export function DayPicker({ value, onPick }: { value: string; onPick: (day: string) => void }) {
+  const today = new Date();
+  const max = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  return (
+    <label className="day-pick" aria-label="Pick the exact day">
+      <IconCalendar />
+      <input type="date" value={value} max={max} onChange={(e) => { if (e.target.value) onPick(e.target.value); }}
+        onClick={(e) => { try { e.currentTarget.showPicker(); } catch { /* the browser opens its own picker */ } }} />
+    </label>
+  );
+}
+

@@ -7,6 +7,7 @@ import { askConfirm } from '../ui/Ask';
 import { Tile } from '../ui/Tile';
 import { showToast } from '../ui/Toast';
 import { OutfitStage, piecesText } from './Outfits';
+import { MirrorPhoto } from './WearLog';
 import { pieceColour, SubTop } from './shared';
 
 /** One saved outfit: the stage, its pieces, dress codes, times worn; wear it today, change it, or remove it. */
@@ -45,6 +46,7 @@ export function OutfitPage() {
         <button type="button" className="acc" style={{ flex: '1 1 100%' }} onClick={async () => {
           await logWear(dayKey(Date.now()), outfit.itemIds, outfit.id);
           showToast(`Logged ${title.toLowerCase() === 'outfit' ? 'this outfit' : title} for today`, () => void undoLast());
+          go('/wear');
         }}>Wore this today</button>
         <button type="button" className="ghost" onClick={() => go('/outfits', { edit: outfit.id })}>Change</button>
         <button type="button" className="ghost" onClick={async () => {
@@ -54,6 +56,7 @@ export function OutfitPage() {
           back();
         }}>Remove</button>
       </div>
+      <div style={{ padding: '0 18px' }}><MirrorPhoto ownerId={outfit.id} /></div>
       <h2 className="caps m section-cap">Its pieces</h2>
       <div className="grid">
         {pieces.map((i, k) => {

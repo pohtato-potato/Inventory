@@ -6,6 +6,7 @@ import { isUnsorted } from '../domain/fields';
 import type { Id, Item, Lane } from '../domain/types';
 import { outfitCount, wearStats } from '../domain/wearlog';
 import { plural } from '../domain/format';
+import { namesLine } from '../domain/wears';
 import { go, useRoute } from '../router';
 import { askText } from '../ui/Ask';
 import { Chips } from '../ui/Chips';
@@ -27,12 +28,8 @@ export function OutfitStage({ ids, items, trees, thumbs, height, label, delay }:
   return <Stage placed={placed} photos={thumbs} height={height} light={light} label={label} delay={delay} />;
 }
 
-/** "Navy tee, Blue jeans and 2 more": for screen readers and short lines. */
-export function piecesText(ids: Id[], items: Item[]): string {
-  const names = ids.map((id) => items.find((i) => i.id === id)?.name).filter(Boolean) as string[];
-  if (names.length <= 2) return names.join(' and ');
-  return `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`;
-}
+/** "Navy tee, Blue jeans and 2 more". */
+export const piecesText = namesLine;
 
 /** The wardrobe's two halves (my call): pieces, or outfits made from them. */
 export function WardrobeSwitch({ on }: { on: 'pieces' | 'outfits' }) {

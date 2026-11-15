@@ -3,9 +3,10 @@ import { bringBack, copyItem, moveItems, savePhotos, trash, undoLast, updateItem
 import { useEvents, useItem, usePhotos, useTrees, useWearLog, type Trees } from '../db/hooks';
 import { dayText, money, monthText, roughDateText, roughPriceText } from '../domain/format';
 import type { Condition, Fit, Item, ItemEvent, Photo } from '../domain/types';
-import { costPerWear, totalWears, wearsText } from '../domain/wears';
+import { costPerWear, lastWornText, totalWears, wearsText } from '../domain/wears';
 import { back, go, useRoute } from '../router';
 import { bitmapFromFile } from '../photo/camera';
+import { dayKey } from '../domain/wearlog';
 import { shrinkToWebp } from '../photo/cutout';
 import { askConfirm, askText } from '../ui/Ask';
 import { Chips } from '../ui/Chips';
@@ -140,7 +141,7 @@ function OwnedPiece({ item, trees, photos, logged, lastWorn }: { item: Item; tre
       </div>
       <div className="li" style={{ alignItems: 'flex-end', paddingBlock: 12 }}>
         <Numeral value={wears.n} className="wears-num" />
-        <span className="m" style={{ paddingBottom: 2 }}>{wearsText(wears)}<br />{lastWorn ? `last worn ${dayText(lastWorn)}` : 'no wears logged yet'}</span>
+        <span className="m" style={{ paddingBottom: 2 }}>{wearsText(wears)}<br />{lastWorn ? `last worn ${lastWornText(dayKey(lastWorn), dayKey(Date.now()))}` : 'never logged'}</span>
       </div>
       {money_ && <div className="li sm m" style={{ display: 'block' }}>{money_}{item.shop ? ` · ${item.shop}` : ''}</div>}
       <div style={{ display: 'flex', gap: 8, padding: '8px 18px 0' }}>
