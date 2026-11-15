@@ -163,3 +163,4 @@ button.li { width: 100%; border-left: 0; border-right: 0; border-bottom: 0; back
 .prow-name { display: block; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .prow-sub { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .empty-win { margin: 14px; padding: 22px 18px; border-radius: 14px; display: grid; gap: 10px; }
+.filters { display: grid; gap: 8px; padding: 12px 14px 4px; }

@@ -8,11 +8,13 @@ import { AskHost } from './ui/Ask';
 import { Wardrobe } from './screens/Wardrobe';
 import { Things } from './screens/Things';
 import { SpotPage } from './screens/SpotPage';
+import { Search } from './screens/Search';
 
 const SCREENS: Record<string, React.ComponentType> = {
   '/wardrobe': Wardrobe,
   '/things': Things,
   '/spot': SpotPage,
+  '/search': Search,
 };
 
 /** Screens that show the tab bar. The rest (a piece, the camera, details) use the whole screen. */
