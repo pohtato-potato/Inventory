@@ -231,3 +231,12 @@ button.li { width: 100%; border-left: 0; border-right: 0; border-bottom: 0; back
 .settings-actions { display: grid; gap: 10px; padding: 0 18px; }
 .trash-row { display: flex; align-items: center; gap: 12px; min-height: 60px; border-top: 1px solid var(--line); padding-top: 8px; }
 .trash-row img, .trash-blank { width: 40px; height: 52px; object-fit: contain; border-radius: 8px; background: var(--pane); flex: 0 0 auto; }
+
+/* a failed cut-out */
+.uncut-note { margin: 12px 14px 0; padding: 12px 14px; border: 1px solid var(--edge); border-radius: 14px; display: grid; gap: 10px; }
+.uncut-actions { display: flex; gap: 8px; }
+.uncut-actions .acc { flex: 1; }
+/* An uncut photo fills its window, cropped, with no rim light or shadow: it reads as a photo, not a tilted card. */
+.win > .pc.uncut { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; object-fit: cover; filter: none; border-radius: 0; }
+.fam-pieces .pc.uncut, .shelf-pieces .pc.uncut { object-fit: cover; filter: none; border-radius: 4px; }
+.page-inner .pc.uncut { filter: none; border-radius: 10px; }

@@ -5,7 +5,7 @@ import { useMainPhotos, useTrees } from '../db/hooks';
 import { NO_SPACE } from '../db/actions';
 import { back, go, useRoute } from '../router';
 import { bitmapFromFile, openCamera } from '../photo/camera';
-import { addShot, onCutoutLanded } from '../photo/conveyor';
+import { addShot, onCutoutLanded, retakeShot } from '../photo/conveyor';
 import { loadModel, modelCached, modelState } from '../photo/cutout';
 import { Numeral } from '../ui/Numeral';
 import { showToast } from '../ui/Toast';
@@ -14,7 +14,9 @@ import { pieceColour } from './shared';
 
 /** Shoot piece after piece. Each shot becomes a piece at once; cut-outs follow one at a time. */
 export function Camera() {
-  const scope = useRoute().params.get('scope') === 'things' ? 'things' : 'clothing';
+  const params = useRoute().params;
+  const scope = params.get('scope') === 'things' ? 'things' : 'clothing';
+  const retake = params.get('retake');
   const video = useRef<HTMLVideoElement>(null);
   const cam = useRef<Awaited<ReturnType<typeof openCamera>> | null>(null);
   const [noCamera, setNoCamera] = useState(false);
@@ -45,7 +47,7 @@ export function Camera() {
     return () => { live = false; };
   }, []);
 
-  useEffect(() => onCutoutLanded((_id, ok) => { if (!ok) showToast("Couldn't cut that one out; kept the photo as taken"); }), []);
+  useEffect(() => onCutoutLanded((_id, ok) => { if (!ok) showToast("Couldn't separate that piece from the background. Try a plain surface."); }), []);
 
   const take = async (get: () => Promise<ImageBitmap>) => {
     if (busy) return;
@@ -54,6 +56,11 @@ export function Camera() {
       const bmp = await get();
       setFlash((f) => f + 1);
       navigator.vibrate?.(10);
+      if (retake) {
+        await retakeShot(retake, bmp);
+        back(); // to the piece, which shows "Cutting out…" until the new cut-out lands
+        return;
+      }
       const id = await addShot(bmp, scope);
       setShots((s) => [id, ...s]);
     } catch (e) {
@@ -72,7 +79,7 @@ export function Camera() {
       <div className="viewfinder">
         <video ref={video} playsInline muted aria-label="Camera" />
         {flash > 0 && <span key={flash} className="flash" aria-hidden="true" />}
-        <span className="cam-hint">Lay it flat, whole piece in frame</span>
+        <span className="cam-hint">{retake ? 'Retake: lay it flat on a plain surface' : 'Lay it flat on a plain surface, whole piece in frame'}</span>
         {model.state !== 'ready' && model.state !== 'missing' && (
           <span className="cam-model" role="status">
             {model.state === 'failed' ? 'Cut-outs will be done when the tool can load. Keep shooting.'

@@ -12,7 +12,7 @@ import { showToast } from '../ui/Toast';
 import { Piece, Window } from '../ui/Window';
 import { IconPin } from '../ui/icons';
 import { CONDITION_LABEL, FIT_LABEL, FIT_TONE } from './Piece';
-import { kindName, SubTop } from './shared';
+import { kindName, SubTop, UncutNote } from './shared';
 import { ReadReceipt } from './ReadReceipt';
 
 const RANGES: { value: WearRange | 'exact'; label: string }[] = [
@@ -159,6 +159,7 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
         <Piece src={photo?.url} cut={photo?.photo.role === 'main'} alt={d.name || 'The new piece'} />
         {item.cutout === 'pending' && <span className="sm details-wait">Cutting out…</span>}
       </Window>
+      <UncutNote item={item} />
       <div className="details-body">
         <div className="q">
           <label className="ql" htmlFor="d-name">Name</label>

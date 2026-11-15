@@ -1,12 +1,20 @@
 /**
  * Cleans the model's alpha mask: threshold, open (radius 3), fill holes from outside,
- * keep the part nearest the centre, soften by a pixel. Returns null when what is left is
- * under 2 % or over 95 % of the frame, which means the cut-out failed and the photo is kept uncut.
+ * keep the part nearest the centre, soften by a pixel. Returns null when the cut-out failed and the
+ * photo is kept uncut: what is left is under 2 % of the frame, over 75 % of it, or runs along more
+ * than a quarter of the frame's edge (the model took in a busy background with the piece), or the
+ * model was unsure (mid-grey) about more than 8 % of the frame.
+ * Limits measured on RMBG-1.4: docs/superpowers/notes/2026-11-cutout-patterned.md.
  */
 export function cleanMask(alpha: Uint8Array, w: number, h: number): Uint8Array | null {
   const n = w * h;
   let bin: Uint8Array = new Uint8Array(n);
-  for (let i = 0; i < n; i++) bin[i] = alpha[i] >= 128 ? 1 : 0;
+  let unsure = 0;
+  for (let i = 0; i < n; i++) {
+    bin[i] = alpha[i] >= 128 ? 1 : 0;
+    if (alpha[i] > 32 && alpha[i] < 223) unsure++;
+  }
+  if (unsure > 0.08 * n) return null;
 
   bin = dilate(erode(bin, w, h, 3), w, h, 3);
   fillHoles(bin, w, h);
@@ -14,8 +22,22 @@ export function cleanMask(alpha: Uint8Array, w: number, h: number): Uint8Array |
   if (!kept) return null;
   let area = 0;
   for (let i = 0; i < n; i++) area += kept[i];
-  if (area < 0.02 * n || area > 0.95 * n) return null;
+  if (area < 0.02 * n || area > 0.75 * n) return null;
+  if (edgeShare(kept, w, h) > 0.25) return null;
   return blur1(kept, w, h);
+}
+
+/** The share of the frame's edge pixels the mask covers. A piece laid flat in frame barely touches it. */
+function edgeShare(m: Uint8Array, w: number, h: number): number {
+  let on = 0, all = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (x !== 0 && y !== 0 && x !== w - 1 && y !== h - 1) continue;
+      all++;
+      on += m[y * w + x];
+    }
+  }
+  return all ? on / all : 0;
 }
 
 /** Separable min (erode) or max (dilate) filter over a square of the given radius. */

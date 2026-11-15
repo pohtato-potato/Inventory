@@ -14,7 +14,7 @@ import { Sheet } from '../ui/Sheet';
 import { showToast } from '../ui/Toast';
 import { Piece as Cut, Window } from '../ui/Window';
 import { IconPin } from '../ui/icons';
-import { kindName, pieceColour, placeLabel, SubTop } from './shared';
+import { kindName, pieceColour, placeLabel, SubTop, UncutNote } from './shared';
 
 export const FIT_LABEL: Record<Fit, string> = { fits: 'Fits', tight: 'Tight', loose: 'Loose' };
 export const FIT_TONE: Record<Fit, 'ok' | 'warn' | 'lo'> = { fits: 'ok', tight: 'warn', loose: 'lo' };
@@ -76,6 +76,7 @@ function Photos({ item, photos, colour, lit, marking, onMark }: { item: Item; ph
       </div>
       {photos.length > 1 && <span className="sm pager-n" aria-live="polite">{page + 1} of {photos.length}</span>}
       {marking && <span className="sm pager-hint">Tap the photo where the close-up is</span>}
+      {!marking && item.cutout === 'pending' && <span className="sm pager-hint">Cutting out…</span>}
     </Window>
   );
 }
@@ -118,6 +119,7 @@ function OwnedPiece({ item, trees, photos, logged, lastWorn }: { item: Item; tre
           <SubTop title={kind} right={<button type="button" className="link" onClick={() => go('/details', { id: item.id, edit: '1' })}>Edit</button>} />
         </div>
       </div>
+      <UncutNote item={item} />
       <div style={{ padding: '14px 18px 0' }}>
         <h2 className="name" style={{ fontSize: 31 }}>{item.name}{item.count > 1 ? ` ×${item.count}` : ''}</h2>
         <p className="m" style={{ paddingTop: 4 }}>{[shade?.name, item.brand, item.size, ...Object.values(item.extra).filter(Boolean)].filter(Boolean).join(' · ') || 'Add its details with Edit'}</p>

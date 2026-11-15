@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../src/db/db';
 import { seedIfEmpty } from '../src/db/seed';
 import { createItemWithPhoto, undoLast, clearUndo } from '../src/db/actions';
-import { addShot, landCutout, startConveyor, _setCutter, requeuePending } from '../src/photo/conveyor';
+import { addShot, keepUncut, landCutout, retakeShot, startConveyor, _setCutter, requeuePending } from '../src/photo/conveyor';
 import { ModelUnavailable, type CutResult } from '../src/photo/cutout';
 
 const blob = new Blob(['x'], { type: 'image/webp' });
@@ -90,5 +90,35 @@ describe('the conveyor', () => {
     const shot = { width: 10, height: 10, close() { closed = true; } } as unknown as ImageBitmap;
     await addShot(shot, 'clothing', async () => ({ blob, w: 10, h: 10 }));
     expect(closed).toBe(true);
+  });
+});
+
+describe('after a cut-out failed', () => {
+  const settle = () => new Promise((r) => setTimeout(r, 30));
+  it('Retake swaps in the new photo, drops the old cut-out and cuts again', async () => {
+    const seen: string[] = [];
+    _setCutter(async (photo) => { seen.push(await photo.text()); return { original: photo, cutout: blob, w: 10, h: 10, pixels: navy(100) }; });
+    await startConveyor();
+    const id = await createItemWithPhoto({ name: 'Chinos', cutout: 'uncut' }, [
+      { role: 'original', blob: new Blob(['old'], { type: 'image/webp' }), w: 10, h: 10 },
+      { role: 'main', blob: new Blob(['bad cut'], { type: 'image/webp' }), w: 10, h: 10 },
+    ]);
+    let closed = false;
+    const shot = { width: 10, height: 10, close() { closed = true; } } as unknown as ImageBitmap;
+    await retakeShot(id, shot, async () => ({ blob: new Blob(['new'], { type: 'image/webp' }), w: 10, h: 10 }));
+    expect(closed).toBe(true);
+    await settle();
+    expect(seen).toEqual(['new']);
+    const photos = await db.photos.where('itemId').equals(id).toArray();
+    expect(photos.map((p) => p.role).sort()).toEqual(['main', 'original']);
+    expect(await photos.find((p) => p.role === 'original')!.blob.text()).toBe('new');
+    expect((await db.items.get(id))!.cutout).toBe('done');
+    expect((await db.items.get(id))!.name).toBe('Chinos');
+  });
+
+  it('Keep as it is stops asking', async () => {
+    const id = await createItemWithPhoto({ cutout: 'uncut' }, [{ role: 'original', blob, w: 10, h: 10 }]);
+    await keepUncut(id);
+    expect((await db.items.get(id))!.cutout).toBe('kept');
   });
 });

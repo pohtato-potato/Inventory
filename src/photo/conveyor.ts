@@ -115,6 +115,31 @@ export async function addShot(
   return id;
 }
 
+/** Retake after a failed cut-out: the new photo replaces the old one (and any cut-out), and the piece is cut again. */
+export async function retakeShot(
+  itemId: Id,
+  bitmap: ImageBitmap,
+  shrink: (b: ImageBitmap) => Promise<{ blob: Blob; w: number; h: number }> = shrinkToWebp,
+): Promise<void> {
+  let original: { blob: Blob; w: number; h: number };
+  try {
+    original = await shrink(bitmap);
+  } finally {
+    bitmap.close?.();
+  }
+  await savePhotos(itemId, [{ role: 'original', ...original, replace: true }]);
+  await db.transaction('rw', db.photos, db.items, async () => {
+    await db.photos.where('itemId').equals(itemId).filter((p) => p.role === 'main').delete();
+    await db.items.update(itemId, { cutout: 'pending', updatedAt: Date.now() });
+  });
+  if (!queue.has(itemId)) queue.add(itemId, itemId);
+}
+
+/** Keep as it is: the owner accepts the photo as taken, so the app stops offering a retake. */
+export async function keepUncut(itemId: Id): Promise<void> {
+  await db.items.update(itemId, { cutout: 'kept', updatedAt: Date.now() });
+}
+
 export function pendingCutouts(): number {
   return queue.pending();
 }
