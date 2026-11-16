@@ -483,3 +483,4 @@ button.card { display: flex; width: calc(100% - 28px); text-align: left; color: 
 .home-shortcuts { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; padding: 10px 14px 2px; scrollbar-width: none; }
 .home-shortcuts::-webkit-scrollbar { display: none; }
 .home-shortcuts .ghost { flex: 0 0 auto; min-height: 44px; padding: 0 14px; white-space: nowrap; }
+.wish-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

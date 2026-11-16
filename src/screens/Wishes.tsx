@@ -121,7 +121,8 @@ function WishTile({ w, thumb, today }: { w: Wish; thumb?: Thumb; today: string }
         <ShopGround w={w} thumb={thumb} today={today} />
       </button>
       <p className="wish-name" aria-hidden="true">{w.name}</p>
-      <p className="m sm" aria-hidden="true">{line}</p>
+      <p className="sm wish-line" aria-hidden="true">{shopPrice(w) || '\u00a0'}</p>
+      <p className="m sm wish-line" aria-hidden="true">{addedText(w, today)}</p>
     </div>
   );
 }
