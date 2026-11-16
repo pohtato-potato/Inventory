@@ -150,6 +150,11 @@ export function useMainPhotos(): Map<Id, Thumb> | undefined {
   }, []);
 }
 
+/** Every mirror photo (on outfits and wear days), with its URL. */
+export function useSelfies(): { url: string; photo: Photo }[] | undefined {
+  return useLiveQuery(async () => (await db.photos.where('role').equals('selfie').toArray()).map((p) => ({ url: urlFor(p), photo: p })), []);
+}
+
 /** Each wish's picture, by wish id. */
 export function useWishPhotos(): Map<Id, Thumb> | undefined {
   return useLiveQuery(async () => {

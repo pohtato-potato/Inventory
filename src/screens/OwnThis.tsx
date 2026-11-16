@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { addWish, getSetting, setSetting, undoLast } from '../db/actions';
-import { useItems, useMainPhotos, useSetting, useTrees } from '../db/hooks';
+import { useItems, useMainPhotos, useSetting, useTrees, useWearLog, useWishes } from '../db/hooks';
 import { isUnsorted } from '../domain/fields';
-import { gaps, ownedLike, STARTER_STAPLES, type Staple } from '../domain/gaps';
+import { gaps, likeWords, ownedLike, ownLine, STARTER_STAPLES, type Staple } from '../domain/gaps';
 import type { Id, Item, Wish } from '../domain/types';
 import { go, useRoute } from '../router';
 import { Chips } from '../ui/Chips';
 import { Numeral } from '../ui/Numeral';
 import { Seg } from '../ui/Seg';
-import { Tile } from '../ui/Tile';
+import { Piece, Window } from '../ui/Window';
 import { showToast } from '../ui/Toast';
 import { pieceColour, SubTop, type Trees } from './shared';
 
@@ -18,15 +18,17 @@ export function OwnThis() {
   const trees = useTrees();
   const items = useItems();
   const thumbs = useMainPhotos();
+  const wear = useWearLog();
+  const wishes = useWishes();
   const kindId = params.get('kind') ?? undefined;
   const shadeId = params.get('shade') ?? undefined;
   const [clothing, setClothing] = useState(() => (kindId ? trees?.kinds.find((k) => k.id === kindId)?.clothing : undefined) ?? true);
-  const ready = !!(trees && items && thumbs);
+  const ready = !!(trees && items && thumbs && wear);
   // A prefilled kind or colour may sit off the end of its row: bring it into view once.
   useEffect(() => {
     if (ready) document.querySelectorAll('.own .chip.on').forEach((c) => c.scrollIntoView({ inline: 'center', block: 'nearest' }));
   }, [ready]);
-  if (!trees || !items || !thumbs) return <main className="screen" aria-busy="true" />;
+  if (!trees || !items || !thumbs || !wear) return <main className="screen" aria-busy="true" />;
 
   const set = (p: { kind?: Id; shade?: Id }) => go('/own', { kind: kindId, shade: shadeId, ...p }, { replace: true });
   const kinds = trees.kinds.filter((k) => k.clothing === clothing && !isUnsorted(k.id));
@@ -35,6 +37,8 @@ export function OwnThis() {
   const family = trees.shades.find((s) => s.id === shadeId)?.familyId ?? shadeId;
   const like = ownedLike(items, { kindId, shadeId: family }, trees);
   const asked = !!(kindId || family);
+  const kindName_ = trees.kinds.find((k) => k.id === kindId)?.name;
+  const familyName = trees.shades.find((s) => s.id === family)?.name;
 
   return (
     <main className="screen own">
@@ -51,22 +55,25 @@ export function OwnThis() {
         </div>
       </div>
       {asked && (
-        <section aria-live="polite">
-          {like.length ? (
-            <div className="own-count">
-              <Numeral value={like.length} className="own-num" />
-              <p className="caps m">like this</p>
-            </div>
-          ) : (
-            <p className="name own-none">Nothing like this yet</p>
-          )}
-          <div className="grid">
-            {like.map((i, n) => (
-              <Tile key={i.id} item={i} photo={thumbs.get(i.id)?.url} cut={thumbs.get(i.id)?.cut} colour={pieceColour(i, trees.shades)} index={n} onPress={() => go('/piece', { id: i.id })} />
-            ))}
+        <Window as="section" className="own-answer" colour={like[0] ? pieceColour(like[0], trees.shades) : undefined} lit={like.length > 0} aria-live="polite">
+          <div className="own-count">
+            <Numeral value={like.length} className="own-num" />
+            <p className="caps">{like.length ? likeWords(kindName_, familyName, like.length) : 'Nothing like this yet'}</p>
           </div>
-        </section>
+          {like.length > 0 && (
+            <div className="own-pieces">
+              {like.map((i) => (
+                <button key={i.id} type="button" className="own-piece" onClick={() => go('/piece', { id: i.id })} aria-label={`${i.name}, ${ownLine(i, wear.count.get(i.id) ?? 0)}`}>
+                  <span className="own-pc"><Piece src={thumbs.get(i.id)?.url} cut={thumbs.get(i.id)?.cut ?? true} /></span>
+                  <span className="lbl" aria-hidden="true">{i.name}</span>
+                  <span className="sm m" aria-hidden="true">{ownLine(i, wear.count.get(i.id) ?? 0)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </Window>
       )}
+      {wishes && <GapHints items={items} wishes={wishes} trees={trees} />}
     </main>
   );
 }

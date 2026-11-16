@@ -12,12 +12,20 @@ function rootKind(id: Id, kinds: Kind[]): Kind | undefined {
   return k;
 }
 
+/** Relative luminance of a hex colour (WCAG). */
+function luminance(hex: string): number {
+  const v = (i: number) => { const c = parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16) / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * v(0) + 0.7152 * v(1) + 0.0722 * v(2);
+}
+const deepestFirst = (list: string[]) => list.sort((a, b) => luminance(a) - luminance(b));
+
 export interface Spend {
   currency: string;
   total: number;
   /** true when any price in it is a guess */
   estimated: boolean;
-  rows: { label: string; amount: number }[];
+  /** Each row's amount and the main shades of its pieces (hex, distinct, deepest first, six at most). */
+  rows: { label: string; amount: number; shades: string[] }[];
 }
 
 /**
@@ -26,21 +34,24 @@ export interface Spend {
  * pieces come first; rows largest first.
  */
 export function spend(items: Item[], by: 'kind' | 'shop' | 'brand', trees: SearchTrees): Spend[] {
-  const groups = new Map<string, { n: number; s: Spend; rows: Map<string, number> }>();
+  const groups = new Map<string, { n: number; s: Spend; rows: Map<string, number>; shades: Map<string, Set<string>> }>();
+  const hex = new Map(trees.shades.map((s) => [s.id, s.hex]));
   for (const i of items) {
     if (!live(i) || !i.price || !(i.price.value > 0)) continue;
     const cur = (i.currency || 'INR').toUpperCase();
     let g = groups.get(cur);
-    if (!g) groups.set(cur, (g = { n: 0, s: { currency: cur, total: 0, estimated: false, rows: [] }, rows: new Map() }));
+    if (!g) groups.set(cur, (g = { n: 0, s: { currency: cur, total: 0, estimated: false, rows: [] }, rows: new Map(), shades: new Map() }));
     g.n++;
     g.s.total += i.price.value;
     if (i.price.estimate) g.s.estimated = true;
     const label = by === 'kind' ? rootKind(i.kindId, trees.kinds)?.name ?? 'Other' : by === 'shop' ? i.shop?.trim() || 'No shop' : i.brand?.trim() || 'No brand';
     g.rows.set(label, (g.rows.get(label) ?? 0) + i.price.value);
+    const h = i.shadeMain ? hex.get(i.shadeMain) : undefined;
+    if (h) { const set = g.shades.get(label) ?? new Set(); set.add(h); g.shades.set(label, set); }
   }
   return [...groups.values()]
     .sort((a, b) => b.n - a.n || a.s.currency.localeCompare(b.s.currency))
-    .map((g) => ({ ...g.s, rows: [...g.rows].map(([label, amount]) => ({ label, amount })).sort((a, b) => b.amount - a.amount || a.label.localeCompare(b.label)) }));
+    .map((g) => ({ ...g.s, rows: [...g.rows].map(([label, amount]) => ({ label, amount, shades: deepestFirst([...(g.shades.get(label) ?? [])]).slice(0, 6) })).sort((a, b) => b.amount - a.amount || a.label.localeCompare(b.label)) }));
 }
 
 /** Pieces (owned or gone, not trashed) with no price. */

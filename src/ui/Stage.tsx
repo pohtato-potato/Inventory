@@ -8,7 +8,7 @@ import { Window } from './Window';
  * a piece that is gone is drawn grey with "gone" under it.
  */
 export function Stage({
-  placed, photos, height, light, label, delay = 0, className = '',
+  placed, photos, height, light, label, delay = 0, className = '', width,
 }: {
   placed: Placed[];
   photos: Map<Id, Thumb>;
@@ -17,11 +17,11 @@ export function Stage({
   label: string;
   delay?: number;
   className?: string;
+  /** A wider window (the stage stays its true shape, centred in it). */
+  width?: number | string;
 }) {
-  const width = Math.round(height * STAGE_ASPECT);
-  return (
-    <Window colour={light} delay={delay} className={`stage ${className}`} style={{ width, height }} role="img" aria-label={label}>
-      {placed.map((p) => {
+  const box = Math.round(height * STAGE_ASPECT);
+  const pieces = placed.map((p) => {
         const t = photos.get(p.itemId);
         if (!t) return null;
         return (
@@ -34,7 +34,10 @@ export function Stage({
             {p.gone && <span className="stage-gone">gone</span>}
           </span>
         );
-      })}
+  });
+  return (
+    <Window colour={light} delay={delay} className={`stage ${className}`} style={{ width: width ?? box, height }} role="img" aria-label={label}>
+      {width ? <span className="stage-box" style={{ width: box }}>{pieces}</span> : pieces}
     </Window>
   );
 }

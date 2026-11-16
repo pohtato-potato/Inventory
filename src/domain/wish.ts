@@ -117,3 +117,10 @@ export function gladDue(wishes: Wish[], today: string, items?: Item[]): Wish[] {
     return true;
   });
 }
+
+/** When a wish was added: "added 2 Nov", with the year when it is not this year's. */
+export function addedText(w: Wish, today: string): string {
+  const d = new Date(w.createdAt);
+  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', ...(d.getFullYear() !== Number(today.slice(0, 4)) ? { year: 'numeric' as const } : {}) };
+  return `added ${d.toLocaleDateString('en-GB', opts)}`;
+}

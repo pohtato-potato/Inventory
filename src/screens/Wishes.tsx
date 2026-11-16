@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
 import { answerGlad, buyWish, dropWish, undoLast, updateWish } from '../db/actions';
-import { useItems, useTrees, useWish, useWishes, useWishPhotos, type Thumb } from '../db/hooks';
+import { useItems, useMainPhotos, useTrees, useWish, useWishes, useWishPhotos, type Thumb } from '../db/hooks';
 import { parseRoughPrice } from '../domain/estimate';
-import { roughPriceText } from '../domain/format';
+import { money, roughPriceText } from '../domain/format';
+import { ownedLike } from '../domain/gaps';
 import type { Id, Tier, Wish } from '../domain/types';
 import { dayKey } from '../domain/wearlog';
-import { asksThirtyWears, isWaiting, safeLink, sortWishes, TIERS, waitText } from '../domain/wish';
+import { addedText, asksThirtyWears, isWaiting, safeLink, sortWishes, TIERS, waitText } from '../domain/wish';
 import { daysBetween } from '../domain/wearlog';
 import { bitmapFromFile } from '../photo/camera';
 import { shrinkToWebp } from '../photo/cutout';
@@ -16,17 +17,16 @@ import { Seg } from '../ui/Seg';
 import { Sheet } from '../ui/Sheet';
 import { showToast } from '../ui/Toast';
 import { Piece, Window } from '../ui/Window';
-import { DayPicker, kindName, SubTop, type Trees } from './shared';
+import { DayPicker, kindName, Mini, SubTop } from './shared';
 import { setPendingWishPhoto } from './WishForm';
 import { GapHints } from './OwnThis';
 
 const tierLabel = (t: Tier) => TIERS.find((x) => x.value === t)!.label;
 
-const shadeHex = (w: Wish, trees: Trees | undefined) => trees?.shades.find((s) => s.id === w.shadeId)?.hex;
 export const shopPrice = (w: Wish) => [w.shop, w.price ? roughPriceText(w.price, w.currency) : ''].filter(Boolean).join(' · ');
 const shortDay = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-/** The wish list: one wish in the window, then the board for Now, Soon or Someday. */
+/** The wish list: how many and about how much, then Now, Soon or Someday as two-across tiles on a light shop ground. */
 export function Wishes() {
   const { params } = useRoute();
   const tier = (TIERS.some((t) => t.value === params.get('tier')) ? params.get('tier') : 'now') as Tier;
@@ -42,43 +42,32 @@ export function Wishes() {
   const open = sorted.filter((w) => w.status === 'open');
   const shown = open.filter((w) => w.tier === tier);
   const done = sorted.filter((w) => w.status !== 'open');
-  const pick = open.find((w) => !isWaiting(w, today) && thumbs.has(w.id)) ?? open.find((w) => !isWaiting(w, today)) ?? open[0];
-  const pickThumb = pick ? thumbs.get(pick.id) : undefined;
   const params0 = tier === 'now' ? {} : { tier };
+  const totals = wishTotals(open);
 
   return (
     <main className="screen">
-      <Window as="section" colour={pick ? shadeHex(pick, trees) : undefined} lit={!!pick} className="hero hero-wish" aria-label="Wishes">
-        <div className="top"><h1 className="caps">Wishes</h1></div>
-        <div className="hero-count">
-          <Numeral value={open.length} className="hero-num" />
-          <p className="caps m">on the list</p>
+      <Window as="section" lit={false} className="wish-head" aria-label="Wishes">
+        <div className="top">
+          <h1 className="caps">Wishes</h1>
+          <button type="button" className="link" style={{ marginLeft: 'auto' }} onClick={() => go('/own')}>Do I own this?</button>
         </div>
-        {pick ? (
-          <>
-            <button type="button" className="hero-piece" aria-label={`${pick.name}, in the window`} onClick={() => go('/wish', { id: pick.id })}>
-              {pickThumb ? <Piece src={pickThumb.url} cut={false} /> : <span className="wish-word big">{pick.name}</span>}
-            </button>
-            <p className="hero-why" aria-hidden="true">
-              <span className="m">In the window</span>
-              <br />
-              <b>{pick.name}</b>
-              <br />
-              <span className="m">{tierLabel(pick.tier)}</span>
-            </p>
-          </>
-        ) : (
-          <div className="hero-empty">
-            <p className="name" style={{ fontSize: 24 }}>Nothing wished for yet</p>
-            <button type="button" className="acc" onClick={() => go('/wish-new')}>Add a wish</button>
-          </div>
-        )}
+        <div className="home-date">
+          <Numeral value={open.length} className="home-num" />
+          <p className="caps m">on the list{totals.map((t) => <span key={t.currency}><br />about {money(t.total, t.currency)}</span>)}</p>
+        </div>
       </Window>
+      {open.length === 0 && (
+        <div className="wish-empty">
+          <p className="name" style={{ fontSize: 24 }}>Nothing wished for yet</p>
+          <button type="button" className="acc" onClick={() => go('/wish-new')}>Add a wish</button>
+        </div>
+      )}
 
       <Seg label="Which wishes" value={tier} onChange={(t) => go('/wishes', t === 'now' ? {} : { tier: t }, { replace: true })} options={TIERS.map((t) => ({ value: t.value, label: `${t.label} ${open.filter((w) => w.tier === t.value).length}` }))} />
       {shown.length ? (
         <div className="wish-grid">
-          {shown.map((w, i) => <WishTile key={w.id} w={w} thumb={thumbs.get(w.id)} colour={shadeHex(w, trees)} today={today} index={i} />)}
+          {shown.map((w) => <WishTile key={w.id} w={w} thumb={thumbs.get(w.id)} today={today} />)}
         </div>
       ) : (
         <p className="m empty-line">{open.length ? `Nothing in ${tierLabel(tier)}.` : 'Share a product from a shop app, or tap + to add a wish.'}</p>
@@ -105,18 +94,34 @@ export function Wishes() {
   );
 }
 
-function WishTile({ w, thumb, colour, today, index }: { w: Wish; thumb?: Thumb; colour?: string; today: string; index: number }) {
+/** What the open wishes would cost, per currency (wishes with no price are left out). */
+function wishTotals(open: Wish[]): { currency: string; total: number }[] {
+  const by = new Map<string, number>();
+  for (const w of open) if (w.price && w.price.value > 0) by.set(w.currency, (by.get(w.currency) ?? 0) + w.price.value);
+  return [...by].map(([currency, total]) => ({ currency, total }));
+}
+
+/** A wish's photo on the light shop ground (not a lit window: it is not yours yet), with the waiting tag on it. */
+function ShopGround({ w, thumb, today, big = false }: { w: Wish; thumb?: Thumb; today: string; big?: boolean }) {
+  const wait = w.status === 'open' ? waitText(w, today) : null;
+  return (
+    <>
+      {thumb ? <img className="shop-img" src={thumb.url} alt="" draggable={false} decoding="async" /> : <span className={`wish-word${big ? ' big' : ''}`} aria-hidden="true">{w.name}</span>}
+      {wait && <span className="shop-tag">{wait}</span>}
+    </>
+  );
+}
+
+function WishTile({ w, thumb, today }: { w: Wish; thumb?: Thumb; today: string }) {
   const wait = waitText(w, today);
-  const line = shopPrice(w);
+  const line = [shopPrice(w), addedText(w, today)].filter(Boolean).join(' · ');
   return (
     <div className={`wish-cell${wait ? ' waiting' : ''}`}>
-      <Window as="button" type="button" colour={colour} lit={!wait && !!thumb} delay={Math.min(index, 12) * 50} className="wish-tile"
-        aria-label={[w.name, line, wait].filter(Boolean).join(', ')} onClick={() => go('/wish', { id: w.id })}>
-        {thumb ? <Piece src={thumb.url} cut={false} /> : <span className="wish-word" aria-hidden="true">{w.name}</span>}
-      </Window>
+      <button type="button" className="shop wish-tile" aria-label={[w.name, line, wait].filter(Boolean).join(', ')} onClick={() => go('/wish', { id: w.id })}>
+        <ShopGround w={w} thumb={thumb} today={today} />
+      </button>
       <p className="wish-name" aria-hidden="true">{w.name}</p>
-      {line && <p className="m sm" aria-hidden="true">{line}</p>}
-      {wait && <p className="m sm" aria-hidden="true">{wait}</p>}
+      <p className="m sm" aria-hidden="true">{line}</p>
     </div>
   );
 }
@@ -149,17 +154,20 @@ function AddWishSheet({ open, onClose }: { open: boolean; onClose: () => void })
   );
 }
 
-/** One wish: what it is, and what to do about it. */
+/** One wish: its photo on the shop ground, the price as the big number, whether you own one like it, and what to do. */
 export function WishPage() {
   const { params } = useRoute();
   const id = params.get('id') ?? '';
   const w = useWish(id);
   const thumbs = useWishPhotos();
   const trees = useTrees();
+  const items = useItems();
+  const pieceThumbs = useMainPhotos();
   const [buying, setBuying] = useState(false);
   const [asking, setAsking] = useState(false);
   const [moving, setMoving] = useState(false);
-  if (w === undefined || !thumbs || !trees) return <main className="screen" aria-busy="true" />;
+  const [waiting, setWaiting] = useState(false);
+  if (w === undefined || !thumbs || !trees || !items || !pieceThumbs) return <main className="screen" aria-busy="true" />;
   if (!w) {
     return (
       <main className="screen">
@@ -171,43 +179,58 @@ export function WishPage() {
   const today = dayKey(Date.now());
   const thumb = thumbs.get(w.id);
   const link = safeLink(w.url);
-  const wait = waitText(w, today);
   const kind = w.kindId ? kindName(w.kindId, trees.kinds) : '';
   const shade = trees.shades.find((s) => s.id === w.shadeId);
+  const family = shade?.familyId ?? w.shadeId;
+  // "You own N like this" needs a kind: a colour alone says too little.
+  const like = w.kindId ? ownedLike(items, { kindId: w.kindId, shadeId: family }, trees) : [];
+  const setWait = async (waitUntil: Wish['waitUntil']) => { await updateWish(w.id, { waitUntil }); setWaiting(false); showToast(waitUntil ? 'Waiting' : 'Not waiting any more', () => void undoLast()); };
 
   return (
     <main className="screen wish-page">
-      <SubTop title="Wish" right={w.status === 'open' ? <button type="button" className="link" onClick={() => go('/wish-new', { id: w.id })}>Change</button> : undefined} />
-      <Window className="wish-hero" colour={shade?.hex} lit={!!thumb && w.status === 'open'}>
-        {thumb ? <Piece src={thumb.url} cut={false} alt={w.name} /> : <span className="wish-word big" aria-hidden="true">{w.name}</span>}
-      </Window>
+      <SubTop title={w.status === 'open' ? tierLabel(w.tier) : 'Wish'} right={w.status === 'open' ? <button type="button" className="link" onClick={() => go('/wish-new', { id: w.id })}>Change</button> : undefined} />
+      <div className="shop wish-hero">
+        <ShopGround w={w} thumb={thumb} today={today} big />
+      </div>
       <div className="wish-body">
         <h2 className="name wish-title">{w.name}</h2>
-        <p className="m">{[tierLabel(w.tier), kind, shade?.name].filter(Boolean).join(' · ')}</p>
-        {shopPrice(w) && <p>{shopPrice(w)}</p>}
+        {(w.price || w.shop) && (
+          <p className="wish-price">
+            {w.price && <span className="num wish-num">{roughPriceText(w.price, w.currency)}</span>}
+            {w.shop && <span className="m">{w.shop}</span>}
+          </p>
+        )}
+        <p className="m">{[kind, shade?.name, addedText(w, today)].filter(Boolean).join(' · ')}</p>
         {w.forWhom && <p>For {w.forWhom}</p>}
-        {wait && <p className="m">{wait}</p>}
         {w.note && <p className="wish-note">{w.note}</p>}
-
+      </div>
+      {w.status === 'open' && like.length > 0 && (
+        <button type="button" className="li" onClick={() => go('/own', { kind: w.kindId, shade: family })}>
+          <Mini item={like[0]} thumb={pieceThumbs.get(like[0].id)} shades={trees.shades} size={41} />
+          <span>You own <b>{like.length}</b> like this</span>
+          <span className="n link-text">See</span>
+        </button>
+      )}
+      <div className="wish-body">
         {w.status === 'open' && (
           <div className="wish-actions">
-            <button type="button" className="acc" onClick={() => (asksThirtyWears(w, trees.kinds) ? setAsking(true) : setBuying(true))}>Bought</button>
+            <button type="button" className="acc wide" onClick={() => (asksThirtyWears(w, trees.kinds) ? setAsking(true) : setBuying(true))}>Bought</button>
             {link && <a className="ghost" href={link} target="_blank" rel="noopener noreferrer">Open the shop page</a>}
-            <button type="button" className="ghost" onClick={() => go('/own', { kind: w.kindId, shade: shade?.familyId ?? w.shadeId })}>Do I already own this?</button>
+            <button type="button" className="ghost" onClick={() => setWaiting(true)}>{isWaiting(w, today) ? 'Waiting…' : 'Wait until…'}</button>
             <button type="button" className="ghost" onClick={() => setMoving(true)}>Move to…</button>
             <button type="button" className="ghost" onClick={async () => { await dropWish(w.id); showToast('Taken off your wishes', () => void undoLast()); back('/wishes'); }}>Not any more</button>
           </div>
         )}
         {w.status === 'bought' && (
           <div className="wish-actions">
-            <p>Bought{w.boughtOn ? ` on ${shortDay(w.boughtOn)}` : ''}</p>
-            {w.itemId && <button type="button" className="ghost" onClick={() => go('/piece', { id: w.itemId })}>Open the piece</button>}
+            <p className="wide">Bought{w.boughtOn ? ` on ${shortDay(w.boughtOn)}` : ''}</p>
+            {w.itemId && <button type="button" className="ghost wide" onClick={() => go('/piece', { id: w.itemId })}>Open the piece</button>}
           </div>
         )}
         {w.status === 'dropped' && (
           <div className="wish-actions">
-            <p className="m">You took this off your wishes.</p>
-            <button type="button" className="ghost" onClick={async () => { await updateWish(w.id, { status: 'open' }); showToast('Back on your wishes', () => void undoLast()); }}>Want it again</button>
+            <p className="m wide">You took this off your wishes.</p>
+            <button type="button" className="ghost wide" onClick={async () => { await updateWish(w.id, { status: 'open' }); showToast('Back on your wishes', () => void undoLast()); }}>Want it again</button>
           </div>
         )}
       </div>
@@ -223,6 +246,18 @@ export function WishPage() {
       <Sheet open={moving} onClose={() => setMoving(false)} label="Move to">
         <p className="name" style={{ fontSize: 22, paddingBottom: 10 }}>Move to…</p>
         <Chips label="Move to" value={w.tier} onChange={async (t) => { await updateWish(w.id, { tier: t }); setMoving(false); showToast(`Moved to ${tierLabel(t)}`, () => void undoLast()); }} options={TIERS} />
+      </Sheet>
+      <Sheet open={waiting} onClose={() => setWaiting(false)} label="Wait until">
+        <div style={{ display: 'grid', gap: 10 }}>
+          <p className="name" style={{ fontSize: 22 }}>Wait until…</p>
+          <p className="m">{waitText(w, today) ?? 'It stays on your list, dimmed, until then.'}</p>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span className="field" style={{ display: 'flex', alignItems: 'center' }}>{w.waitUntil?.date ? shortDay(w.waitUntil.date) : 'Pick a day'}</span>
+            <DayPicker future label="Pick the day to wait until" value={w.waitUntil?.date ?? ''} onPick={(d) => void setWait({ date: d })} />
+          </div>
+          {isWaiting(w, today) && <button type="button" className="ghost" onClick={() => void setWait(undefined)}>Stop waiting</button>}
+          <button type="button" className="ghost" onClick={() => setWaiting(false)}>Cancel</button>
+        </div>
       </Sheet>
     </main>
   );
@@ -288,9 +323,8 @@ export function GladCard({ wish, photo, cut, colour, today }: { wish: Wish; phot
           <Piece src={photo} cut={cut} />
         </Window>
         <div>
-          <p className="m sm">Bought {days} days ago</p>
-          <p className="name glad-name">{wish.name}</p>
-          <p>Glad you bought it?</p>
+          <p><b>{wish.name}</b> <span className="m">· bought {days} days ago</span></p>
+          <p className="m">Glad you bought it?</p>
         </div>
       </div>
       <div className="glad-scale" role="group" aria-label="From 1, not at all, to 7, very">
@@ -298,8 +332,11 @@ export function GladCard({ wish, photo, cut, colour, today }: { wish: Wish; phot
           <button key={n} type="button" aria-label={n === 1 ? '1, not at all' : n === 7 ? '7, very' : String(n)} onClick={() => void answer(n)}>{n}</button>
         ))}
       </div>
-      <div className="glad-ends m sm" aria-hidden="true"><span>not at all</span><span>very</span></div>
-      <button type="button" className="link" onClick={() => void answer('skip')}>Skip</button>
+      <div className="glad-ends m">
+        <span aria-hidden="true">not at all</span>
+        <button type="button" className="link" onClick={() => void answer('skip')}>Skip</button>
+        <span aria-hidden="true">very</span>
+      </div>
     </section>
   );
 }

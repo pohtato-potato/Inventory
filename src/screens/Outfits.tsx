@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { saveOutfit, setSetting, undoLast, updateItem, updateOutfit } from '../db/actions';
-import { useAllItems, useMainPhotos, useOutfit, useOutfits, useSetting, useTrees, useWears, type Thumb, type Trees } from '../db/hooks';
-import { DRESS_CODES, LANE_WORDS, laneFor, layout, lightPiece, needsLane, pairedFirst, pairScore, placeIn, splitRegulars } from '../domain/outfit';
+import { useAllItems, useMainPhotos, useOutfit, useOutfits, useSelfies, useSetting, useTrees, useWears, type Thumb, type Trees } from '../db/hooks';
+import { outfitPhotos } from '../domain/face';
+import { DRESS_CODES, LANE_WORDS, laneFor, layout, lightPiece, needsLane, pairedFirst, pairScore, placeIn, splitRegulars, STAGE_ASPECT } from '../domain/outfit';
 import { isUnsorted } from '../domain/fields';
-import type { Id, Item, Lane } from '../domain/types';
+import type { Id, Item, Lane, Outfit, Photo, Wear } from '../domain/types';
 import { outfitCount, wearStats } from '../domain/wearlog';
 import { plural } from '../domain/format';
 import { namesLine } from '../domain/wears';
@@ -14,19 +15,39 @@ import { Seg } from '../ui/Seg';
 import { Sheet } from '../ui/Sheet';
 import { Stage } from '../ui/Stage';
 import { Tile } from '../ui/Tile';
+import { Window } from '../ui/Window';
 import { showToast } from '../ui/Toast';
 import { pieceColour } from './shared';
 
-/** The outfit stage for a set of piece ids: lit by its top, gone pieces greyed. */
-export function OutfitStage({ ids, items, trees, thumbs, height, label, delay }: { ids: Id[]; items: Item[]; trees: Trees; thumbs: Map<Id, Thumb>; height: number; label: string; delay?: number }) {
+/** The outfit stage for a set of piece ids: lit by its top, gone pieces greyed. With a mirror photo (`face`), the photo
+ *  fills the window instead, still lit by the top's colour. */
+export function OutfitStage({ ids, items, trees, thumbs, height, label, delay, face, width }: { ids: Id[]; items: Item[]; trees: Trees; thumbs: Map<Id, Thumb>; height: number; label: string; delay?: number; face?: string; width?: number | string }) {
   const byId = new Map(items.map((i) => [i.id, i]));
   const list = ids.map((id) => byId.get(id)).filter((i): i is Item => !!i);
   const aspect = new Map(list.map((i) => [i.id, thumbs.get(i.id)?.aspect ?? 1.2]));
   const placed = layout(list, trees.kinds, aspect);
   const lit = lightPiece(placed);
   const light = lit ? pieceColour(byId.get(lit)!, trees.shades) : undefined;
-  return <Stage placed={placed} photos={thumbs} height={height} light={light} label={label} delay={delay} />;
+  if (face) {
+    return (
+      <Window colour={light} delay={delay} className="stage face" style={{ width: width ?? Math.round(height * STAGE_ASPECT), height }} role="img" aria-label={`${label}, mirror photo`}>
+        <img className="face-img" src={face} alt="" draggable={false} decoding="async" />
+      </Window>
+    );
+  }
+  return <Stage placed={placed} photos={thumbs} height={height} light={light} label={label} delay={delay} width={width} />;
 }
+
+type Selfie = { url: string; photo: Photo };
+
+/** An outfit's mirror photos with their URLs, newest (its face) first. */
+export function outfitShots(o: Outfit, wears: Wear[], selfies: Selfie[]): Selfie[] {
+  const url = new Map(selfies.map((s) => [s.photo.id, s.url]));
+  return outfitPhotos(o, wears, selfies.map((s) => s.photo)).map((photo) => ({ photo, url: url.get(photo.id)! }));
+}
+
+/** The URL of an outfit's face, if it has a mirror photo. */
+export const faceOf = (o: Outfit | undefined, wears: Wear[], selfies: Selfie[]) => (o ? outfitShots(o, wears, selfies)[0]?.url : undefined);
 
 /** "Navy tee, Blue jeans and 2 more". */
 export const piecesText = namesLine;
@@ -53,13 +74,14 @@ export function Outfits() {
   const thumbs = useMainPhotos();
   const outfits = useOutfits();
   const wears = useWears();
+  const selfies = useSelfies();
   const [chosen, setChosen] = useState<Id[] | null>(null);
   const [group, setGroup] = useState<(typeof GROUPS)[number]['value'] | 'all'>('all');
   const [saving, setSaving] = useState(false);
   const [asking, setAsking] = useState<Item | null>(null);
   const together = useMemo(() => wearStats(wears ?? []).together, [wears]);
 
-  if (!trees || !all || !thumbs || !outfits || !wears || editing === undefined) return <main className="screen" aria-busy="true" />;
+  if (!trees || !all || !thumbs || !outfits || !wears || !selfies || editing === undefined) return <main className="screen" aria-busy="true" />;
   const picked = chosen ?? editing?.itemIds ?? [];
   const clothing = new Set(trees.kinds.filter((k) => k.clothing).map((k) => k.id));
   const owned = all.filter((i) => i.status === 'owned' && i.deletedAt === undefined && clothing.has(i.kindId) && !isUnsorted(i.kindId));
@@ -101,8 +123,8 @@ export function Outfits() {
               <div className="regulars">
                 {regs.map((o, i) => (
                   <button key={o.id} type="button" className="regular" onClick={() => go('/outfit', { id: o.id })}>
-                    <OutfitStage ids={o.itemIds} items={all} trees={trees} thumbs={thumbs} height={240} label={o.name ?? piecesText(o.itemIds, all)} delay={i * 100} />
-                    <span className="sm m">{o.name ? `${o.name} · ` : ''}Worn {plural(outfitCount(o, wears), 'time')}</span>
+                    <OutfitStage ids={o.itemIds} items={all} trees={trees} thumbs={thumbs} height={290} width={158} label={o.name ?? piecesText(o.itemIds, all)} delay={i * 100} face={faceOf(o, wears, selfies)} />
+                    <span className="sm m">{o.name ? `${o.name} · ` : ''}Worn {plural(outfitCount(o, wears), 'time')}{faceOf(o, wears, selfies) ? '' : ' · no photo yet'}</span>
                   </button>
                 ))}
               </div>
@@ -115,7 +137,7 @@ export function Outfits() {
               <div className="regulars">
                 {saved.map((o, i) => (
                   <button key={o.id} type="button" className="regular" onClick={() => go('/outfit', { id: o.id })}>
-                    <OutfitStage ids={o.itemIds} items={all} trees={trees} thumbs={thumbs} height={170} label={o.name ?? piecesText(o.itemIds, all)} delay={i * 100} />
+                    <OutfitStage ids={o.itemIds} items={all} trees={trees} thumbs={thumbs} height={170} label={o.name ?? piecesText(o.itemIds, all)} delay={i * 100} face={faceOf(o, wears, selfies)} />
                     <span className="sm m">{o.name ?? 'Not worn yet'}</span>
                   </button>
                 ))}

@@ -292,9 +292,6 @@ button.li { width: 100%; border-left: 0; border-right: 0; border-bottom: 0; back
 .day-head { display: flex; align-items: center; gap: 4px; padding: 6px 10px 8px; }
 .day-head .icon-btn:disabled { opacity: .35; }
 .day-mid { flex: 1; display: flex; align-items: center; gap: 12px; min-width: 0; }
-.day-num { font-size: 64px; line-height: 1; }
-.wear-card { display: flex; gap: 14px; align-items: flex-end; padding: 10px 14px 4px; }
-.wear-side { flex: 1; display: grid; gap: 8px; min-width: 0; }
 .mirror { display: grid; gap: 8px; padding: 12px 0 0; }
 .mirror-row { display: flex; gap: 8px; overflow-x: auto; }
 .mirror-shot { flex: none; display: grid; justify-items: start; margin: 0; }
@@ -304,42 +301,16 @@ button.li { width: 100%; border-left: 0; border-right: 0; border-bottom: 0; back
 /* wishes */
 .empty-line { padding: 14px 18px; }
 .hero-wish .hero-piece .pc.uncut { max-width: 100%; max-height: 100%; border-radius: 8px; }
-.wish-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 10px; padding: 0 14px; }
-.wish-cell { min-width: 0; display: grid; gap: 3px; align-content: start; }
-.wish-tile { width: 100%; aspect-ratio: 4 / 5; border-radius: 12px; display: grid; place-items: center; border: 0; padding: 0; color: inherit; overflow: hidden; touch-action: manipulation; transition: transform .25s var(--ease-out); }
-.wish-tile:active { transform: scale(.97); }
-.wish-tile .pc.uncut { max-width: 86%; max-height: 86%; border-radius: 6px; }
-.wish-cell.waiting .wish-tile { opacity: .55; }
-.wish-name { font-weight: 700; padding-top: 4px; overflow-wrap: anywhere; }
-.wish-word { padding: 12px; font-family: var(--f-caps); font-stretch: 84%; font-weight: 600; font-size: 22px; line-height: 1.05; text-align: center; overflow-wrap: anywhere; color: var(--t); }
-.wish-word.big { font-size: 32px; }
 .wish-past { padding: 18px 0 0; }
 .wish-past > .link { margin-left: 12px; }
-.wish-hero { height: 300px; margin: 0 14px; border-radius: 16px; display: grid; place-items: center; overflow: hidden; }
 .wish-hero.form { height: 220px; }
-.wish-hero .pc.uncut { max-width: 88%; max-height: 88%; border-radius: 8px; }
-.wish-body { display: grid; gap: 8px; padding: 16px 18px 24px; }
-.wish-title { font-size: 30px; }
 .wish-note { white-space: pre-wrap; }
 a.ghost { text-decoration: none; }
-.wish-actions { display: grid; gap: 8px; padding-top: 10px; }
-.own-count { display: flex; align-items: baseline; gap: 10px; padding: 18px 18px 10px; }
-.own-num { font-size: 72px; }
-.own-none { font-size: 24px; padding: 18px 18px 10px; }
 .gaps { padding: 22px 0 8px; }
 .gap-row { display: flex; align-items: center; flex-wrap: wrap; gap: 0 8px; min-height: 52px; padding: 4px 12px 4px 18px; border-top: 1px solid var(--line); }
 .gap-label { flex: 1 1 140px; font-weight: 700; }
 .gap-acts { display: flex; flex-wrap: wrap; }
 .card { margin: 0 14px 12px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--pane); }
-.glad-head { display: flex; gap: 12px; align-items: center; }
-.glad-win { width: 96px; height: 110px; flex: none; border-radius: 12px; display: grid; place-items: center; }
-.glad-win .pc { max-width: 80%; max-height: 86%; }
-.glad-name { font-size: 22px; padding: 2px 0 4px; }
-.glad-scale { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin: 14px -14px 0; border: 1px solid #5A5C66; border-radius: 12px; overflow: hidden; }
-.glad-scale button { min-height: 48px; border: 0; border-left: 1px solid #5A5C66; background: none; color: var(--t); font: 600 20px/1 var(--f-num); }
-.glad-scale button:first-child { border-left: 0; }
-.glad-scale button:active { background: var(--a); color: #0B0C0F; }
-.glad-ends { display: flex; justify-content: space-between; padding: 6px 0 0; }
 /* numbers */
 .num-pair { display: flex; gap: 28px; padding: 6px 18px 4px; }
 .num-big { font-size: 72px; display: block; }
@@ -352,18 +323,7 @@ a.ghost { text-decoration: none; }
 .bar-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; }
 .bar-label { min-width: 0; overflow-wrap: anywhere; }
 .bar-amt { font-variant-numeric: tabular-nums; color: var(--m); }
-.bar { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: #23252B; overflow: hidden; }
-.bar > span { display: block; height: 100%; border-radius: 4px; background: var(--a); }
-.value-cell { min-width: 0; }
-.value-cell .sm { padding-top: 2px; }
 /* home */
-.home-hero { height: 220px; margin-bottom: 14px; }
-.home-hero .hero-count .caps + .caps { padding-top: 2px; }
-.home-q { font-size: 24px; }
-.home-line { font-weight: 700; padding: 2px 0 0; }
-.home-suggest { display: grid; gap: 6px; padding-top: 12px; }
-.home-acts { display: flex; gap: 8px; padding-top: 12px; }
-.home-acts > * { flex: 1; }
 .card-link { margin-left: -6px; }
 button.card { display: flex; width: calc(100% - 28px); text-align: left; color: inherit; font: inherit; }
 .card-row { align-items: center; gap: 12px; min-height: 64px; }
@@ -375,15 +335,138 @@ button.card { display: flex; width: calc(100% - 28px); text-align: left; color: 
 /* year in review */
 .year-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .year-track::-webkit-scrollbar { display: none; }
-.year-slide { flex: 0 0 100%; scroll-snap-align: start; padding: 4px 18px 24px; display: grid; gap: 12px; align-content: start; }
-.year-fig { display: grid; gap: 6px; margin: 0; }
-.year-win { height: 320px; border-radius: 16px; display: grid; place-items: center; }
-.year-win .pc { max-width: 70%; max-height: 84%; }
-.year-room { font-size: 32px; }
-.year-nums { display: flex; gap: 20px; flex-wrap: wrap; }
-.year-num { font-size: 56px; display: block; }
-.year-spend { display: grid; gap: 4px; }
-.year-hint { text-align: center; padding: 0 18px 20px; }
 /* The wish in the window stands on the right; its light sits behind it, so the words on the left stay legible over any colour. */
-.hero-wish::before { background: radial-gradient(ellipse 60% 70% at 76% 60%, var(--c, #555) 0%, transparent 70%); }
-.card.glad { margin-inline: 10px; }
+
+/* ---------- Look board 4 (sizes are the board's × 1.2) ---------- */
+
+/* A piece in a small square window. */
+.mini { flex: none; border-radius: 10px; display: grid; place-items: center; border: 0; padding: 0; color: inherit; }
+.mini .pc { position: absolute; left: 17%; top: 11%; width: 66%; height: 78%; object-fit: contain; filter: drop-shadow(0 0 1px #FFFFFF99) drop-shadow(0 4px 4px #000A); }
+.mini .pc.uncut { left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; filter: none; border-radius: 0; }
+.mini-row { display: flex; gap: 6px; flex-wrap: wrap; padding-top: 11px; }
+
+/* Stages: a wider window keeps the stage its true shape, centred; a mirror photo fills it, inset so the light rims it. */
+.stage-box { position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); }
+.face-img { position: absolute; inset: 7px; width: calc(100% - 14px); height: calc(100% - 14px); object-fit: cover; border-radius: 9px; }
+.stage.face .face-img { inset: 5px; width: calc(100% - 10px); height: calc(100% - 10px); border-radius: 8px; }
+.regular.small { max-width: 77px; }
+.outfit-hero { padding: 6px 14px 0; }
+.face-hero { position: relative; width: 100%; display: flex; justify-content: center; }
+.face-track { display: flex; width: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; border-radius: 14px; }
+.face-track::-webkit-scrollbar { display: none; }
+.face-slide { flex: 0 0 100%; height: 380px; border-radius: 14px; scroll-snap-align: start; }
+.face-pieces { position: absolute; left: 10px; bottom: 10px; display: flex; gap: 5px; flex-wrap: wrap; max-width: calc(100% - 20px); }
+.face-flip { position: absolute; right: 10px; top: 10px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 12px; background: #0B0C0FDD; color: var(--t); font: 700 16px/1 var(--f-body); }
+.face-count { position: absolute; left: 10px; top: 10px; padding: 4px 8px; border-radius: 8px; background: #0B0C0FDD; color: var(--t); }
+.outfit-title { font-size: 29px; }
+
+/* Home */
+.home-hero { height: 136px; margin-bottom: 4px; }
+.home-date { display: flex; align-items: flex-end; gap: 12px; padding: 8px 19px 0; }
+.home-num { font-size: 74px; display: block; }
+.home-date .caps { padding-bottom: 5px; line-height: 1.5; }
+.card { margin: 10px 14px 0; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: #101116; }
+.home-q { font-size: 22px; }
+.home-line { padding-top: 7px; }
+.home-acts { display: flex; gap: 8px; padding-top: 12px; }
+.home-li { width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; color: inherit; font: inherit; text-align: left; margin-top: 10px; }
+.home-li + .home-li, section > .home-li + .home-li { margin-top: 0; }
+.home-li:last-of-type { border-bottom: 1px solid var(--line); }
+.home-recent { padding: 6px 0 16px; }
+
+/* The glad check: the piece in a small window, then seven numbered buttons (44 px wide even at 340). */
+.card.glad { margin-inline: 6px; }
+.glad-head { display: grid; grid-template-columns: 67px 1fr; gap: 12px; align-items: center; }
+.glad-win { width: 67px; height: 67px; border-radius: 10px; display: grid; place-items: center; }
+.glad-win .pc { position: absolute; left: 14%; top: 12%; width: 72%; height: 76%; object-fit: contain; }
+.glad-scale { display: flex; gap: 2px; margin: 12px -14px 0; }
+.glad-scale button { flex: 1 1 0; min-width: 0; min-height: 48px; border: 1px solid #5A5C66; border-radius: 10px; background: none; color: var(--t); font: 700 18px/1 var(--f-num); font-variant-numeric: tabular-nums; }
+.glad-scale button:active { background: var(--a); color: #0B0C0F; }
+.glad-ends { display: flex; justify-content: space-between; align-items: center; padding-top: 2px; }
+
+/* Wear log */
+.day-num { font-size: 60px; line-height: 1; }
+.wear-today { display: grid; gap: 0; padding: 10px 14px 0; }
+.wear-today .stage { border-radius: 14px; }
+.wear-q { padding: 11px 4px 0; }
+.wear-acts { display: flex; gap: 8px; padding: 11px 0 0; }
+.wear-pick { margin: 6px 0 0 12px; }
+
+/* Wishes: not yours yet, so they sit on a light shop ground, not in a lit window. */
+.wish-head { height: 152px; }
+.wish-empty { display: grid; gap: 12px; justify-items: start; padding: 14px 18px 4px; }
+.shop { position: relative; overflow: hidden; background: #D5D2CA; border-radius: 12px; display: grid; place-items: center; border: 0; padding: 0; color: #0B0C0F; }
+.shop-img { max-width: 84%; max-height: 86%; object-fit: contain; filter: drop-shadow(0 6px 6px #0004); }
+.shop-tag { position: absolute; left: 7px; bottom: 7px; right: 7px; justify-self: start; width: fit-content; background: #0B0C0F; color: var(--t); border-radius: 7px; padding: 4px 8px; font-size: 14px; line-height: 1.25; }
+.wish-word { padding: 12px; font-family: var(--f-caps); font-stretch: 84%; font-weight: 600; font-size: 22px; line-height: 1.05; text-align: center; overflow-wrap: anywhere; color: #0B0C0F; }
+.wish-word.big { font-size: 32px; }
+.wish-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 10px; padding: 12px 14px 0; }
+.wish-cell { min-width: 0; display: grid; gap: 2px; align-content: start; }
+.wish-tile { width: 100%; aspect-ratio: 134 / 128; touch-action: manipulation; transition: transform .25s var(--ease-out); }
+.wish-tile:active { transform: scale(.97); }
+.wish-cell.waiting .wish-tile { background: #77756F; }
+.wish-cell.waiting .shop-img { opacity: .55; }
+.wish-name { font-weight: 700; padding-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wish-hero { height: 240px; margin: 10px 14px 0; }
+.wish-hero .shop-img { max-height: 84%; }
+.wish-body { display: grid; gap: 6px; padding: 14px 18px 0; }
+.wish-title { font-size: 29px; }
+.wish-price { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.wish-num { font-size: 48px; }
+.wish-price .m { padding-bottom: 4px; }
+.wish-page > .li { margin-top: 12px; }
+.link-text { color: var(--a); font-weight: 700; }
+.wish-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 12px 0 24px; }
+.wish-actions .wide { grid-column: 1 / -1; }
+.wish-actions .ghost { padding: 6px 10px; }
+
+/* Do I already own this? The answer is a lit window: the count, in words, and the pieces with a line each. */
+.own-answer { margin: 16px 14px 0; border-radius: 14px; padding: 14px; }
+.own-count { display: flex; align-items: flex-end; gap: 12px; }
+.own-num { font-size: 74px; }
+.own-count .caps { padding-bottom: 6px; line-height: 1.5; }
+.own-pieces { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 8px; padding-top: 14px; }
+.own-piece { min-width: 0; display: grid; justify-items: start; gap: 0; border: 0; padding: 0; background: none; color: inherit; text-align: left; }
+.own-pc { position: relative; width: 100%; height: 94px; display: block; }
+.own-pc .pc { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.own-pc .pc.uncut { border-radius: 8px; object-fit: cover; }
+.own-piece .lbl { width: 100%; }
+
+/* Numbers: each bar is made of the shades of its pieces, with a faint outline so black still reads. */
+.bar { grid-column: 1 / -1; display: flex; gap: 1px; height: 12px; margin-top: 2px; border-radius: 6px; overflow: hidden; box-shadow: 0 0 0 1px #FFFFFF55; }
+.bar > span { flex: 1; }
+.bar-amt { color: var(--t); }
+.value-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; padding: 0 14px; }
+.value-cell { min-width: 0; display: grid; gap: 0; border: 0; padding: 0; background: none; color: inherit; text-align: left; }
+.value-win { height: 70px; border-radius: 12px; display: grid; place-items: center; }
+.value-win .pc { position: absolute; left: 20%; top: 10%; width: 60%; height: 80%; object-fit: contain; }
+
+/* Year in review: one room per screen; the place's name in the window, its most worn piece large. */
+.year-slide { flex: 0 0 100%; scroll-snap-align: start; padding: 10px 14px 12px; display: grid; gap: 0; align-content: start; }
+.year-win { height: 360px; border-radius: 16px; }
+.year-win.all { height: 257px; }
+.year-place { position: absolute; left: 16px; top: 16px; right: 16px; }
+.year-pc { position: absolute; left: 0; right: 0; top: 52px; bottom: 54px; }
+.year-pc .pc { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.year-pc.right { left: auto; right: 12px; top: auto; bottom: 12px; width: 132px; height: 200px; }
+.year-cap { position: absolute; left: 16px; right: 16px; bottom: 14px; }
+.year-best { position: absolute; left: 16px; bottom: 16px; max-width: 46%; line-height: 1.35; }
+.year-best-num { font-size: 53px; }
+.year-nums { display: grid; gap: 16px 12px; padding: 18px 4px 0; }
+.year-nums.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.year-nums.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.year-num { font-size: 58px; display: block; }
+.year-stat .caps { padding-top: 7px; line-height: 1.4; overflow-wrap: anywhere; }
+.year-spend-cap { padding: 18px 4px 4px; }
+.year-spend { padding: 0 4px; }
+.year-dots { display: flex; gap: 7px; justify-content: center; padding-top: 14px; }
+.year-dots span { width: 10px; height: 10px; border-radius: 5px; background: #6A6C75; transition: width .3s var(--ease-out); }
+.year-dots span.on { width: 26px; background: var(--t); }
+.year-hint { text-align: center; padding: 10px 18px 20px; }
+
+.regular { max-width: 158px; }
+.regular > span { max-width: 100%; }
+.li .n.link-text { color: var(--a); }
+.value-cell .lbl { white-space: normal; overflow: visible; line-height: 1.3; }
+.shop-img { max-width: 72%; max-height: 80%; }
+.li .link.n { color: var(--a); }

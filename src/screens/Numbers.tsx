@@ -7,7 +7,7 @@ import type { Item } from '../domain/types';
 import { go, useRoute } from '../router';
 import { Numeral } from '../ui/Numeral';
 import { Seg } from '../ui/Seg';
-import { Tile } from '../ui/Tile';
+import { Piece, Window } from '../ui/Window';
 import { homesWithSpots, pieceColour, SubTop, type Thumb, type Trees } from './shared';
 
 type By = 'kind' | 'shop' | 'brand';
@@ -64,7 +64,9 @@ export function Numbers() {
                   <div key={r.label} className="bar-row" role="listitem">
                     <span className="bar-label">{r.label}</span>
                     <span className="bar-amt">{money(r.amount, s.currency)}</span>
-                    <span className="bar" aria-hidden="true"><span style={{ width: `${Math.max(2, (r.amount / max) * 100)}%` }} /></span>
+                    <span className="bar" aria-hidden="true" style={{ width: `${Math.max(4, (r.amount / max) * 100)}%` }}>
+                      {(r.shades.length ? r.shades : ['var(--t)']).map((c, k) => <span key={k} style={{ background: c }} />)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -76,11 +78,11 @@ export function Numbers() {
       )}
 
       <h2 className="caps m section-cap">Best value</h2>
-      {value.best.length ? <ValueTiles list={value.best} thumbs={thumbs} trees={trees} /> : <p className="m empty-line">Log a few wears to see best and worst value.</p>}
+      {value.best.length ? <ValueTiles list={value.best.slice(0, 3)} thumbs={thumbs} trees={trees} /> : <p className="m empty-line">Log a few wears to see best and worst value.</p>}
       {value.worst.length > 0 && (
         <>
           <h2 className="caps m section-cap">Worst value</h2>
-          <ValueTiles list={value.worst} thumbs={thumbs} trees={trees} />
+          <ValueTiles list={value.worst.slice(0, 3)} thumbs={thumbs} trees={trees} />
         </>
       )}
 
@@ -131,14 +133,15 @@ function PlaceCounts({ items, trees }: { items: Item[]; trees: Trees }) {
   );
 }
 
+/** Three small windows, each with its cost per wear under it. */
 function ValueTiles({ list, thumbs, trees }: { list: Ranked[]; thumbs: Map<string, Thumb>; trees: Trees }) {
   return (
-    <div className="grid">
+    <div className="value-row">
       {list.map((r, i) => (
-        <div key={r.item.id} className="value-cell">
-          <Tile item={r.item} photo={thumbs.get(r.item.id)?.url} cut={thumbs.get(r.item.id)?.cut} colour={pieceColour(r.item, trees.shades)} index={i} onPress={() => go('/piece', { id: r.item.id })} />
-          <p className="m sm">{r.text}</p>
-        </div>
+        <button key={r.item.id} type="button" className="value-cell" onClick={() => go('/piece', { id: r.item.id })} aria-label={`${r.item.name}, ${r.text}`}>
+          <Window className="value-win" colour={pieceColour(r.item, trees.shades)} delay={i * 50}><Piece src={thumbs.get(r.item.id)?.url} cut={thumbs.get(r.item.id)?.cut ?? true} /></Window>
+          <span className="lbl" aria-hidden="true">{r.text}</span>
+        </button>
       ))}
     </div>
   );

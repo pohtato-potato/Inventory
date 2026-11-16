@@ -58,6 +58,8 @@ export interface Room {
   added: number;
   wears: number;
   mostWorn?: Item;
+  /** Wears of the most worn piece that year. */
+  mostWornN?: number;
   letGo: number;
 }
 
@@ -83,7 +85,7 @@ export function yearRooms(items: Item[], wears: Wear[], places: Place[], year: n
     const added = here.filter((i) => dayKey(i.createdAt).startsWith(y)).length;
     const letGo = here.filter((i) => i.status === 'gone' && i.gone?.on.startsWith(y)).length;
     if (!added && !wearsN && !letGo) return null;
-    return { place, added, wears: wearsN, letGo, ...(best ? { mostWorn: best } : {}) };
+    return { place, added, wears: wearsN, letGo, ...(best ? { mostWorn: best, mostWornN: worn.get(best.id) ?? 0 } : {}) };
   };
   const out: Room[] = [];
   const homes = places.filter((p) => p.role === 'home').sort((a, b) => a.order - b.order);
@@ -108,10 +110,10 @@ export function yearRooms(items: Item[], wears: Wear[], places: Place[], year: n
 }
 
 /**
- * The whole year: pieces added, days of wear logged, the most worn piece, and what was spent per currency on pieces
+ * The whole year: pieces added, days of wear logged, pieces let go, outfits saved, the most worn piece (and its days), and what was spent per currency on pieces
  * bought that year (by the bought date, even a rough one; with none, by when the piece was added).
  */
-export function yearTotals(items: Item[], wears: Wear[], trees: SearchTrees, year: number): { added: number; wears: number; mostWorn?: Item; spend: Spend[] } {
+export function yearTotals(items: Item[], wears: Wear[], trees: SearchTrees, year: number, outfits: Outfit[] = []): { added: number; wears: number; letGo: number; outfitsSaved: number; mostWorn?: Item; mostWornN?: number; spend: Spend[] } {
   const y = String(year);
   const live = items.filter((i) => i.deletedAt === undefined);
   const inYear = wears.filter((w) => w.day.startsWith(y));
@@ -123,7 +125,9 @@ export function yearTotals(items: Item[], wears: Wear[], trees: SearchTrees, yea
   return {
     added: live.filter((i) => dayKey(i.createdAt).startsWith(y)).length,
     wears: inYear.length,
-    ...(mostWorn ? { mostWorn } : {}),
+    letGo: live.filter((i) => i.status === 'gone' && i.gone?.on.startsWith(y)).length,
+    outfitsSaved: outfits.filter((o) => o.deletedAt === undefined && dayKey(o.createdAt).startsWith(y)).length,
+    ...(mostWorn ? { mostWorn, mostWornN: n.get(mostWorn.id) ?? 0 } : {}),
     spend: spend(bought, 'kind', trees),
   };
 }

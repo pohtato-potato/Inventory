@@ -1,36 +1,26 @@
 import { useRef, useState } from 'react';
-import { logWear, NO_SPACE, removePhoto, removeWear, savePhotos, undoLast } from '../db/actions';
-import { useAllItems, useMainPhotos, useOutfits, usePhotosOf, useToday, useTrees, useWears } from '../db/hooks';
+import { logWear, removePhoto, removeWear, undoLast } from '../db/actions';
+import { useAllItems, useMainPhotos, useOutfits, usePhotosOf, useSelfies, useToday, useTrees, useWears } from '../db/hooks';
+import { wearPhotos } from '../domain/face';
 import { isUnsorted } from '../domain/fields';
-import { regulars, samePieces } from '../domain/outfit';
+import { samePieces, splitRegulars } from '../domain/outfit';
 import type { Id, Item } from '../domain/types';
-import { dayStart, shiftDay, suggestWear } from '../domain/wearlog';
+import { dayStart, shiftDay, suggestWear, suggestWords } from '../domain/wearlog';
 import { wearLine } from '../domain/wears';
-import { bitmapFromFile } from '../photo/camera';
-import { shrinkToWebp } from '../photo/cutout';
 import { go, useRoute } from '../router';
 import { Numeral } from '../ui/Numeral';
 import { Tile } from '../ui/Tile';
 import { showToast } from '../ui/Toast';
 import { IconBack, IconChev } from '../ui/icons';
-import { OutfitStage, piecesText } from './Outfits';
+import { addMirrorPhoto } from './OutfitPage';
+import { faceOf, OutfitStage, piecesText } from './Outfits';
 import { DayPicker, pieceColour, SubTop } from './shared';
 
 /** Adds a photo from the phone (camera or gallery) against an outfit or a wear, as a mirror photo. */
 export function MirrorPhoto({ ownerId, label = 'Add a mirror photo' }: { ownerId: Id; label?: string }) {
   const file = useRef<HTMLInputElement>(null);
   const photos = usePhotosOf(ownerId);
-  const add = async (f: File) => {
-    try {
-      const bmp = await bitmapFromFile(f);
-      const shot = await shrinkToWebp(bmp);
-      bmp.close();
-      await savePhotos(ownerId, [{ role: 'selfie', ...shot }]);
-      showToast('Mirror photo added');
-    } catch (e) {
-      showToast(e instanceof Error && e.message === NO_SPACE ? NO_SPACE : "Couldn't add that photo");
-    }
-  };
+  const add = (f: File) => addMirrorPhoto(ownerId, f);
   const selfies = (photos ?? []).filter((p) => p.photo.role === 'selfie');
   return (
     <div className="mirror">
@@ -60,7 +50,10 @@ function stillOwned(s: { outfitId?: Id; itemIds: Id[] } | null, items: Item[]) {
   return itemIds.length === s.itemIds.length ? s : { itemIds };
 }
 
-/** What was worn on a day: the suggestion in one tap, or pick an outfit or pieces. No reminders, no streaks. */
+/**
+ * What was worn on a day. Most days it is one tap: the likely outfit stands in a window ("Same as last Monday?"). Then
+ * your regulars, then pieces one by one. No reminders, no streaks.
+ */
 export function WearLog() {
   const { params } = useRoute();
   const today = useToday();
@@ -71,27 +64,35 @@ export function WearLog() {
   const thumbs = useMainPhotos();
   const outfits = useOutfits();
   const wears = useWears();
+  const selfies = useSelfies();
+  const file = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<Id[] | null>(null);
   const [draftDay, setDraftDay] = useState(day);
   if (draftDay !== day) { setDraftDay(day); setDraft(null); }
 
-  if (!trees || !all || !thumbs || !outfits || !wears) return <main className="screen" aria-busy="true" />;
+  if (!trees || !all || !thumbs || !outfits || !wears || !selfies) return <main className="screen" aria-busy="true" />;
   const w = wears.find((x) => x.day === day);
-  const s = w ? null : stillOwned(suggestWear(outfits, wears.filter((x) => x.day < day), day), all);
+  const before = wears.filter((x) => x.day < day);
+  const s = w ? null : stillOwned(suggestWear(outfits, before, day), all);
   const clothing = new Set(trees.kinds.filter((k) => k.clothing).map((k) => k.id));
   const owned = all.filter((i) => i.status === 'owned' && i.deletedAt === undefined && clothing.has(i.kindId) && !isUnsorted(i.kindId));
   const editing = draft !== null || (!w && !s);
   const pieces = draft ?? w?.itemIds ?? [];
-  const regs = regulars(outfits, wears);
+  const { worn, saved } = splitRegulars(outfits, wears);
+  const regs = [...worn, ...saved];
   const goDay = (d: string) => go('/wear', d === today ? {} : { day: d }, { replace: true });
   const toggle = (id: Id) => setDraft(pieces.includes(id) ? pieces.filter((x) => x !== id) : [...pieces, id]);
+  const logged = () => showToast(day === today ? 'Logged for today' : `Logged for ${longDay(day)}`, () => void undoLast());
   const save = async () => {
     if (!pieces.length) return;
     const o = outfits.find((x) => samePieces(x.itemIds, pieces));
     await logWear(day, pieces, o?.id);
     setDraft(null);
-    showToast(day === today ? 'Logged for today' : `Logged for ${longDay(day)}`, () => void undoLast());
+    logged();
   };
+  const sOutfit = s?.outfitId ? outfits.find((o) => o.id === s.outfitId) : undefined;
+  const wFace = w ? wearPhotos(w, selfies.map((x) => x.photo))[0] : undefined;
+  const wFaceUrl = wFace ? selfies.find((x) => x.photo.id === wFace.id)?.url : faceOf(outfits.find((o) => o.id === w?.outfitId), wears, selfies);
 
   return (
     <main className="screen wearlog" style={editing ? { paddingBottom: 'calc(96px + var(--safe-b))' } : undefined}>
@@ -109,41 +110,54 @@ export function WearLog() {
       {owned.length === 0 && <p style={{ padding: '14px 18px' }}>Add a few pieces first; then log what you wore here.</p>}
 
       {w && draft === null && (
-        <section className="wear-card" aria-label="Logged">
-          <OutfitStage ids={w.itemIds} items={all} trees={trees} thumbs={thumbs} height={220} label={`Logged: ${piecesText(w.itemIds, all)}`} />
-          <div className="wear-side">
-            <p className="caps m">Logged</p>
-            <p>{wearLine(w, outfits, all)}</p>
-            <button type="button" className="ghost" onClick={() => setDraft(w.itemIds)}>Change</button>
-            <button type="button" className="ghost" onClick={async () => { await removeWear(day); showToast('Cleared the day', () => void undoLast()); }}>Clear this day</button>
+        <section className="wear-today" aria-label="Logged">
+          <OutfitStage ids={w.itemIds} items={all} trees={trees} thumbs={thumbs} height={290} width="100%" face={wFaceUrl} label={`Logged: ${piecesText(w.itemIds, all)}`} />
+          <p className="wear-q"><b>Logged</b> <span className="m">{wearLine(w, outfits, all)}</span></p>
+          <div className="wear-acts">
+            <button type="button" className="ghost" style={{ flex: 1 }} onClick={() => setDraft(w.itemIds)}>Change</button>
+            <button type="button" className="ghost" style={{ flex: 1 }} onClick={async () => { await removeWear(day); showToast('Cleared the day', () => void undoLast()); }}>Clear this day</button>
           </div>
+          <MirrorPhoto ownerId={w.id} />
         </section>
       )}
-      {w && draft === null && <div style={{ padding: '0 18px' }}><MirrorPhoto ownerId={w.id} /></div>}
 
       {s && draft === null && (
-        <section className="wear-card" aria-label="Same as last time?">
-          <OutfitStage ids={s.itemIds} items={all} trees={trees} thumbs={thumbs} height={220} label={piecesText(s.itemIds, all)} />
-          <div className="wear-side">
-            <p className="name" style={{ fontSize: 24 }}>Same as last time?</p>
-            <p className="m">{wearLine({ id: '', day, itemIds: s.itemIds, outfitId: s.outfitId, updatedAt: 0 }, outfits, all)}</p>
-            <button type="button" className="acc" onClick={async () => { await logWear(day, s.itemIds, s.outfitId); showToast(day === today ? 'Logged for today' : `Logged for ${longDay(day)}`, () => void undoLast()); }}>Yes, this</button>
+        <section className="wear-today" aria-label="The likely outfit">
+          <OutfitStage ids={s.itemIds} items={all} trees={trees} thumbs={thumbs} height={290} width="100%" face={faceOf(sOutfit, wears, selfies)} label={piecesText(s.itemIds, all)} />
+          <p className="wear-q"><b>{suggestWords(s, outfits, before, day).question}</b> <span className="m">{piecesText(s.itemIds, all)}</span></p>
+          <div className="wear-acts">
+            <button type="button" className="acc" style={{ flex: 1 }} onClick={async () => { await logWear(day, s.itemIds, s.outfitId); logged(); }}>Yes, this</button>
+            <button type="button" className="ghost" onClick={() => file.current?.click()}>Mirror photo</button>
+            <input ref={file} type="file" accept="image/*" hidden onChange={async (e) => {
+              const f = e.target.files?.[0];
+              e.target.value = '';
+              if (!f) return;
+              // Wearing it, with a photo: log the day, then keep the photo on it.
+              const id = await logWear(day, s.itemIds, s.outfitId);
+              logged();
+              await addMirrorPhoto(id, f);
+            }} />
           </div>
         </section>
       )}
 
       {owned.length > 0 && (!w || draft !== null) && (
         <>
-          <h2 className="caps m section-cap">{w ? 'Change the day' : 'Something else'}</h2>
           {regs.length > 0 && (
-            <div className="regulars">
-              {regs.map((o, i) => (
-                <button key={o.id} type="button" className="regular" aria-pressed={samePieces(o.itemIds, pieces)} onClick={() => setDraft(o.itemIds)}>
-                  <OutfitStage ids={o.itemIds} items={all} trees={trees} thumbs={thumbs} height={170} label={o.name ?? piecesText(o.itemIds, all)} delay={i * 80} />
-                  <span className="sm m">{o.name ?? piecesText(o.itemIds, all)}</span>
-                </button>
-              ))}
-            </div>
+            <>
+              <h2 className="caps m section-cap">{s || w ? 'Or one of your regulars' : 'One of your regulars'}</h2>
+              <div className="regulars">
+                {regs.map((o, i) => (
+                  <button key={o.id} type="button" className="regular small" aria-pressed={samePieces(o.itemIds, pieces)} onClick={() => setDraft(o.itemIds)}>
+                    <OutfitStage ids={o.itemIds} items={all} trees={trees} thumbs={thumbs} height={115} width={77} face={faceOf(o, wears, selfies)} label={o.name ?? piecesText(o.itemIds, all)} delay={i * 80} />
+                    {o.name && <span className="sm m">{o.name}</span>}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          {!editing && (
+            <button type="button" className="link wear-pick" onClick={() => setDraft([])}>Pick pieces one by one</button>
           )}
           {editing && pieces.length > 0 && (
             <>
@@ -158,13 +172,17 @@ export function WearLog() {
               </div>
             </>
           )}
-          <h2 className="caps m section-cap">Pieces</h2>
-          <div className="grid">
-            {owned.filter((i) => !pieces.includes(i.id)).map((i, n) => {
-              const t = thumbs.get(i.id);
-              return <Tile key={i.id} item={i} photo={t?.url} cut={t?.cut ?? true} colour={pieceColour(i, trees.shades)} index={n} onPress={() => toggle(i.id)} />;
-            })}
-          </div>
+          {editing && (
+            <>
+              <h2 className="caps m section-cap">Pieces</h2>
+              <div className="grid">
+                {owned.filter((i) => !pieces.includes(i.id)).map((i, n) => {
+                  const t = thumbs.get(i.id);
+                  return <Tile key={i.id} item={i} photo={t?.url} cut={t?.cut ?? true} colour={pieceColour(i, trees.shades)} index={n} onPress={() => toggle(i.id)} />;
+                })}
+              </div>
+            </>
+          )}
         </>
       )}
 

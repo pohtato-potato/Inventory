@@ -28,8 +28,13 @@ if (shared) {
 }
 
 if (import.meta.env.DEV) {
-  const n = Number(new URLSearchParams(location.hash.split('?')[1] ?? '').get('devseed'));
-  if (n) void import('./dev/sample').then((m) => m.devSeed(n));
+  // On load, and when only the address's hash changes (typing ?devseed= into an open tab does not reload the page).
+  const seed = () => {
+    const n = Number(new URLSearchParams(location.hash.split('?')[1] ?? '').get('devseed'));
+    if (n) void import('./dev/sample').then((m) => m.devSeed(n));
+  };
+  seed();
+  addEventListener('hashchange', seed);
 }
 
 createRoot(document.getElementById('root')!).render(

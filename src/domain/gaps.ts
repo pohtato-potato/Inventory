@@ -45,3 +45,24 @@ export function gaps(items: Item[], staples: Staple[], dismissed: string[], tree
     return !queries.some((q) => ownedLike(items, q, trees).length > 0);
   });
 }
+
+/** Kind names that stay as they are for one piece. */
+const SAME_FOR_ONE = new Set(['jeans', 'trousers', 'shorts', 'innerwear', 'knitwear', 'ethnic bottoms', 'socks']);
+const one = (plural: string) => {
+  const p = plural.toLocaleLowerCase();
+  if (SAME_FOR_ONE.has(p)) return p;
+  if (/(ch|sh|x|ss)es$/.test(p)) return p.slice(0, -2);
+  return p.endsWith('s') ? p.slice(0, -1) : p;
+};
+
+/** "white tees already yours": the answer's words from the chosen kind and colour family. */
+export function likeWords(kind: string | undefined, family: string | undefined, n: number): string {
+  const noun = kind ? (n === 1 ? one(kind) : kind.toLocaleLowerCase()) : n === 1 ? 'piece' : 'pieces';
+  return `${family ? `${family.toLocaleLowerCase()} ` : ''}${noun} already yours`;
+}
+
+/** The line under a piece you already own: how it fits when that is not "fits", else how often it is worn. */
+export function ownLine(item: Item, worn: number): string {
+  if (item.fit === 'tight' || item.fit === 'loose') return `${item.fit} now`;
+  return worn === 0 ? 'not worn yet' : worn === 1 ? 'worn once' : `worn ${worn} times`;
+}

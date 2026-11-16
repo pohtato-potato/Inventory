@@ -5,6 +5,7 @@ import { back, go } from '../router';
 import { keepUncut } from '../photo/conveyor';
 import { IconBack, IconCalendar } from '../ui/icons';
 import { UNKNOWN_LIGHT } from '../ui/light';
+import { Piece, Window } from '../ui/Window';
 
 /** The colour that lights a piece's window: its main shade. */
 export function pieceColour(item: Item, shades: Shade[]): string {
@@ -63,15 +64,27 @@ export function UncutNote({ item }: { item: Item }) {
 }
 
 /** The exact day, from the phone's own date picker. Writes "12 Nov 2026" into the text field, so it can still be edited. */
-export function DayPicker({ value, onPick }: { value: string; onPick: (day: string) => void }) {
+export function DayPicker({ value, onPick, future = false, label = 'Pick the exact day' }: { value: string; onPick: (day: string) => void; future?: boolean; label?: string }) {
   const today = new Date();
   const max = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   return (
-    <label className="day-pick" aria-label="Pick the exact day">
+    <label className="day-pick" aria-label={label}>
       <IconCalendar />
-      <input type="date" value={value} max={max} onChange={(e) => { if (e.target.value) onPick(e.target.value); }}
+      <input type="date" value={value} {...(future ? { min: max } : { max })} onChange={(e) => { if (e.target.value) onPick(e.target.value); }}
         onClick={(e) => { try { e.currentTarget.showPicker(); } catch { /* the browser opens its own picker */ } }} />
     </label>
   );
 }
 
+
+/** A piece in a small square window (Home, the wish page, an outfit's photo): no name, just the piece lit by its colour. */
+export function Mini({ item, thumb, shades, size = 48, onPress }: { item: Item; thumb?: Thumb; shades: Shade[]; size?: number; onPress?: () => void }) {
+  const gone = item.status === 'gone' || item.deletedAt !== undefined;
+  const inner = <Piece src={thumb?.url} cut={thumb?.cut ?? true} />;
+  const style = { width: size, height: size };
+  return onPress ? (
+    <Window as="button" type="button" className="mini" colour={pieceColour(item, shades)} lit={!gone} style={style} aria-label={item.name} onClick={onPress}>{inner}</Window>
+  ) : (
+    <Window className="mini" colour={pieceColour(item, shades)} lit={!gone} style={style} aria-hidden="true">{inner}</Window>
+  );
+}

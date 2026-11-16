@@ -81,3 +81,23 @@ export function suggestWear(outfits: Outfit[], wears: Wear[], today: string): { 
   const last = wears.filter((w) => w.day < today && w.itemIds.length).sort((a, b) => (a.day < b.day ? 1 : -1))[0];
   return last ? { itemIds: last.itemIds } : null;
 }
+
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/**
+ * Why today's suggestion is offered, in Home's words and the wear log's question: worn on this weekday at least twice
+ * in the last 60 days ("Your usual for a Monday"), worn exactly a week ago ("Same as last Monday?"), an outfit worn
+ * most lately, or simply the last thing worn.
+ */
+export function suggestWords(s: { outfitId?: Id; itemIds: Id[] }, outfits: Outfit[], wears: Wear[], today: string): { home: string; question: string } {
+  const o = s.outfitId ? outfits.find((x) => x.id === s.outfitId) : undefined;
+  const isIt = (w: Wear) => (o ? wearIsOutfit(w, o) : s.itemIds.length > 0 && s.itemIds.every((id) => w.itemIds.includes(id)));
+  const [y, m, d] = today.split('-').map(Number);
+  const wd = WEEKDAYS[new Date(y, m - 1, d).getDay()];
+  const recent = wears.filter((w) => w.day < today && daysBetween(w.day, today) <= 60 && isIt(w));
+  const sameDay = recent.filter((w) => daysBetween(w.day, today) % 7 === 0).length;
+  const lastWeek = recent.some((w) => w.day === shiftDay(today, -7));
+  const home = sameDay >= 2 ? `Your usual for a ${wd}` : lastWeek ? `What you wore last ${wd}` : o ? 'Your most worn lately' : 'What you wore last time';
+  const question = lastWeek ? `Same as last ${wd}?` : sameDay >= 2 ? `Your usual for a ${wd}?` : o ? 'Your most worn lately?' : 'Same as last time?';
+  return { home, question };
+}

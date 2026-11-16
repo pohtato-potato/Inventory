@@ -23,8 +23,8 @@ describe('spend (Review Focus 4)', () => {
     expect(s[1].estimated).toBe(false);
   });
   it('rows by kind use the top kind, by shop and by brand say when there is none', () => {
-    expect(spend([inr1000, inr500est], 'kind', trees)[0].rows).toEqual([{ label: 'Tops', amount: 1000 }, { label: 'Bottoms', amount: 500 }]);
-    expect(spend([inr1000, inr500est], 'shop', trees)[0].rows).toEqual([{ label: 'Myntra', amount: 1000 }, { label: 'No shop', amount: 500 }]);
+    expect(spend([inr1000, inr500est], 'kind', trees)[0].rows.map(({ label, amount }) => ({ label, amount }))).toEqual([{ label: 'Tops', amount: 1000 }, { label: 'Bottoms', amount: 500 }]);
+    expect(spend([inr1000, inr500est], 'shop', trees)[0].rows.map(({ label, amount }) => ({ label, amount }))).toEqual([{ label: 'Myntra', amount: 1000 }, { label: 'No shop', amount: 500 }]);
     expect(spend([inr1000, inr500est], 'brand', trees)[0].rows.map((r) => r.label)).toEqual(['Uniqlo', 'No brand']);
   });
   it('a trashed piece does not count; unpriced pieces are counted apart', () => {

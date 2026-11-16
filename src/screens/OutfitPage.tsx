@@ -1,16 +1,36 @@
-import { logWear, removeOutfit, undoLast } from '../db/actions';
-import { useAllItems, useMainPhotos, useOutfit, useTrees, useWears } from '../db/hooks';
+import { useRef, useState } from 'react';
+import { logWear, NO_SPACE, removeOutfit, removePhoto, savePhotos, undoLast } from '../db/actions';
+import { useAllItems, useMainPhotos, useOutfit, useSelfies, useTrees, useWears } from '../db/hooks';
 import { dayText, plural } from '../domain/format';
 import { dayKey, dayStart, outfitCount, wearIsOutfit } from '../domain/wearlog';
+import { bitmapFromFile } from '../photo/camera';
+import { shrinkToWebp } from '../photo/cutout';
 import { back, go, useRoute } from '../router';
 import { askConfirm } from '../ui/Ask';
 import { Tile } from '../ui/Tile';
 import { showToast } from '../ui/Toast';
-import { OutfitStage, piecesText } from './Outfits';
-import { MirrorPhoto } from './WearLog';
-import { pieceColour, SubTop } from './shared';
+import { Window } from '../ui/Window';
+import { OutfitStage, outfitShots, piecesText } from './Outfits';
+import { Mini, pieceColour, SubTop } from './shared';
+import { lightPiece, layout } from '../domain/outfit';
 
-/** One saved outfit: the stage, its pieces, dress codes, times worn; wear it today, change it, or remove it. */
+/** Takes a photo from the phone and keeps it as a mirror photo of `ownerId` (an outfit or a wear day). */
+export async function addMirrorPhoto(ownerId: string, f: File): Promise<void> {
+  try {
+    const bmp = await bitmapFromFile(f);
+    const shot = await shrinkToWebp(bmp);
+    bmp.close();
+    await savePhotos(ownerId, [{ role: 'selfie', ...shot }]);
+    showToast('Mirror photo added');
+  } catch (e) {
+    showToast(e instanceof Error && e.message === NO_SPACE ? NO_SPACE : "Couldn't add that photo");
+  }
+}
+
+/**
+ * One saved outfit. With mirror photos, the newest fills the window with the pieces along its bottom edge; older ones
+ * are a swipe away, and "Show the pieces" flips to the laid-out stage. Then times worn, wear it today, change or remove.
+ */
 export function OutfitPage() {
   const { params } = useRoute();
   const outfit = useOutfit(params.get('id'));
@@ -18,7 +38,11 @@ export function OutfitPage() {
   const all = useAllItems();
   const thumbs = useMainPhotos();
   const wears = useWears();
-  if (outfit === undefined || !trees || !all || !thumbs || !wears) return <main className="screen" aria-busy="true" />;
+  const selfies = useSelfies();
+  const [pieces_, setPieces] = useState(false);
+  const [at, setAt] = useState(0);
+  const file = useRef<HTMLInputElement>(null);
+  if (outfit === undefined || !trees || !all || !thumbs || !wears || !selfies) return <main className="screen" aria-busy="true" />;
   if (!outfit) {
     return (
       <main className="screen">
@@ -31,19 +55,55 @@ export function OutfitPage() {
   const last = wears.filter((w) => wearIsOutfit(w, outfit)).at(-1);
   const pieces = outfit.itemIds.map((id) => all.find((i) => i.id === id)).filter((i) => !!i);
   const title = outfit.name ?? 'Outfit';
+  const shots = outfitShots(outfit, wears, selfies);
+  const showPhoto = shots.length > 0 && !pieces_;
+  const placed = layout(pieces, trees.kinds, new Map());
+  const litId = lightPiece(placed);
+  const light = litId ? pieceColour(all.find((i) => i.id === litId)!, trees.shades) : undefined;
+  const shown = shots[Math.min(at, shots.length - 1)];
 
   return (
     <main className="screen">
-      <SubTop title={title} />
+      <SubTop title="Outfit" />
       <div className="outfit-hero">
-        <OutfitStage ids={outfit.itemIds} items={all} trees={trees} thumbs={thumbs} height={380} label={`${title}: ${piecesText(outfit.itemIds, all)}`} />
+        {showPhoto ? (
+          <div className="face-hero">
+            <div className="face-track" aria-label={`${title}: mirror photos, ${shots.length}`} onScroll={(e) => { const el = e.currentTarget; setAt(Math.round(el.scrollLeft / el.clientWidth)); }}>
+              {shots.map((s, i) => (
+                <Window key={s.photo.id} className="face-slide" colour={light} delay={i ? 0 : 0}>
+                  <img className="face-img" src={s.url} alt={i === 0 ? `${title}, newest mirror photo` : 'An older mirror photo'} draggable={false} decoding="async" />
+                </Window>
+              ))}
+            </div>
+            <div className="face-pieces">
+              {pieces.map((i) => <Mini key={i.id} item={i} thumb={thumbs.get(i.id)} shades={trees.shades} size={48} onPress={() => go('/piece', { id: i.id })} />)}
+            </div>
+            <button type="button" className="face-flip" onClick={() => setPieces(true)}>Show the pieces</button>
+            {shots.length > 1 && <p className="face-count sm" aria-live="polite">{at + 1} of {shots.length}</p>}
+          </div>
+        ) : (
+          <div className="face-hero stage-hero">
+            <OutfitStage ids={outfit.itemIds} items={all} trees={trees} thumbs={thumbs} height={380} label={`${title}: ${piecesText(outfit.itemIds, all)}`} />
+            {shots.length > 0 && <button type="button" className="face-flip" onClick={() => setPieces(false)}>Show the photo</button>}
+          </div>
+        )}
       </div>
       <div style={{ padding: '14px 18px 0', display: 'grid', gap: 4 }}>
-        <p><b>Worn {plural(n, 'time')}</b>{last ? <span className="m"> · last {dayText(dayStart(last.day))}</span> : null}</p>
-        {outfit.dressCodes.length > 0 && <p className="m">{outfit.dressCodes.join(' · ')}</p>}
+        <h2 className="name outfit-title">{title}</h2>
+        <p className="m">{[...outfit.dressCodes, `worn ${plural(n, 'time')}`, last ? `last on ${dayText(dayStart(last.day))}` : ''].filter(Boolean).join(' · ')}</p>
       </div>
+      <div className="li" style={{ marginTop: 12 }}>
+        <span>{shots.length ? <><b>{shots.length}</b> mirror {shots.length === 1 ? 'photo' : 'photos'}</> : 'No mirror photo yet'}</span>
+        <button type="button" className="link n" onClick={() => file.current?.click()}>{shots.length ? 'Add another' : 'Add one'}</button>
+        <input ref={file} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) void addMirrorPhoto(outfit.id, f); e.target.value = ''; }} />
+      </div>
+      {showPhoto && shown && (
+        <div style={{ padding: '0 18px' }}>
+          <button type="button" className="link" style={{ marginLeft: -12 }} onClick={async () => { await removePhoto(shown.photo.id); setAt(0); showToast('Removed the photo', () => void undoLast()); }}>Remove this photo</button>
+        </div>
+      )}
       <div className="piece-actions">
-        <button type="button" className="acc" style={{ flex: '1 1 100%' }} onClick={async () => {
+        <button type="button" className="acc" style={{ flex: '2 1 0' }} onClick={async () => {
           if (!outfit.itemIds.some((id) => all.some((i) => i.id === id && i.status === 'owned' && i.deletedAt === undefined))) {
             showToast('Every piece in this outfit is gone');
             return;
@@ -53,14 +113,13 @@ export function OutfitPage() {
           go('/wear');
         }}>Wore this today</button>
         <button type="button" className="ghost" onClick={() => go('/outfits', { edit: outfit.id })}>Change</button>
-        <button type="button" className="ghost" onClick={async () => {
+        <button type="button" className="ghost" style={{ flex: '1 1 100%' }} onClick={async () => {
           if (!(await askConfirm(`Remove ${outfit.name ?? 'this outfit'}? The days you wore it stay logged.`, 'Remove'))) return;
           await removeOutfit(outfit.id);
           showToast('Removed 1 outfit', () => void undoLast());
           back();
         }}>Remove</button>
       </div>
-      <div style={{ padding: '0 18px' }}><MirrorPhoto ownerId={outfit.id} /></div>
       <h2 className="caps m section-cap">Its pieces</h2>
       <div className="grid">
         {pieces.map((i, k) => {
