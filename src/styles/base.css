@@ -347,7 +347,7 @@ button.card { display: flex; width: calc(100% - 28px); text-align: left; color: 
 
 /* Stages: a wider window keeps the stage its true shape, centred; a mirror photo fills it, inset so the light rims it. */
 .stage-box { position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); }
-.face-img { position: absolute; inset: 7px; width: calc(100% - 14px); height: calc(100% - 14px); object-fit: cover; border-radius: 9px; }
+.face-img { position: absolute; inset: 7px; width: calc(100% - 14px); height: calc(100% - 14px); object-fit: cover; object-position: 50% 0; border-radius: 9px; }
 .stage.face .face-img { inset: 5px; width: calc(100% - 10px); height: calc(100% - 10px); border-radius: 8px; }
 .regular.small { max-width: 77px; }
 .outfit-hero { padding: 6px 14px 0; }
