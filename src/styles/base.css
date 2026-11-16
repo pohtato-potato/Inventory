@@ -364,7 +364,9 @@ button.card { display: flex; width: calc(100% - 28px); text-align: left; color: 
 .home-hero { height: 136px; margin-bottom: 4px; }
 .home-date { display: flex; align-items: flex-end; gap: 12px; padding: 8px 19px 0; }
 .home-num { font-size: 74px; display: block; }
-.home-date .caps { padding-bottom: 5px; line-height: 1.5; }
+.home-date .caps { padding-bottom: 5px; line-height: 1.5; color: var(--t); }
+/* The light stands to the right of the date so the weekday and month stay readable whatever the top's colour. */
+.home-hero::before { background: radial-gradient(ellipse 50% 80% at 88% 60%, var(--c, #555) 0%, transparent 70%); }
 .card { margin: 10px 14px 0; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: #101116; }
 .home-q { font-size: 22px; }
 .home-line { padding-top: 7px; }
@@ -470,3 +472,14 @@ button.card { display: flex; width: calc(100% - 28px); text-align: left; color: 
 .value-cell .lbl { white-space: normal; overflow: visible; line-height: 1.3; }
 .shop-img { max-width: 72%; max-height: 80%; }
 .li .link.n { color: var(--a); }
+
+/* Home's fixed part: four numbers, then the shortcuts. Always shown, whatever the day holds. */
+.home-stats { display: grid; grid-template-columns: repeat(4, auto); justify-content: space-between; gap: 4px; padding: 6px 10px 0; }
+.home-stat { min-height: 44px; display: grid; justify-items: start; align-content: start; gap: 2px; padding: 4px; border: 0; border-radius: 10px; background: none; color: var(--t); text-align: left; }
+.home-stat-num { font-size: 40px; line-height: 1; }
+.home-stat.fit .home-stat-num { color: var(--ok); }
+.home-stat .caps { font-size: 14px; letter-spacing: .1em; line-height: 1.25; }
+.home-stat .nowrap { white-space: nowrap; }
+.home-shortcuts { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; padding: 10px 14px 2px; scrollbar-width: none; }
+.home-shortcuts::-webkit-scrollbar { display: none; }
+.home-shortcuts .ghost { flex: 0 0 auto; min-height: 44px; padding: 0 14px; white-space: nowrap; }

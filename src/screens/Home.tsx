@@ -1,6 +1,6 @@
 import { logWear, undoLast } from '../db/actions';
 import { useAllItems, useMainPhotos, useOutfits, useToday, useTrees, useWears, useWishes } from '../db/hooks';
-import { homeCards, type Card } from '../domain/home';
+import { homeCards, homeStats, type Card } from '../domain/home';
 import { layout, lightPiece } from '../domain/outfit';
 import type { Item, Outfit, Wear } from '../domain/types';
 import { dayStart, suggestWords } from '../domain/wearlog';
@@ -17,6 +17,28 @@ import { GladCard } from './Wishes';
 const agoText = (n: number) => (n === 1 ? 'a year ago' : `${n} years ago`);
 const yearsText = (n: number) => (n === 1 ? 'a year' : `${n} years`);
 const owned = (i: Item | undefined) => !!i && i.status === 'owned' && i.deletedAt === undefined;
+
+const SHORTCUTS: [string, string][] = [['Log wear', '/wear'], ['Add a piece', '/add'], ['Do I own this?', '/own'], ['My sizes', '/sizes'], ['Numbers', '/numbers']];
+
+/** Four numbers always shown under the date, each opening where it was counted. */
+function HomeStats({ stats }: { stats: ReturnType<typeof homeStats> }) {
+  const cells: { n: number; label: string; where: string; open: () => void; fit?: boolean }[] = [
+    { n: stats.pieces, label: 'Pieces', where: 'pieces owned', open: () => go('/wardrobe') },
+    { n: stats.fits, label: 'Fit now', where: 'fit now', open: () => go('/search', { fit: 'fits' }), fit: true },
+    { n: stats.wornThisWeek, label: 'Worn this week', where: stats.wornThisWeek === 1 ? 'day worn this week' : 'days worn this week', open: () => go('/wear') },
+    { n: stats.wishes, label: 'Wishes', where: stats.wishes === 1 ? 'open wish' : 'open wishes', open: () => go('/wishes') },
+  ];
+  return (
+    <section className="home-stats" aria-label="Your numbers">
+      {cells.map((c) => (
+        <button key={c.label} type="button" className={`home-stat${c.fit ? ' fit' : ''}`} onClick={c.open} aria-label={`${c.n} ${c.where}`}>
+          <Numeral value={c.n} className="home-stat-num" />
+          <span className="caps m">{c.label === 'Worn this week' ? <>Worn<br /><span className="nowrap">this week</span></> : c.label}</span>
+        </button>
+      ))}
+    </section>
+  );
+}
 
 /** Home: the date in a lit window, then the day's cards. The app still opens on the wardrobe; Home is a tab. */
 export function Home() {
@@ -44,13 +66,16 @@ export function Home() {
       <Window as="section" className="home-hero" colour={lit ? pieceColour(lit, trees.shades) : undefined} lit aria-label="Today">
         <div className="top">
           <h1 className="caps">Home</h1>
-          <button type="button" className="link" style={{ marginLeft: 'auto' }} onClick={() => go('/numbers')}>Numbers</button>
         </div>
         <div className="home-date">
           <Numeral value={date.getDate()} className="home-num" />
-          <p className="caps m">{date.toLocaleDateString('en-GB', { weekday: 'long' })}<br />{date.toLocaleDateString('en-GB', { month: 'long' })}</p>
+          <p className="caps">{date.toLocaleDateString('en-GB', { weekday: 'long' })}<br />{date.toLocaleDateString('en-GB', { month: 'long' })}</p>
         </div>
       </Window>
+      <HomeStats stats={homeStats({ items, kinds: trees.kinds, wears, wishes, today })} />
+      <nav className="home-shortcuts" aria-label="Shortcuts">
+        {SHORTCUTS.map(([label, path]) => <button key={path} type="button" className="ghost" onClick={() => go(path)}>{label}</button>)}
+      </nav>
       {cards.map((c) => <HomeCard key={c.type} card={c} items={live} wears={wears} outfits={outfits} trees={trees} thumbs={thumbs} today={today} />)}
     </main>
   );

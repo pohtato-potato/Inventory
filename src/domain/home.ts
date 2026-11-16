@@ -1,8 +1,9 @@
 // Home: the day's cards in a fixed order, and the year in review's rooms.
-import type { Id, Item, Outfit, Place, Wear, Wish } from './types';
+import type { Id, Item, Kind, Outfit, Place, Wear, Wish } from './types';
 import { anniversaries, onThisDay, spend, type Spend } from './numbers';
 import type { SearchTrees } from './search';
-import { dayKey, suggestWear } from './wearlog';
+import { dayKey, shiftDay, suggestWear } from './wearlog';
+import { fitSummary } from './wears';
 import { gladDue } from './wish';
 
 export type Card =
@@ -13,6 +14,18 @@ export type Card =
   | { type: 'anniversary'; list: { item: Item; years: number }[] }
   | { type: 'recent'; items: Item[] }
   | { type: 'year'; year: number };
+
+/**
+ * The four numbers always shown under Home's date: clothing owned (×N as N), how much of it fits now, the days with a
+ * wear in the last seven (today included), and open wishes.
+ */
+export function homeStats(input: { items: Item[]; kinds: Kind[]; wears: Wear[]; wishes: Wish[]; today: string }): { pieces: number; fits: number; wornThisWeek: number; wishes: number } {
+  const { items, kinds, wears, wishes, today } = input;
+  const fit = fitSummary(items, kinds);
+  const from = shiftDay(today, -6);
+  const days = new Set(wears.filter((w) => w.day >= from && w.day <= today).map((w) => w.day));
+  return { pieces: fit.fits + fit.tight + fit.loose + fit.unset, fits: fit.fits, wornThisWeek: days.size, wishes: wishes.filter((w) => w.status === 'open').length };
+}
 
 /** The year in review is open from 20 December to 10 January. */
 export function yearOpen(today: string): boolean {
