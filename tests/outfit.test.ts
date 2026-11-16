@@ -75,3 +75,16 @@ describe('pairedFirst', () => {
     expect(pairedFirst([sneakers, marked], [jeans.id], new Map([[pairKey(jeans.id, sneakers.id), 4]]))[0].id).toBe(loafers.id);
   });
 });
+
+describe('lanes meet with only a small overlap', () => {
+  for (const [what, topAspect] of [['a short top', 1.0], ['a long top', 1.7]] as const) {
+    it(`${what}: ends near the waist, the trousers show waist to hem, shoes just below the hems`, () => {
+      const a = new Map<Id, number>([[tee.id, topAspect], [jeans.id, 2.2], [sneakers.id, 0.6]]);
+      const p = layout([tee, jeans, sneakers], kinds, a);
+      const [t, b, s] = [tee, jeans, sneakers].map((i) => p.find((x) => x.itemId === i.id)!);
+      expect(t.y + t.h).toBeLessThanOrEqual(b.y + 0.1);
+      expect(s.y).toBeGreaterThanOrEqual(b.y + 0.8 * b.h);
+      expect(s.y + s.h).toBeLessThanOrEqual(1);
+    });
+  }
+});

@@ -21,6 +21,8 @@ export const STAGE_ASPECT = 0.53;
 const TEE_WIDTH = 0.7;
 /** Where each lane's pieces start, down the box. */
 const TOP_OF: Record<Lane, number> = { head: 0.0, neck: 0.05, top: 0.08, wrist: 0.38, waist: 0.46, hand: 0.48, bottom: 0.44, carry: 0.5, feet: 0.86 };
+/** Where the body lanes end, down the box: a top reaches just past the waist, trousers stop above the shoes. */
+const END_OF: Partial<Record<Lane, number>> = { top: 0.5, bottom: 0.88, feet: 1 };
 /** Drawn on top of each other in this order (tops by layer: under 1, over 2, outer 3). */
 const Z_OF: Record<Lane, number> = { bottom: 0, feet: 0, head: 1, top: 1, neck: 4, waist: 5, wrist: 6, hand: 6, carry: 6 };
 const LAYER_Z: Record<Layer, number> = { under: 1, over: 2, outer: 3 };
@@ -70,12 +72,16 @@ export function layout(items: Item[], kinds: Kind[], aspect: Map<Id, number>): P
     const { lane, layer, baseScale } = laneFor(it, kinds);
     const nth = seen.get(lane) ?? 0;
     seen.set(lane, nth + 1);
-    const w = Math.min(1, TEE_WIDTH * baseScale * (it.outfitScale ?? 1));
-    const h = w * STAGE_ASPECT * (aspect.get(it.id) ?? 1.2);
+    const y = TOP_OF[lane] + (lane === 'top' ? LAYER_DY[layer] : 0);
+    const ratio = STAGE_ASPECT * (aspect.get(it.id) ?? 1.2);
+    // A piece taller than its band shrinks to fit it, keeping its shape; the owner's size correction applies after.
+    const end = END_OF[lane];
+    const fit = end === undefined ? TEE_WIDTH * baseScale : Math.min(TEE_WIDTH * baseScale, (end - Math.max(0, y)) / ratio);
+    const w = Math.min(1, fit * (it.outfitScale ?? 1));
+    const h = w * ratio;
     let x = 0.5;
     if (lane === 'wrist' || lane === 'hand') x = nth % 2 === 0 ? w / 2 + 0.03 : 1 - w / 2 - 0.03;
     else if (lane === 'carry') x = 1 - w / 2 - 0.02;
-    const y = TOP_OF[lane] + (lane === 'top' ? LAYER_DY[layer] : 0);
     const z = lane === 'top' ? LAYER_Z[layer] : Z_OF[lane];
     return { itemId: it.id, lane, layer, x, y: Math.max(0, y), w, h, z, gone: isGone(it) };
   });
