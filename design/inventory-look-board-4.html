@@ -1,0 +1,372 @@
+<title>Inventory Look Board 4</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: one column of groups; each group is a row of phones in the Shop Window look with a reaction strip under each. Two groups are choices (grid density, places). */
+:root{
+  --bg:#EEF0F2; --panel:#FFFFFF; --ink:#12171C; --muted:#38434D; --rule:#BFC7CE; --focus:#1D4ED8;
+  --love:#9A3412; --like:#166534; --unsure:#6B4F00; --no:#475569;
+  --body:"Atkinson Hyperlegible", Verdana, system-ui, sans-serif;
+  --disp:Archivo, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#101418; --panel:#1A2027; --ink:#F1F3F5; --muted:#C3CBD2; --rule:#3B4651; --focus:#93C5FD;
+  --love:#FDBA74; --like:#86EFAC; --unsure:#FDE68A; --no:#CBD5E1; color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#101418; --panel:#1A2027; --ink:#F1F3F5; --muted:#C3CBD2; --rule:#3B4651; --focus:#93C5FD;
+  --love:#FDBA74; --like:#86EFAC; --unsure:#FDE68A; --no:#CBD5E1; color-scheme:dark; }
+*{box-sizing:border-box}
+body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--body); font-size:18px; line-height:1.55}
+body::before{content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); z-index:10; background:var(--bg)}
+::selection{background:var(--focus); color:var(--panel)}
+:focus-visible{outline:3px solid var(--focus); outline-offset:2px}
+h1,h2,h3{margin:0; line-height:1.15; text-wrap:balance; font-family:var(--disp); font-stretch:88%}
+p{margin:0}
+button,textarea{font-family:inherit; font-size:16px}
+.wrap{max-width:1280px; margin-inline:auto; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); padding-block:28px 96px; display:grid; grid-template-columns:minmax(0,1fr); gap:28px}
+.wrap > *{min-width:0}
+.hero{display:grid; gap:12px; max-width:40em}
+h1{font-size:clamp(34px,6vw,52px); font-weight:800}
+.hero ul{margin:0; padding-left:1.2em; display:grid; gap:4px}
+.status{font-size:15px; color:var(--muted)}
+.group{background:var(--panel); border:2px solid var(--rule); border-radius:16px; padding:18px; display:grid; gap:14px}
+.group h2{font-size:clamp(24px,3.4vw,30px); font-weight:800}
+.group .q{color:var(--muted); max-width:40em}
+.group.choice{border-color:var(--ink)}
+.phones{display:flex; flex-wrap:wrap; gap:22px; justify-content:center}
+.card{display:grid; gap:8px; justify-items:center; width:300px; max-width:100%; align-content:start}
+.card h3{font-size:19px; font-weight:700; text-align:center}
+.card .why{font-size:15px; color:var(--muted); text-align:center}
+.row{display:flex; flex-wrap:wrap; gap:6px; justify-content:center}
+.v{min-height:44px; padding:6px 12px; border-radius:22px; border:2px solid var(--rule); background:transparent; color:var(--ink); cursor:pointer}
+.v[aria-pressed="true"][data-v="love"]{background:var(--love); border-color:var(--love); color:var(--panel)}
+.v[aria-pressed="true"][data-v="like"]{background:var(--like); border-color:var(--like); color:var(--panel)}
+.v[aria-pressed="true"][data-v="unsure"]{background:var(--unsure); border-color:var(--unsure); color:var(--panel)}
+.v[aria-pressed="true"][data-v="no"]{background:var(--no); border-color:var(--no); color:var(--panel)}
+.notebtn{min-height:44px; padding:6px 12px; border-radius:22px; border:2px dashed var(--rule); background:transparent; color:var(--ink); cursor:pointer}
+textarea{width:100%; min-height:84px; padding:10px 12px; border-radius:10px; border:2px solid var(--rule); background:var(--bg); color:var(--ink); line-height:1.5}
+.secnote{display:grid; gap:6px; max-width:40em}
+.secnote label{font-weight:700}
+.credits{font-size:14px; color:var(--muted)}
+.credits a{color:inherit}
+
+/* ---- phones: Shop Window. 300 px wide stands for the S23's 360. ---- */
+.ph{--g:#0B0C0F; --t:#EEEAE4; --m:#ABA69E; --line:#272930; --pane:#15161A; --a:#7FA7FF; --ok:#7BD3A0; --warn:#F0B95B; --lo:#8FA3BF;
+  width:300px; max-width:100%; height:621px; border-radius:30px; overflow:hidden; position:relative; border:6px solid #050506; box-shadow:0 12px 26px #0005; background:var(--g); color:var(--t); font:13.5px/1.35 var(--body); flex:none; text-align:left}
+.ph p{margin:0}
+.ph .m{color:var(--m)} .ph .sm{font-size:12px}
+.ph .top{display:flex; align-items:center; gap:8px; padding:14px 16px 0; position:relative}
+.ph .caps{font-family:var(--disp); font-stretch:100%; font-weight:600; letter-spacing:.2em; text-transform:uppercase; font-size:12px}
+.ph .num{font-family:var(--disp); font-stretch:64%; font-weight:500; line-height:.82; font-variant-numeric:tabular-nums}
+.ph .name{font-family:var(--disp); font-stretch:84%; font-weight:600; line-height:1.05}
+.ph .pc{display:block; object-fit:contain; position:relative; filter:drop-shadow(0 0 1.5px #FFFFFFAA) drop-shadow(0 8px 7px #000A)}
+.ph .win{position:relative; overflow:hidden; background:var(--pane)}
+.ph .win::before{content:""; position:absolute; inset:-30% -10% 0; background:radial-gradient(ellipse 60% 70% at 50% 60%, var(--c, #555) 0%, transparent 70%); opacity:.9; animation:light 1.1s cubic-bezier(.16,1,.3,1) both; animation-delay:var(--d, 0s)}
+.ph .win::after{content:""; position:absolute; left:0; right:0; bottom:0; height:22%; background:linear-gradient(180deg,#0000,#0008)}
+.ph .win > *{position:relative; z-index:1}
+.ph .win.off::before{opacity:.12; animation:none}
+@keyframes light{from{opacity:.05; transform:scale(.8)} to{opacity:.9; transform:none}}
+@media (prefers-reduced-motion: reduce){ .ph .win::before{animation:none} }
+.ph .tile{border-radius:10px; display:grid; place-items:center}
+.ph .lbl{padding:3px 2px 0; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.ph .chip{display:inline-flex; align-items:center; gap:5px; border:1px solid #4A4C55; border-radius:15px; padding:5px 11px; font-size:12px; white-space:nowrap}
+.ph .chip.on{border-color:var(--t); background:var(--t); color:var(--g); font-weight:700}
+.ph .dot{width:11px; height:11px; border-radius:50%; flex:none; box-shadow:inset 0 0 0 1px #FFFFFF44}
+.ph .chip.on .dot{box-shadow:inset 0 0 0 1px #0B0C0F99}
+.ph .seg2{display:flex; margin:10px 12px 0; border:1px solid #4A4C55; border-radius:10px; overflow:hidden; font-size:12.5px}
+.ph .seg2 span{flex:1; text-align:center; padding:6px 0}
+.ph .seg2 .on{background:var(--t); color:var(--g); font-weight:700}
+.ph .acc{background:var(--a); color:#0B0C0F; font-weight:700; padding:10px 14px; border-radius:10px; text-align:center; box-shadow:0 0 18px 0 #7FA7FF55}
+.ph .ghost{border:1px solid #5A5C66; padding:9px 12px; border-radius:10px; text-align:center}
+.ph .nav{position:absolute; bottom:0; left:0; right:0; z-index:3; display:flex; justify-content:space-around; align-items:center; padding:9px 6px 12px; font-size:12px; color:var(--m); background:var(--g); border-top:1px solid var(--line)}
+.ph .nav b{color:var(--t)}
+.ph .nav .plus{width:34px; height:34px; border-radius:50%; background:var(--a); color:#0B0C0F; display:grid; place-items:center; font:700 22px/1 var(--body)}
+.ph .li{display:flex; align-items:center; gap:8px; padding:9px 16px; border-top:1px solid var(--line)}
+.ph .li .n{margin-left:auto; font-variant-numeric:tabular-nums; color:var(--m)}
+.ph .field{border:1px solid #4A4C55; border-radius:10px; padding:7px 10px; flex:1; min-width:0}
+.ph .fitbar{display:flex; gap:3px; height:10px; border-radius:5px; overflow:hidden}
+.ph .stamp{display:inline-block; border:2px solid var(--t); border-radius:6px; padding:4px 10px; font-family:var(--disp); font-weight:700; letter-spacing:.14em; text-transform:uppercase; transform:rotate(-5deg)}
+.ph .sel{outline:2px solid var(--a); outline-offset:-2px}
+.ph .tick{position:absolute; right:5px; top:5px; z-index:2; width:20px; height:20px; border-radius:50%; background:var(--a); color:#0B0C0F; display:grid; place-items:center}
+.ph .shelf{position:relative; height:56px; margin:0 12px 6px; border-radius:10px; overflow:hidden; background:var(--pane); display:flex; align-items:center; padding:0 10px 0 12px}
+.ph .shelf::before{content:""; position:absolute; inset:0; background:linear-gradient(90deg, transparent 30%, var(--c, #555) 78%, transparent 100%); opacity:.55}
+.ph .shelf::after{content:""; position:absolute; left:0; right:0; bottom:0; height:5px; background:#000A}
+.ph .shelf > *{position:relative; z-index:1}
+
+.ph .pcard{margin:8px 12px 0; border:1px solid var(--line); border-radius:14px; padding:12px; background:#101116}
+.ph .shop{background:#D5D2CA; border-radius:10px; display:grid; place-items:center; position:relative; overflow:hidden}
+.ph .shop .tag{position:absolute; left:6px; bottom:6px; background:#0B0C0F; color:var(--t); border-radius:6px; padding:4px 8px; font-size:12px}
+.ph .bar{display:flex; height:10px; border-radius:5px; overflow:hidden; gap:1px; margin-top:4px; box-shadow:0 0 0 1px #FFFFFF55}
+.ph .g7{display:flex; gap:5px}
+.ph .g7 span{flex:1; text-align:center; border:1px solid #5A5C66; border-radius:9px; padding:8px 0; font-weight:700; font-variant-numeric:tabular-nums}
+.ph .mir{position:absolute; inset:8px; border-radius:8px; background:#2E3036; display:grid; place-items:center; align-content:center; gap:8px; color:#C9C5BD; font-size:12px}
+.ph .mir svg{fill:#6B6E78}
+</style>
+<script src="inventory-photos.js"></script>
+
+<div class="wrap">
+  <header class="hero">
+    <h1>Inventory look board 4</h1>
+    <p>The second-build screens that never had a board. They are already built and live, but plainly; this is how I think they should look, in the Shop Window style you chose.</p>
+    <ul>
+      <li>One group is a choice, marked with a darker border: the bars on the Numbers page.</li>
+      <li>React to each screen. What you like goes to the build session as a polish pass.</li>
+      <li>The clothes are example photos. Names, counts, dates and prices are made up.</li>
+    </ul>
+    <p class="status" id="status" role="status">Connecting…</p>
+  </header>
+
+  <div id="groups" style="display:grid; gap:24px"></div>
+
+  <section class="secnote" aria-labelledby="ov-h">
+    <h2 id="ov-h" style="font-size:26px; font-weight:800">Your notes</h2>
+    <label for="note-board">Anything missing from these screens, or anything you would never use?</label>
+    <textarea id="note-board" placeholder="Score, anything that feels off, anything missing"></textarea>
+    <p class="credits">Photos: free-licence images from <a href="https://unsplash.com/license" target="_blank" rel="noopener">Unsplash</a>, cut out with the same tool the app will use.</p>
+  </section>
+</div>
+
+<script>
+const PH0 = window.PHOTOS || {};
+const COL = { 'flat-tee-white':'#77736A', 'flat-tee-black':'#3A4250', 'flat-jeans-blue':'#2F4E86', 'flat-chinos':'#6E6A4A', 'flat-jacket-leather':'#4A3A36',
+  'white-shirt':'#68727C', 'floral-shirt':'#7A2F45', 'white-sneakers':'#726E67', 'brown-loafers':'#7A3A26', 'black-watch':'#3D4651', 'silver-watch':'#7A838B', 'headphones':'#4A4F58' };
+const img = (n, w, h, st='') => `<img class="pc" src="${PH0[n]||''}" alt="" width="${w}" height="${h}" style="width:${w}px; height:${h}px; ${st}">`;
+const ico = (d, s=18) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const SEARCH = ico('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>');
+const BACK = ico('<path d="M15 6l-6 6 6 6"/>', 16);
+const CHEV = ico('<path d="M9 6l6 6-6 6"/>', 14);
+const DOWN = ico('<path d="M6 9l6 6 6-6"/>', 14);
+const PIN = ico('<path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>', 15);
+const CHECK = ico('<path d="M5 12l5 5 9-10"/>', 13);
+const NAV = on => `<div class="nav">${['Wardrobe','Things','+','Wishes','Home'].map(t => t==='+' ? `<span class="plus">+</span>` : (t===on?`<b>${t}</b>`:`<span>${t}</span>`)).join('')}</div>`;
+const HEAD = (t, r=SEARCH) => `<div class="top"><span class="caps">${t}</span><span style="margin-left:auto">${r}</span></div>`;
+const SUB = (t, r='Edit') => `<div class="top"><span class="m">${BACK}</span><span class="caps">${t}</span><span class="m" style="margin-left:auto">${r}</span></div>`;
+const SEG = on => `<div class="seg2">${['By kind','By colour','By place'].map(t=>`<span class="${t===on?'on':''}">${t}</span>`).join('')}</div>`;
+const P = [['flat-jeans-blue','Blue jeans'],['flat-tee-white','White tee'],['white-sneakers','Sneakers'],['flat-tee-black','Graphic tee'],['floral-shirt','Floral shirt'],['flat-chinos','Cargo trousers'],['white-shirt','Crew tee'],['brown-loafers','Loafers'],['flat-jacket-leather','Leather jacket']];
+const tile = ([p,n], h, w, ih, i=0) => `<div><div class="win tile" style="--c:${COL[p]}; --d:${(i*0.05).toFixed(2)}s; height:${h}px">${img(p,w,ih)}</div><p class="lbl">${n}</p></div>`;
+const TEES = [['flat-tee-white','White tee'],['flat-tee-black','Graphic tee'],['white-shirt','Crew tee'],['flat-tee-white','Gym tee'],['white-shirt','Grey marl tee'],['flat-tee-black','Band tee'],['flat-tee-white','Old white tee'],['white-shirt','Long sleeve']];
+
+const stage = (a, b, c, w, h, sc = 1) => `<div class="win" style="--c:${COL[a]}; height:${h}px; border-radius:12px">
+  <img class="pc" src="${PH0[a]}" alt="" style="position:absolute; left:50%; margin-left:${-45*sc}px; top:${8*sc}px; width:${90*sc}px; height:${96*sc}px">
+  <img class="pc" src="${PH0[b]}" alt="" style="position:absolute; left:50%; margin-left:${-37*sc}px; top:${98*sc}px; width:${74*sc}px; height:${104*sc}px">
+  <img class="pc" src="${PH0[c]}" alt="" style="position:absolute; left:50%; margin-left:${-22*sc}px; top:${200*sc}px; width:${44*sc}px; height:${30*sc}px">
+  ${w ? `<img class="pc" src="${PH0[w]}" alt="" style="position:absolute; left:50%; margin-left:${-62*sc}px; top:${92*sc}px; width:${18*sc}px; height:${22*sc}px">` : ''}</div>`;
+const shop = (p, h, iw, ih, extra = '') => `<div class="shop" style="height:${h}px">${`<img src="${PH0[p]||''}" alt="" style="width:${iw}px; height:${ih}px; object-fit:contain; filter:drop-shadow(0 5px 5px #0004)">`}${extra}</div>`;
+const mini = (p, s = 44) => `<span class="win tile" style="--c:${COL[p]}; width:${s}px; height:${s}px; border-radius:9px; flex:none">${img(p, s*0.66, s*0.78)}</span>`;
+const SHADES = { Tees:['#F2EFE8','#0E0E10','#1F2F57','#6D1A2B','#5E636B'], Shirts:['#DCE3EA','#7A2F45','#8FB4DC','#1E3B2C'], Jeans:['#3F5F96','#1F2F57','#0E0E10'], Jackets:['#4A3A36','#0E0E10','#4B5320'], Shoes:['#E9E6DF','#7A3A26','#0E0E10','#4A2F22'], Accessories:['#B8C0C8','#0E0E10','#8A5632','#B9A07A','#3D4651'] };
+const SPEND = [['Accessories', 52500], ['Shoes', 41300], ['Jackets', 38000], ['Shirts', 21000], ['Jeans', 17500], ['Tees', 14200]];
+const inr = n => '₹' + n.toLocaleString('en-IN');
+const numbers = coloured => `${SUB('Numbers', '')}
+   <div style="display:flex; gap:26px; padding:12px 16px 0"><div><span class="num" style="font-size:54px">47</span><p class="caps m" style="padding-top:5px">pieces</p></div><div><span class="num" style="font-size:54px">31</span><p class="caps m" style="padding-top:5px">things</p></div></div>
+   <p class="caps m" style="padding:16px 16px 4px">What your clothes cost</p>
+   <p style="padding:0 16px"><span class="num" style="font-size:40px">${inr(184500)}</span> <span class="m sm">about · 6 pieces have no price</span></p>
+   <div class="seg2"><span class="on">By kind</span><span>By shop</span><span>By brand</span></div>
+   <div style="padding:8px 16px 0; display:grid; gap:9px">${SPEND.map(([k, v]) => `<div><div style="display:flex; justify-content:space-between"><span>${k}</span><span style="font-variant-numeric:tabular-nums">${inr(v)}</span></div>
+     <div style="width:${Math.round(v / 52500 * 100)}%" class="bar">${coloured ? SHADES[k].map(c => `<span style="flex:1; background:${c}"></span>`).join('') : `<span style="flex:1; background:var(--t)"></span>`}</div></div>`).join('')}</div>
+   <p class="caps m" style="padding:14px 16px 6px">Best value</p>
+   <div style="display:flex; gap:6px; padding:0 12px">${[['flat-jeans-blue','₹34 a wear'],['flat-tee-white','₹19 a wear'],['white-sneakers','₹92 a wear']].map(([p, t]) => `<div style="flex:1"><div class="win tile" style="--c:${COL[p]}; height:58px">${img(p, 38, 46)}</div><p class="lbl">${t}</p></div>`).join('')}</div>`;
+
+const selfie = (h, lit) => `<div class="win" style="--c:${COL[lit]}; height:${h}px; border-radius:12px"><div class="mir"><svg viewBox="0 0 100 220" width="62%" aria-hidden="true"><circle cx="50" cy="26" r="17"/><path d="M22 54h56l8 70H70l-3 92H52l-2-70-2 70H33l-3-92H14z"/></svg><span>Your mirror photo</span></div></div>`;
+const S = {
+ home: () => `<div class="win" style="--c:${COL['flat-jeans-blue']}; height:98px">
+     <div class="top"><span class="caps">Home</span><span style="margin-left:auto; color:var(--a); font-weight:700">Numbers</span></div>
+     <div style="display:flex; align-items:flex-end; gap:10px; padding:10px 16px 0"><span class="num" style="font-size:62px">16</span><p class="caps m" style="padding-bottom:4px; line-height:1.5">Monday<br>November</p></div>
+   </div>
+   <div class="pcard"><p class="name" style="font-size:18px">What did you wear today?</p>
+     <div style="display:flex; align-items:center; gap:5px; padding-top:9px">${mini('white-shirt')}${mini('flat-jeans-blue')}${mini('white-sneakers')}${mini('black-watch')}</div><p class="sm m" style="padding-top:6px">Your usual for a Monday</p>
+     <div style="display:flex; gap:8px; padding-top:10px"><span class="acc" style="flex:1">Yes, this</span><span class="ghost">Something else</span></div></div>
+   <div class="pcard" style="display:grid; grid-template-columns:56px 1fr; gap:8px 10px; align-items:center">
+     <div class="win tile" style="--c:${COL['brown-loafers']}; height:56px">${img('brown-loafers', 40, 40)}</div>
+     <div><p><b>Loafers</b> <span class="m sm">· bought 30 days ago</span></p><p class="sm m" style="padding-top:2px">Glad you bought them?</p></div>
+     <div class="g7" style="grid-column:1/-1">${[1,2,3,4,5,6,7].map(n => `<span>${n}</span>`).join('')}</div>
+     <div style="grid-column:1/-1; display:flex; justify-content:space-between" class="sm m"><span>not at all</span><span>Skip</span><span>very</span></div></div>
+   <div class="li" style="margin-top:8px"><span><b>7</b> pieces need details</span><span class="n">${CHEV}</span></div>
+   <div class="li">${mini('floral-shirt', 34)}<span>Worn a year ago today: <b>Floral shirt</b></span></div>
+   ${NAV('Home')}`,
+ wear: () => `${SUB('What you wore', '')}
+   <div style="display:flex; align-items:center; gap:10px; padding:10px 16px 0"><span class="m">${BACK}</span><span class="num" style="font-size:50px">16</span><p style="line-height:1.3"><b>Today</b><br><span class="m sm">Monday, 16 November</span></p><span class="ghost" style="margin-left:auto; padding:7px 9px">${ico('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>', 18)}</span></div>
+   <div style="margin:10px 12px 0">${stage('white-shirt', 'flat-jeans-blue', 'white-sneakers', 'black-watch', 244)}</div>
+   <p style="padding:9px 16px 0"><b>Same as last Monday?</b> <span class="m sm">Crew tee, blue jeans and 2 more</span></p>
+   <div style="display:flex; gap:8px; padding:9px 16px 0"><span class="acc" style="flex:1">Yes, this</span><span class="ghost">Mirror photo</span></div>
+   <p class="caps m" style="padding:14px 16px 6px">Or one of your regulars</p>
+   <div style="display:flex; gap:6px; padding:0 12px; overflow:hidden">${[['flat-tee-black','flat-chinos','brown-loafers'],['floral-shirt','flat-jeans-blue','white-sneakers'],['flat-tee-white','flat-jeans-blue','brown-loafers'],['flat-jacket-leather','flat-chinos','white-sneakers']].map(([a,b,c]) => `<div style="flex:none; width:64px">${stage(a, b, c, '', 96, 0.4)}</div>`).join('')}</div>
+   <p style="padding:10px 16px 0; color:var(--a); font-weight:700">Pick pieces one by one</p>`,
+ wishes: () => `<div class="win off" style="height:112px">
+     ${HEAD('Wishes', '<span style="color:var(--a); font-weight:700">Do I own this?</span>')}
+     <div style="display:flex; align-items:flex-end; gap:10px; padding:10px 16px 0"><span class="num" style="font-size:62px">6</span><p class="caps m" style="padding-bottom:4px; line-height:1.5">on the list<br>about ${inr(21400)}</p></div>
+   </div>
+   <div class="seg2"><span class="on">Now 3</span><span>Soon 2</span><span>Someday 1</span></div>
+   <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:10px 12px 0">
+     ${[['brown-loafers','Leather loafers','Myntra · ₹4,999',''],['white-shirt','Heavy white tee','Uniqlo · ₹1,490',''],['flat-jacket-leather','Bomber jacket','Zara · ₹7,990','Waiting until 1 Dec'],['headphones','Headphones','Amazon · ₹6,900','']].map(([p,n,s,wait]) => `<div style="${wait ? 'opacity:.55' : ''}">${shop(p, 128, 92, 104, wait ? `<span class="tag">${wait}</span>` : '')}<p style="padding:5px 2px 0; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${n}</p><p class="sm m" style="padding:0 2px">${s}</p></div>`).join('')}
+   </div>
+   ${NAV('Wishes')}`,
+ wish: () => `${SUB('Now', 'Edit')}
+   <div style="margin:10px 12px 0">${shop('brown-loafers', 200, 170, 150)}</div>
+   <div style="padding:12px 16px 0"><p class="name" style="font-size:24px">Leather loafers</p>
+     <div style="display:flex; align-items:flex-end; gap:8px; padding-top:6px"><span class="num" style="font-size:40px">${inr(4999)}</span><span class="m" style="padding-bottom:3px">Myntra</span></div>
+     <p class="sm m" style="padding-top:6px">Shoes · Brown · added 2 Nov</p></div>
+   <div class="li" style="margin-top:10px">${mini('brown-loafers', 34)}<span>You own <b>1</b> like this</span><span class="n" style="color:var(--a)">See</span></div>
+   <div style="display:grid; gap:8px; padding:10px 16px 0"><span class="acc">Bought</span>
+     <div style="display:flex; gap:8px"><span class="ghost" style="flex:1">Open the shop page</span><span class="ghost" style="flex:1">Wait until…</span></div>
+     <div style="display:flex; gap:8px"><span class="ghost" style="flex:1">Move to Soon</span><span class="ghost" style="flex:1">Not any more</span></div></div>`,
+ own: () => `${SUB('Do I already own this?', '')}
+   <div class="seg2"><span class="on">Clothing</span><span>Things</span></div>
+   <p class="m sm" style="padding:12px 16px 5px">What kind?</p>
+   <div style="display:flex; gap:6px; padding:0 16px; overflow:hidden"><span class="chip">Tops</span><span class="chip on">Tees</span><span class="chip">Shirts</span><span class="chip">Knitwear</span><span class="chip">Jackets</span></div>
+   <p class="m sm" style="padding:12px 16px 5px">What colour?</p>
+   <div style="display:flex; gap:6px; padding:0 16px; overflow:hidden"><span class="chip"><span class="dot" style="background:#0E0E10"></span>Black</span><span class="chip"><span class="dot" style="background:#8C9198"></span>Grey</span><span class="chip on"><span class="dot" style="background:#F2EFE8"></span>White</span><span class="chip"><span class="dot" style="background:#B9A07A"></span>Beige</span></div>
+   <div class="win" style="--c:${COL['flat-tee-white']}; margin:14px 12px 0; border-radius:12px; padding:12px">
+     <div style="display:flex; align-items:flex-end; gap:10px"><span class="num" style="font-size:62px">3</span><p class="caps" style="padding-bottom:5px">white tees<br>already yours</p></div>
+     <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px; padding-top:12px">${[['flat-tee-white','White tee','worn 41 times'],['white-shirt','Crew tee','worn 24 times'],['flat-tee-white','Old white tee','tight now']].map(([p,n,t]) => `<div><div style="display:grid; place-items:center; height:78px">${img(p, 56, 68)}</div><p class="lbl">${n}</p><p class="sm m" style="padding:0 2px">${t}</p></div>`).join('')}</div>
+   </div>
+   <p class="caps m" style="padding:16px 16px 4px">You have none of these</p>
+   <div class="li"><span>White shirt</span><span class="n" style="color:var(--a)">Add to wishes</span></div>
+   <div class="li"><span>Plain belt</span><span class="n" style="color:var(--a)">Add to wishes</span></div>`,
+ mirrorRegs: () => `${HEAD('Outfits', '<span class="m">Save</span>')}
+   <div class="seg2"><span>Pieces</span><span class="on">Outfits</span></div>
+   <p class="caps m" style="padding:12px 16px 7px">Your regulars</p>
+   <div style="display:flex; gap:6px; padding:0 12px; overflow:hidden">
+     <div style="flex:none; width:132px">${selfie(246, 'white-shirt')}<p class="sm m" style="padding-top:3px">Worn 14 times</p></div>
+     <div style="flex:none; width:132px">${stage('flat-tee-black', 'flat-chinos', 'brown-loafers', 'silver-watch', 246)}<p class="sm m" style="padding-top:3px">Worn 9 times · no photo yet</p></div>
+     <div style="flex:none; width:132px">${selfie(246, 'floral-shirt')}</div>
+   </div>
+   <p class="caps m" style="padding:12px 16px 7px">Or start from a piece</p>
+   <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:5px; padding:0 12px">${P.slice(0,4).map(([p],i)=>`<div class="win tile" style="--c:${COL[p]}; height:64px">${img(p,40,50)}</div>`).join('')}</div>
+   ${NAV('Wardrobe')}`,
+ mirrorPage: () => `${SUB('Outfit', 'Edit')}
+   <div style="margin:10px 12px 0; position:relative">${selfie(300, 'white-shirt')}
+     <span style="position:absolute; right:10px; top:10px; background:#0B0C0FCC; border-radius:10px; padding:6px 10px; font-weight:700">Show the pieces</span>
+     <div style="position:absolute; left:8px; bottom:8px; display:flex; gap:4px">${mini('white-shirt', 40)}${mini('flat-jeans-blue', 40)}${mini('white-sneakers', 40)}${mini('black-watch', 40)}</div></div>
+   <div style="padding:12px 16px 0"><p class="name" style="font-size:24px">Office, most days</p><p class="m" style="padding-top:3px">Smart casual · worn 14 times · last on 9 Nov</p></div>
+   <div class="li" style="margin-top:10px"><span><b>3</b> mirror photos</span><span class="n" style="color:var(--a)">Add another</span></div>
+   <div style="display:flex; gap:8px; padding:10px 16px 0"><span class="acc" style="flex:1">Wore this today</span><span class="ghost">Change</span></div>`,
+ numbersA: () => numbers(true),
+ numbersB: () => numbers(false),
+ yearRoom: () => `<div class="top"><span class="m">${BACK}</span><span class="caps">Your 2026</span><span class="m" style="margin-left:auto">2 of 6</span></div>
+   <div class="win" style="--c:${COL['flat-jacket-leather']}; margin:10px 12px 0; height:300px; border-radius:14px">
+     <p class="caps" style="position:absolute; left:14px; top:14px">Cupboard, left rail</p>
+     <div style="position:absolute; left:0; right:0; bottom:44px; display:grid; place-items:center">${img('flat-jacket-leather', 180, 200)}</div>
+     <p style="position:absolute; left:14px; bottom:12px" class="sm"><span class="m">Most worn here</span> <b>Leather jacket</b> · 30 wears</p>
+   </div>
+   <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:16px 16px 0">${[['4','pieces added'],['61','wears'],['1','let go']].map(([n,l]) => `<div><span class="num" style="font-size:50px">${n}</span><p class="caps m" style="padding-top:6px; line-height:1.4">${l}</p></div>`).join('')}</div>
+   <div style="display:flex; gap:6px; justify-content:center; padding-top:22px">${[0,1,2,3,4,5].map(i => `<span style="width:${i==1?22:8}px; height:8px; border-radius:4px; background:${i==1?'var(--t)':'#4A4C55'}"></span>`).join('')}</div>
+   <p class="sm m" style="text-align:center; padding-top:10px">Swipe for the next room</p>`,
+ yearAll: () => `<div class="top"><span class="m">${BACK}</span><span class="caps">Your 2026</span><span class="m" style="margin-left:auto">6 of 6</span></div>
+   <div class="win" style="--c:${COL['flat-jeans-blue']}; margin:10px 12px 0; height:214px; border-radius:14px">
+     <p class="caps" style="position:absolute; left:14px; top:14px">The whole year</p>
+     <div style="position:absolute; right:10px; bottom:10px">${img('flat-jeans-blue', 110, 178)}</div>
+     <p style="position:absolute; left:14px; bottom:14px; max-width:130px"><span class="m sm">Most worn piece</span><br><b style="font-size:15px">Blue jeans</b><br><span class="num" style="font-size:44px">52</span> <span class="m sm">days</span></p>
+   </div>
+   <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px 10px; padding:16px 16px 0">${[['12','pieces added'],['148','days logged'],['3','let go'],['9','outfits saved']].map(([n,l]) => `<div><span class="num" style="font-size:46px">${n}</span><p class="caps m" style="padding-top:6px">${l}</p></div>`).join('')}</div>
+   <p class="caps m" style="padding:16px 16px 4px">Spent on new pieces</p>
+   <p style="padding:0 16px"><span class="num" style="font-size:40px">${inr(38400)}</span> <span class="m sm">about</span></p>`,
+};
+
+// [title, question, choice?, [[id, name, why, screen], ...]]
+const GROUPS = [
+  ['Home and the wear log', 'Home shows only what has something to say today. The wear log stands your likely outfit in a window, so most days it is one tap.', false, [
+    ['home', 'Home', 'Today\'s log, a "glad you bought it?" check after 30 days, pieces needing details, and what you wore a year ago.', 'home'],
+    ['wear', 'What you wore', 'The suggestion as a full outfit; your regulars below; pieces one by one only if neither fits.', 'wear'],
+  ]],
+  ['Wishes', 'Things you do not own yet sit on a light shop-photo ground, not in a lit window, so you can tell at a glance what is yours and what is not.', false, [
+    ['wishes', 'The wish-list', 'Two across, with shop and price. A waiting wish is dimmed and says until when.', 'wishes'],
+    ['wish', 'One wish', 'The price is the big number here. It tells you straight away if you own one like it.', 'wish'],
+  ]],
+  ['Mirror photos become the outfit\'s face', 'Your pick from the last round. An outfit with a mirror photo shows you wearing it; one without still shows the pieces. On the outfit\'s page, one tap flips between the photo and the pieces. The grey figure stands in for your photo.', false, [
+    ['mirror-regulars', 'Your regulars', 'Photo first where there is one. The window is still lit by the top\'s colour.', 'mirrorRegs'],
+    ['mirror-outfit', 'One outfit', 'The pieces sit along the bottom edge; "Show the pieces" flips to the laid-out view.', 'mirrorPage'],
+  ]],
+  ['Do I already own this?', 'For when you are standing in a shop. Pick a kind and a colour; the answer is a number and the pieces themselves.', false, [
+    ['own', 'Do I already own this?', 'Gap hints sit underneath: basics you have none of.', 'own'],
+  ]],
+  ['Choice: how should the bars on Numbers look?', 'Same page twice. In A each bar is made of the colours of the pieces in that kind, so it also shows what your tees or shoes look like as a set. In B the bars are plain.', true, [
+    ['numbers-coloured', 'A. Bars in your clothes\' colours', 'Every colour on the page is one you own.', 'numbersA'],
+    ['numbers-plain', 'B. Plain bars', 'Quieter, and easier to compare lengths.', 'numbersB'],
+  ]],
+  ['Your year', 'Shown from 20 December to 10 January. One screen per spot, then the whole year.', false, [
+    ['year-room', 'One room', 'The most worn piece from that spot stands in its window.', 'yearRoom'],
+    ['year-all', 'The whole year', '', 'yearAll'],
+  ]],
+];
+
+const state = {}; let db = null, boardNote = '';
+const LS = 'inv-look-4';
+try { const s = JSON.parse(localStorage.getItem(LS) || '{}'); Object.assign(state, s.r || {}); boardNote = s.n || ''; } catch (e) {}
+const keep = () => { try { localStorage.setItem(LS, JSON.stringify({ r: state, n: boardNote })); } catch (e) {} };
+const $ = (s, el = document) => el.querySelector(s);
+const setStatus = t => { $('#status').textContent = t; };
+
+function build() {
+  const root = $('#groups');
+  for (const [title, q, choice, cards] of GROUPS) {
+    const g = document.createElement('section'); g.className = 'group' + (choice ? ' choice' : '');
+    const h = document.createElement('h2'); h.textContent = title;
+    const p = document.createElement('p'); p.className = 'q'; p.textContent = q;
+    const row = document.createElement('div'); row.className = 'phones';
+    for (const [id, name, why, screen] of cards) {
+      const c = document.createElement('div'); c.className = 'card'; c.dataset.id = id;
+      const ph = document.createElement('div'); ph.className = 'ph'; ph.setAttribute('role', 'img'); ph.setAttribute('aria-label', name + ', phone mock-up');
+      ph.innerHTML = S[screen]();
+      const h3 = document.createElement('h3'); h3.textContent = name;
+      const w = document.createElement('p'); w.className = 'why'; w.textContent = why; w.hidden = !why;
+      const r = document.createElement('div'); r.className = 'row'; r.setAttribute('role', 'group'); r.setAttribute('aria-label', 'Your reaction to ' + name);
+      r.innerHTML = ['love','like','unsure','no'].map(v => `<button type="button" class="v" data-v="${v}" aria-pressed="false">${v[0].toUpperCase() + v.slice(1)}</button>`).join('') + '<button type="button" class="notebtn">Note</button>';
+      const ta = document.createElement('textarea'); ta.id = 'note-' + id; ta.hidden = true; ta.setAttribute('aria-label', 'Note on ' + name);
+      c.append(h3, ph, w, r, ta); row.append(c);
+    }
+    g.append(h, p, row); root.append(g);
+  }
+}
+function paint() {
+  document.querySelectorAll('.card').forEach(c => {
+    const s = state[c.dataset.id] || {};
+    c.querySelectorAll('.v').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === s.v)));
+    const ta = $('textarea', c); if (document.activeElement !== ta) ta.value = s.note || ''; if (s.note) ta.hidden = false;
+  });
+  if (document.activeElement !== $('#note-board')) $('#note-board').value = boardNote;
+}
+function rollNumbers() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  document.querySelectorAll('[data-roll]').forEach(el => {
+    const to = +el.dataset.roll, t0 = performance.now(), dur = 1000;
+    const step = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(2, -10 * k); el.textContent = Math.round(to * (k === 1 ? 1 : e)); if (k < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  });
+}
+async function save(id) {
+  keep(); paint();
+  if (!db) return;
+  const s = state[id] || {};
+  try { await db.collection('reactions').doc(id).set({ v: s.v || null, note: s.note || '', at: new Date().toISOString() }); setStatus('Saved'); }
+  catch (e) { setStatus('Not saved online; kept on this device only'); }
+}
+async function saveBoard() {
+  keep();
+  if (!db) return;
+  try { await db.doc('notes/board').set({ text: boardNote, at: new Date().toISOString() }); setStatus('Saved'); }
+  catch (e) { setStatus('Not saved online; kept on this device only'); }
+}
+build(); paint(); rollNumbers();
+document.addEventListener('click', ev => {
+  const v = ev.target.closest('.v');
+  if (v) { const id = v.closest('.card').dataset.id; const s = state[id] = state[id] || {}; s.v = s.v === v.dataset.v ? null : v.dataset.v; save(id); return; }
+  const nb = ev.target.closest('.notebtn');
+  if (nb) { const ta = $('textarea', nb.closest('.card')); ta.hidden = false; ta.focus(); }
+});
+document.addEventListener('change', ev => {
+  const ta = ev.target;
+  if (ta.id === 'note-board') { boardNote = ta.value.trim(); saveBoard(); return; }
+  const c = ta.closest && ta.closest('.card'); if (!c) return;
+  (state[c.dataset.id] = state[c.dataset.id] || {}).note = ta.value.trim(); save(c.dataset.id);
+});
+(async () => {
+  try { db = await window.claude?.use?.('db'); } catch (e) { db = null; }
+  if (!db) { setStatus('Saving on this device only'); return; }
+  setStatus('Connected. Reactions save as you go.');
+  db.collection('reactions').onSnapshot(snap => {
+    snap.docs.forEach(d => { const x = d.data(); state[d.id] = { v: x.v || null, note: x.note || '' }; });
+    keep(); paint();
+  }, () => setStatus('Lost connection; reactions kept on this device'));
+  db.doc('notes/board').onSnapshot(d => { if (d.exists) { boardNote = d.data().text || ''; paint(); } });
+})();
+</script>
