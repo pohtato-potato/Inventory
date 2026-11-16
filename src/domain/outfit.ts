@@ -29,13 +29,36 @@ const LAYER_DY: Record<Layer, number> = { under: -0.02, over: 0, outer: 0.01 };
 /** Lanes that hold two pieces (two wrists, two hands). */
 const PAIRED: Lane[] = ['wrist', 'hand'];
 
-/** A kind's lane: its own, else its parent's; a kind with neither stands at the side (my call). */
-export function laneOf(kindId: Id, kinds: Kind[]): { lane: Lane; layer: Layer; baseScale: number } {
+/** A lane's default width (× a tee's), for a lane chosen by hand. */
+export const LANE_SCALE: Record<Lane, number> = { head: 0.45, neck: 0.6, top: 1, waist: 0.7, bottom: 0.8, feet: 0.45, wrist: 0.16, hand: 0.08, carry: 0.6 };
+
+/** The lanes in plain words, head to toe. */
+export const LANE_WORDS: [Lane, string][] = [['head', 'Head'], ['neck', 'Neck'], ['top', 'Top'], ['waist', 'Waist'], ['bottom', 'Bottom'], ['feet', 'Feet'], ['wrist', 'Wrist'], ['hand', 'Hand'], ['carry', 'Carried']];
+
+type LaneSpot = { lane: Lane; layer: Layer; baseScale: number };
+
+/** A kind's own lane, else its parent's; null when neither has one. */
+function kindLane(kindId: Id, kinds: Kind[]): LaneSpot | null {
   const k = kinds.find((x) => x.id === kindId);
   const p = k?.parentId ? kinds.find((x) => x.id === k.parentId) : undefined;
   const src = k?.lane ? k : p?.lane ? p : null;
-  if (!src) return { lane: 'carry', layer: 'over', baseScale: 0.6 };
-  return { lane: src.lane!, layer: src.layer ?? 'over', baseScale: src.baseScale ?? 1 };
+  return src ? { lane: src.lane!, layer: src.layer ?? 'over', baseScale: src.baseScale ?? 1 } : null;
+}
+
+/** A kind's lane; a kind with none stands at the side until its piece is told where it is worn. */
+export function laneOf(kindId: Id, kinds: Kind[]): LaneSpot {
+  return kindLane(kindId, kinds) ?? { lane: 'carry', layer: 'over', baseScale: 0.6 };
+}
+
+/** A piece's lane: where the owner said it is worn, else its kind's. */
+export function laneFor(item: Item, kinds: Kind[]): LaneSpot {
+  if (item.outfitLane) return { lane: item.outfitLane, layer: 'over', baseScale: LANE_SCALE[item.outfitLane] };
+  return laneOf(item.kindId, kinds);
+}
+
+/** True when neither the piece nor its kind says where it is worn: ask "Where is this worn?" once. */
+export function needsLane(item: Item, kinds: Kind[]): boolean {
+  return !item.outfitLane && !kindLane(item.kindId, kinds);
 }
 
 const isGone = (i: Item) => i.status === 'gone' || i.deletedAt !== undefined;
@@ -44,7 +67,7 @@ const isGone = (i: Item) => i.status === 'gone' || i.deletedAt !== undefined;
 export function layout(items: Item[], kinds: Kind[], aspect: Map<Id, number>): Placed[] {
   const seen = new Map<Lane, number>();
   return items.map((it) => {
-    const { lane, layer, baseScale } = laneOf(it.kindId, kinds);
+    const { lane, layer, baseScale } = laneFor(it, kinds);
     const nth = seen.get(lane) ?? 0;
     seen.set(lane, nth + 1);
     const w = Math.min(1, TEE_WIDTH * baseScale * (it.outfitScale ?? 1));
@@ -65,11 +88,11 @@ export function layout(items: Item[], kinds: Kind[], aspect: Map<Id, number>): P
 export function placeIn(current: Id[], add: Item, items: Item[], kinds: Kind[]): Id[] {
   if (current.includes(add.id)) return current.filter((id) => id !== add.id);
   const byId = new Map(items.map((i) => [i.id, i]));
-  const a = laneOf(add.kindId, kinds);
+  const a = laneFor(add, kinds);
   const same = current.filter((id) => {
     const it = byId.get(id);
     if (!it) return false;
-    const b = laneOf(it.kindId, kinds);
+    const b = laneFor(it, kinds);
     return b.lane === a.lane && b.layer === a.layer;
   });
   const room = PAIRED.includes(a.lane) ? 2 : 1;
@@ -111,6 +134,12 @@ export function regulars(outfits: Outfit[], wears: Wear[]): Outfit[] {
     .map((o) => ({ o, n: outfitCount(o, wears) }))
     .sort((a, b) => b.n - a.n || b.o.createdAt - a.o.createdAt)
     .map((x) => x.o);
+}
+
+/** "Your regulars" are outfits worn at least once, most worn first; the rest are "saved, not worn yet", newest first. */
+export function splitRegulars(outfits: Outfit[], wears: Wear[]): { worn: Outfit[]; saved: Outfit[] } {
+  const all = regulars(outfits, wears);
+  return { worn: all.filter((o) => outfitCount(o, wears) > 0), saved: all.filter((o) => outfitCount(o, wears) === 0) };
 }
 
 /** The same set of pieces, in any order. */

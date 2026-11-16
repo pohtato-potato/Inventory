@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
 import { logWear, NO_SPACE, removePhoto, removeWear, savePhotos, undoLast } from '../db/actions';
-import { useAllItems, useMainPhotos, useOutfits, usePhotosOf, useTrees, useWears } from '../db/hooks';
+import { useAllItems, useMainPhotos, useOutfits, usePhotosOf, useToday, useTrees, useWears } from '../db/hooks';
 import { isUnsorted } from '../domain/fields';
 import { regulars, samePieces } from '../domain/outfit';
 import type { Id, Item } from '../domain/types';
-import { dayKey, dayStart, shiftDay, suggestWear } from '../domain/wearlog';
+import { dayStart, shiftDay, suggestWear } from '../domain/wearlog';
 import { wearLine } from '../domain/wears';
 import { bitmapFromFile } from '../photo/camera';
 import { shrinkToWebp } from '../photo/cutout';
@@ -63,7 +63,7 @@ function stillOwned(s: { outfitId?: Id; itemIds: Id[] } | null, items: Item[]) {
 /** What was worn on a day: the suggestion in one tap, or pick an outfit or pieces. No reminders, no streaks. */
 export function WearLog() {
   const { params } = useRoute();
-  const today = dayKey(Date.now());
+  const today = useToday();
   const asked = params.get('day');
   const day = asked && /^\d{4}-\d{2}-\d{2}$/.test(asked) && asked <= today ? asked : today;
   const trees = useTrees();

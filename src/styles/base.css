@@ -45,8 +45,9 @@ input, textarea { caret-color: var(--a); }
 .tile-cell { min-width: 0; }
 .tile { width: 100%; aspect-ratio: 88 / 84; border-radius: 12px; display: grid; place-items: center; border: 0; padding: 0; color: inherit; touch-action: manipulation; transition: transform .25s var(--ease-out); }
 .tile:active { transform: scale(.97); }
-.tile .pc { max-width: 66%; max-height: 80%; width: auto; height: auto; }
-.tile .pc.uncut { max-width: 84%; max-height: 84%; }
+/* The piece gets a fixed box inside the window and is scaled to fit it, so a very tall or very wide cut-out never spills. */
+.tile .pc { position: absolute; left: 17%; top: 10%; width: 66%; height: 80%; object-fit: contain; }
+.tile .pc.uncut { left: 8%; top: 8%; width: 84%; height: 84%; }
 .tile.sel { outline: 3px solid var(--a); outline-offset: -3px; }
 .tile-count { position: absolute; left: 6px; bottom: 5px; font: 600 14px/1 var(--f-num); font-stretch: 80%; background: #0B0C0FCC; padding: 3px 6px; border-radius: 6px; }
 .tick { position: absolute; right: 6px; top: 6px; width: 26px; height: 26px; border-radius: 50%; background: var(--a); color: var(--g); display: grid; place-items: center; }
@@ -271,7 +272,7 @@ button.li { width: 100%; border-left: 0; border-right: 0; border-bottom: 0; back
 .stage-pc { position: absolute; display: block; }
 .stage-pc .pc { width: 100%; height: auto; }
 .stage-pc.gone .pc { filter: grayscale(1) brightness(.6); opacity: .55; }
-.stage-gone { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); padding: 0 6px; border-radius: 6px; background: #0B0C0FCC; color: var(--t); font: 400 14px/1.4 var(--f-body); white-space: nowrap; }
+.stage-gone { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); padding: 0 6px; border-radius: 6px; background: #0B0C0FCC; color: var(--t); font: 400 14px/1.4 var(--f-body); white-space: nowrap; }
 
 /* Outfits */
 .section-cap { padding: 16px 18px 8px; }

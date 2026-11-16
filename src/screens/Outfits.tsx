@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { saveOutfit, setSetting, undoLast, updateOutfit } from '../db/actions';
+import { saveOutfit, setSetting, undoLast, updateItem, updateOutfit } from '../db/actions';
 import { useAllItems, useMainPhotos, useOutfit, useOutfits, useSetting, useTrees, useWears, type Thumb, type Trees } from '../db/hooks';
-import { DRESS_CODES, laneOf, layout, lightPiece, pairedFirst, pairScore, placeIn, regulars } from '../domain/outfit';
+import { DRESS_CODES, LANE_WORDS, laneFor, layout, lightPiece, needsLane, pairedFirst, pairScore, placeIn, splitRegulars } from '../domain/outfit';
 import { isUnsorted } from '../domain/fields';
 import type { Id, Item, Lane } from '../domain/types';
 import { outfitCount, wearStats } from '../domain/wearlog';
@@ -56,6 +56,7 @@ export function Outfits() {
   const [chosen, setChosen] = useState<Id[] | null>(null);
   const [group, setGroup] = useState<(typeof GROUPS)[number]['value'] | 'all'>('all');
   const [saving, setSaving] = useState(false);
+  const [asking, setAsking] = useState<Item | null>(null);
   const together = useMemo(() => wearStats(wears ?? []).together, [wears]);
 
   if (!trees || !all || !thumbs || !outfits || !wears || editing === undefined) return <main className="screen" aria-busy="true" />;
@@ -63,8 +64,13 @@ export function Outfits() {
   const clothing = new Set(trees.kinds.filter((k) => k.clothing).map((k) => k.id));
   const owned = all.filter((i) => i.status === 'owned' && i.deletedAt === undefined && clothing.has(i.kindId) && !isUnsorted(i.kindId));
   const lanes = GROUPS.find((g) => g.value === group)?.lanes;
-  const shown = pairedFirst(lanes ? owned.filter((i) => lanes.includes(laneOf(i.kindId, trees.kinds).lane)) : owned, picked, together);
-  const regs = regulars(outfits, wears);
+  const shown = pairedFirst(lanes ? owned.filter((i) => lanes.includes(laneFor(i, trees.kinds).lane)) : owned, picked, together);
+  const { worn: regs, saved } = splitRegulars(outfits, wears);
+  const add = (i: Item) => {
+    // A piece whose kind has no place on the stage asks once where it is worn.
+    if (!picked.includes(i.id) && needsLane(i, trees.kinds)) setAsking(i);
+    else setChosen(placeIn(picked, i, all, trees.kinds));
+  };
   const building = picked.length > 0;
 
   return (
@@ -103,7 +109,21 @@ export function Outfits() {
             </>
           )}
 
-          <h2 className="caps m section-cap">{building ? 'Add pieces' : regs.length ? 'Or start from a piece' : 'Start from a piece'}</h2>
+          {!building && saved.length > 0 && (
+            <>
+              <h2 className="caps m section-cap">Saved, not worn yet</h2>
+              <div className="regulars">
+                {saved.map((o, i) => (
+                  <button key={o.id} type="button" className="regular" onClick={() => go('/outfit', { id: o.id })}>
+                    <OutfitStage ids={o.itemIds} items={all} trees={trees} thumbs={thumbs} height={170} label={o.name ?? piecesText(o.itemIds, all)} delay={i * 100} />
+                    <span className="sm m">{o.name ?? 'Not worn yet'}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          <h2 className="caps m section-cap">{building ? 'Add pieces' : regs.length + saved.length ? 'Or start from a piece' : 'Start from a piece'}</h2>
           <div style={{ padding: '0 14px 10px' }}>
             <Chips scroll label="Show" value={group} onChange={(v) => setGroup(v === group ? 'all' : v)} options={[{ value: 'all' as const, label: 'All' }, ...GROUPS.map((g) => ({ value: g.value, label: g.label }))]} />
           </div>
@@ -114,7 +134,7 @@ export function Outfits() {
               return (
                 <div key={i.id} className="tile-cell">
                   <Tile item={i} photo={t?.url} cut={t?.cut ?? true} colour={pieceColour(i, trees.shades)} index={n} selected={picked.includes(i.id)}
-                    onPress={() => setChosen(placeIn(picked, i, all, trees.kinds))} />
+                    onPress={() => add(i)} />
                   {pairs && <p className="sm pairs-well">pairs well</p>}
                 </div>
               );
@@ -122,6 +142,18 @@ export function Outfits() {
           </div>
         </>
       )}
+      <Sheet open={!!asking} onClose={() => { if (asking) setChosen(placeIn(picked, asking, all, trees.kinds)); setAsking(null); }} label="Where is this worn?">
+        <div style={{ display: 'grid', gap: 12 }}>
+          <p className="name" style={{ fontSize: 22 }}>Where is {asking?.name ?? 'this'} worn?</p>
+          <p className="m">So it stands in the right place in outfits. You are only asked once.</p>
+          <Chips label="Where it is worn" value={undefined as Lane | undefined} onChange={async (lane) => {
+            if (!asking) return;
+            await updateItem(asking.id, { outfitLane: lane });
+            setChosen(placeIn(picked, { ...asking, outfitLane: lane }, all, trees.kinds));
+            setAsking(null);
+          }} options={LANE_WORDS.map(([value, label]) => ({ value, label }))} />
+        </div>
+      </Sheet>
       <SaveSheet open={saving} onClose={() => setSaving(false)} initial={editing ?? undefined} onSave={async (name, codes) => {
         if (editing) {
           await updateOutfit(editing.id, { itemIds: picked, name: name || undefined, dressCodes: codes });

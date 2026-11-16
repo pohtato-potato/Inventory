@@ -21,6 +21,12 @@ export function daysBetween(a: string, b: string): number {
   return Math.round((t(b) - t(a)) / 864e5);
 }
 
+/** Milliseconds from `at` until the next local midnight (a full day when `at` is midnight). */
+export function msToNextDay(at: number): number {
+  const d = new Date(at);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime() - at;
+}
+
 /** Local midnight of a day, for code that wants a time. */
 export function dayStart(day: string): number {
   const [y, m, d] = day.split('-').map(Number);

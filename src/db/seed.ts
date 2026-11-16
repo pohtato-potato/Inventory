@@ -13,7 +13,7 @@ const CLOTHING: [K, K[]][] = [
   [['Bottoms'], [['Jeans'], ['Trousers'], ['Shorts']]],
   [['Shoes', ['shoeSize']], []],
   [['Accessories'], [['Watches', ['metal', 'battery']], ['Bracelets'], ['Rings'], ['Belts'], ['Bags'], ['Socks', [], true], ['Caps']]],
-  [['Ethnic'], []],
+  [['Ethnic'], [['Kurtas'], ['Ethnic bottoms']]],
   [['Innerwear', [], true], []],
 ];
 const OTHER: K[] = [['Electronics', ['serial']], ['Bags and luggage'], ['Tools'], ['Home'], ['Other']];
@@ -77,11 +77,33 @@ export const STARTER_PLACES: Place[] = [
   { id: WITH_ME_ID, homeId: null, name: 'With me', role: 'withme', order: 999, updatedAt: T0 },
 ];
 
-/** Fills the starter kinds, shades and places the first time the app opens. Safe to call every start. */
+/** Starter kinds added after the first release: given to older databases too, under their parent, unless the owner has removed the parent or made a kind of that name there. */
+const LATER_KINDS = ['k-kurtas', 'k-ethnic-bottoms'];
+/** Starter roots that got an outfit lane later: given it unless the owner has changed the kind since (updatedAt 0 = untouched). */
+const LATER_LANES = ['k-tops', 'k-bottoms'];
+
+async function topUpKinds(): Promise<void> {
+  for (const k of UNSORTED_KINDS) if (!(await db.kinds.get(k.id))) await db.kinds.add(k);
+  for (const id of LATER_KINDS) {
+    const k = STARTER_KINDS.find((x) => x.id === id)!;
+    if (await db.kinds.get(id)) continue;
+    const parent = await db.kinds.get(k.parentId!);
+    if (!parent || parent.deletedAt !== undefined) continue;
+    const siblings = await db.kinds.where('parentId').equals(parent.id).toArray();
+    if (siblings.some((s) => s.deletedAt === undefined && s.name.trim().toLocaleLowerCase() === k.name.toLocaleLowerCase())) continue;
+    await db.kinds.add({ ...k, order: parent.order + (LATER_KINDS.indexOf(id) + 1) / 10 });
+  }
+  for (const id of LATER_LANES) {
+    const k = await db.kinds.get(id);
+    if (k && !k.lane && k.updatedAt === 0) await db.kinds.put(withStarterLane(k));
+  }
+}
+
+/** Fills the starter kinds, shades and places the first time the app opens; tops up kinds added since. Safe to call every start. */
 export async function seedIfEmpty(): Promise<void> {
   await db.transaction('rw', db.kinds, db.shades, db.places, async () => {
     if ((await db.kinds.count()) === 0) await db.kinds.bulkAdd(STARTER_KINDS);
-    else for (const k of UNSORTED_KINDS) if (!(await db.kinds.get(k.id))) await db.kinds.add(k);
+    else await topUpKinds();
     if ((await db.shades.count()) === 0) await db.shades.bulkAdd(STARTER_SHADES);
     if ((await db.places.count()) === 0) await db.places.bulkAdd(STARTER_PLACES);
     else if (!(await db.places.get(WITH_ME_ID))) await db.places.add(STARTER_PLACES[1]);

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { addKind, emptyTrash, OTHER_KIND, removeKind, rename, restore, setKindHidden, setKindLane, setSetting, TRASH_DAYS, undoLast } from '../db/actions';
 import { Chips } from '../ui/Chips';
 import type { Lane } from '../domain/types';
+import { LANE_WORDS } from '../domain/outfit';
 import { db } from '../db/db';
 import { useItems, useMainPhotos, useSetting, useTrashed, useTrees } from '../db/hooks';
 import { toCsv } from '../domain/csv';
@@ -173,7 +174,7 @@ export function Settings() {
 }
 
 /** The outfit lanes in plain words. */
-const LANES: [Lane | 'none', string][] = [['head', 'Head'], ['neck', 'Neck'], ['top', 'Top'], ['waist', 'Waist'], ['bottom', 'Bottom'], ['feet', 'Feet'], ['wrist', 'Wrist'], ['hand', 'Hand'], ['carry', 'Carried'], ['none', 'Not set']];
+const LANES: [Lane | 'none', string][] = [...LANE_WORDS, ['none', 'Not set']];
 
 function KindSheet({ kind, onClose }: { kind: Kind | null; onClose: () => void }) {
   if (!kind) return <Sheet open={false} onClose={onClose} label="Kind">{null}</Sheet>;

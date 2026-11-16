@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 import type { Id, Item, ItemEvent, Kind, Outfit, Photo, Place, Shade, Wear, Wish } from '../domain/types';
-import { dayStart, wearStats } from '../domain/wearlog';
+import { dayKey, dayStart, msToNextDay, wearStats } from '../domain/wearlog';
 import { db } from './db';
 
 export interface Trees {
@@ -165,6 +165,23 @@ export function useWishPhotos(): Map<Id, Thumb> | undefined {
 export function useSetting<T>(key: string, fallback: T): T {
   const v = useLiveQuery(async () => (await db.settings.get(key))?.value as T | undefined, [key]);
   return v === undefined ? fallback : v;
+}
+
+/** Today's local day, kept current: it turns over at midnight, and is checked again whenever the app comes back into view. */
+export function useToday(): string {
+  const [today, setToday] = useState(() => dayKey(Date.now()));
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const check = () => {
+      setToday(dayKey(Date.now()));
+      clearTimeout(t);
+      t = setTimeout(check, msToNextDay(Date.now()) + 500);
+    };
+    check();
+    document.addEventListener('visibilitychange', check);
+    return () => { clearTimeout(t); document.removeEventListener('visibilitychange', check); };
+  }, []);
+  return today;
 }
 
 /** True once the first query has run, for showing nothing instead of a flash of "empty". */

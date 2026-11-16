@@ -42,10 +42,10 @@ describe('layout', () => {
     expect(q[2].x).toBeGreaterThan(0.5);
   });
   it('a kind with no lane falls back to its parent’s, then stands at the side', () => {
-    const kurta = { id: 'k-kurtas', parentId: null, name: 'Kurtas', clothing: true, fields: [], order: 50, updatedAt: 0 };
+    const kurta = { id: 'k-sarees', parentId: null, name: 'Sarees', clothing: true, fields: [], order: 50, updatedAt: 0 };
     const linen = { id: 'k-linen', parentId: 'k-shirts', name: 'Linen', clothing: true, fields: [], order: 51, updatedAt: 0 };
     expect(laneOf('k-linen', [...kinds, linen]).lane).toBe('top');
-    expect(laneOf('k-kurtas', [...kinds, kurta]).lane).toBe('carry');
+    expect(laneOf('k-sarees', [...kinds, kurta]).lane).toBe('carry');
   });
 });
 

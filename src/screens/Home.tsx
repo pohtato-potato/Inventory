@@ -1,8 +1,7 @@
 import { logWear, undoLast } from '../db/actions';
-import { useAllItems, useMainPhotos, useOutfits, useTrees, useWears, useWishes } from '../db/hooks';
+import { useAllItems, useMainPhotos, useOutfits, useToday, useTrees, useWears, useWishes } from '../db/hooks';
 import { homeCards, type Card } from '../domain/home';
 import type { Item, Outfit } from '../domain/types';
-import { dayKey } from '../domain/wearlog';
 import { namesLine, wearLine } from '../domain/wears';
 import { go } from '../router';
 import { Numeral } from '../ui/Numeral';
@@ -24,9 +23,9 @@ export function Home() {
   const outfits = useOutfits();
   const trees = useTrees();
   const thumbs = useMainPhotos();
+  const today = useToday();
   if (!items || !wears || !wishes || !outfits || !trees || !thumbs) return <main className="screen" aria-busy="true" />;
 
-  const today = dayKey(Date.now());
   const now = new Date();
   const cards = homeCards({ items, wears, wishes, outfits, today });
   const live = items.filter((i) => i.deletedAt === undefined);

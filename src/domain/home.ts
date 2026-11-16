@@ -50,6 +50,9 @@ export function homeCards(input: { items: Item[]; wears: Wear[]; wishes: Wish[];
   return cards;
 }
 
+/** The year in review's room for pieces with no spot. */
+export const NO_SPOT: Place = { id: 'no-spot', homeId: null, name: 'No spot yet', role: 'spot', order: 1e6, updatedAt: 0 };
+
 export interface Room {
   place: Place;
   added: number;
@@ -61,7 +64,7 @@ export interface Room {
 /**
  * One room per home (counting its spots), each followed by its spots, then "With me". A piece belongs where it is
  * kept now (a gone piece, where it was). Added: pieces added that year; wears: wear records that year; let go: pieces
- * gone that year. Rooms with nothing that year are left out.
+ * gone that year. Pieces with no spot get a last room, "No spot yet". Rooms with nothing that year are left out.
  */
 export function yearRooms(items: Item[], wears: Wear[], places: Place[], year: number): Room[] {
   const y = String(year);
@@ -69,7 +72,7 @@ export function yearRooms(items: Item[], wears: Wear[], places: Place[], year: n
   const worn = new Map<Id, number>();
   for (const w of wears) if (w.day.startsWith(y)) for (const id of w.itemIds) worn.set(id, (worn.get(id) ?? 0) + 1);
   const room = (place: Place, inside: Set<Id>): Room | null => {
-    const here = live.filter((i) => i.spotId && inside.has(i.spotId));
+    const here = live.filter((i) => inside.has(i.spotId ?? ''));
     let best: Item | undefined;
     let wearsN = 0;
     for (const i of here) {
@@ -97,6 +100,10 @@ export function yearRooms(items: Item[], wears: Wear[], places: Place[], year: n
     const r = room(p, new Set([p.id]));
     if (r) out.push(r);
   }
+  // Pieces with no spot, or a spot that is gone, still count: they get a room of their own, last.
+  const known = new Set(places.map((p) => p.id));
+  const loose = room(NO_SPOT, new Set(live.filter((i) => !i.spotId || !known.has(i.spotId)).map((i) => i.spotId ?? '')));
+  if (loose) out.push(loose);
   return out;
 }
 

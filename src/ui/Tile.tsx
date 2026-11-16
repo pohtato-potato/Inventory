@@ -40,7 +40,7 @@ export function Tile({
   cut?: boolean;
 }) {
   const press = usePress(onPress, onLongPress);
-  const gone = item.status === 'gone';
+  const gone = item.status === 'gone' || item.deletedAt !== undefined;
   const label = `${item.name}${item.count > 1 ? `, ${item.count} of them` : ''}${selecting ? (selected ? ', selected' : ', not selected') : ''}`;
   return (
     <div className="tile-cell">

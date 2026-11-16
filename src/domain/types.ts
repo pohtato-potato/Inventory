@@ -86,6 +86,8 @@ export interface Item extends Base {
   hideFromWindow?: boolean;
   extra: Record<string, string>;
   createdAt: number;
+  /** Where this piece is worn on the outfit stage, when its kind has no lane (asked once, "Where is this worn?"). */
+  outfitLane?: Lane;
   /** The owner's size correction on the outfit stage (× the kind's baseScale). */
   outfitScale?: number;
   /** Pieces this one pairs well with (kept on both sides). */

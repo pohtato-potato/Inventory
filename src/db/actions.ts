@@ -1,6 +1,6 @@
 import type { EventType, Gone, Id, Item, ItemEvent, Kind, Lane, Outfit, Photo, Place, Rough, Shade, Wear, Wish } from '../domain/types';
 import { UNSORTED } from '../domain/fields';
-import { samePieces } from '../domain/outfit';
+import { samePieces, LANE_SCALE } from '../domain/outfit';
 import { dayKey, dayStart } from '../domain/wearlog';
 import { db, newId } from './db';
 import { WITH_ME_ID } from './seed';
@@ -568,7 +568,6 @@ export async function setKindHidden(id: Id, hide: boolean): Promise<void> {
 }
 
 /** Where a kind stands in outfits. Each lane brings its usual size; tops sit as an over layer. */
-const LANE_SCALE: Record<Lane, number> = { head: 0.45, neck: 0.6, top: 1, waist: 0.7, bottom: 0.8, feet: 0.45, wrist: 0.16, hand: 0.08, carry: 0.6 };
 export async function setKindLane(id: Id, lane: Lane | undefined): Promise<void> {
   const k = await db.kinds.get(id);
   if (!k) return;

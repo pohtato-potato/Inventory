@@ -5,6 +5,11 @@ import { newId } from './db';
 
 /** Where each starter kind sits on the outfit stage, by its starter name. Kinds the owner adds get none until chosen. */
 export const STARTER_LANES: Record<string, { lane: Lane; layer?: Layer; baseScale: number }> = {
+  // Roots, for pieces filed on them directly (Accessories has none: its pieces are worn in too many places, so they ask).
+  Tops: { lane: 'top', layer: 'over', baseScale: 1 },
+  Bottoms: { lane: 'bottom', baseScale: 0.8 },
+  Kurtas: { lane: 'top', layer: 'over', baseScale: 1 },
+  'Ethnic bottoms': { lane: 'bottom', baseScale: 0.8 },
   Tees: { lane: 'top', layer: 'under', baseScale: 1 },
   Innerwear: { lane: 'top', layer: 'under', baseScale: 1 },
   Shirts: { lane: 'top', layer: 'over', baseScale: 1 },
