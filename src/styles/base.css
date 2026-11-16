@@ -484,3 +484,6 @@ button.card { display: flex; width: calc(100% - 28px); text-align: left; color: 
 .home-shortcuts::-webkit-scrollbar { display: none; }
 .home-shortcuts .ghost { flex: 0 0 auto; min-height: 44px; padding: 0 14px; white-space: nowrap; }
 .wish-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Every Home card shares one side margin: the widest that still gives the glad check seven 44 px buttons at 340 px. */
+.home .card { margin-inline: 8px; }
+.home .home-shortcuts { padding-inline: 8px; }
