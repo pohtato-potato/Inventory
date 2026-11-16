@@ -122,3 +122,16 @@ describe('queue', () => {
     expect(q.has('p1')).toBe(false);
   });
 });
+
+describe('the queue goes idle', () => {
+  it('resolves idle() only after every added job ran and its listeners were told', async () => {
+    const told: string[] = [];
+    const q = createQueue(async (job: string) => { await new Promise((r) => setTimeout(r, 5)); return job; });
+    q.onDone((id) => told.push(id));
+    await q.idle(); // nothing queued: at once
+    q.add('a', 'a');
+    q.add('b', 'b');
+    await q.idle();
+    expect(told).toEqual(['a', 'b']);
+  });
+});

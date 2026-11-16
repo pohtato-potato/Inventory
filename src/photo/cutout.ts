@@ -141,6 +141,8 @@ export interface Queue<J, R> {
   onDone(cb: (id: string, res: { value?: R; error?: unknown }) => void): () => void;
   pending(): number;
   has(id: string): boolean;
+  /** Resolves once every job added so far has run and its listeners were told. */
+  idle(): Promise<void>;
 }
 
 /** Runs jobs one at a time in the order added. `add` returns at once, so shooting never waits. */
@@ -149,6 +151,7 @@ export function createQueue<J, R>(run: (job: J) => Promise<R>): Queue<J, R> {
   const listeners = new Set<(id: string, res: { value?: R; error?: unknown }) => void>();
   let busy = false;
   let n = 0;
+  const idleWaiters: (() => void)[] = [];
   const pump = async () => {
     if (busy) return;
     busy = true;
@@ -164,6 +167,7 @@ export function createQueue<J, R>(run: (job: J) => Promise<R>): Queue<J, R> {
       listeners.forEach((l) => l(id, res));
     }
     busy = false;
+    idleWaiters.splice(0).forEach((r) => r());
   };
   return {
     add(job, id) {
@@ -178,6 +182,7 @@ export function createQueue<J, R>(run: (job: J) => Promise<R>): Queue<J, R> {
     },
     pending: () => jobs.length,
     has: (id) => jobs.some((j) => j.id === id),
+    idle: () => (!busy && !jobs.length ? Promise.resolve() : new Promise<void>((r) => idleWaiters.push(r))),
   };
 }
 

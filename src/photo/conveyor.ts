@@ -61,6 +61,15 @@ const queue = createQueue<Id, CutResult | null>(async (id) => {
 });
 
 let started = false;
+/** Pieces whose cut-out has been cut and is being saved: no longer in the queue, not yet off "pending". */
+const landing = new Set<Id>();
+/** Saves and requeues still running, so `whenIdle` can wait for them. */
+const working = new Set<Promise<unknown>>();
+function track<T>(p: Promise<T>): Promise<T> {
+  working.add(p);
+  void p.finally(() => working.delete(p)).catch(() => {});
+  return p;
+}
 const doneListeners = new Set<(id: Id, ok: boolean) => void>();
 
 export function onCutoutLanded(cb: (id: Id, ok: boolean) => void): () => void {
@@ -69,26 +78,46 @@ export function onCutoutLanded(cb: (id: Id, ok: boolean) => void): () => void {
 }
 
 /** Queues every piece still waiting for its cut-out that is not already in the queue, oldest first. */
-export async function requeuePending(): Promise<void> {
-  const waiting = await db.items.filter((i) => i.cutout === 'pending' && i.deletedAt === undefined).toArray();
-  for (const i of waiting.sort((a, b) => a.createdAt - b.createdAt)) if (!queue.has(i.id)) queue.add(i.id, i.id);
+export function requeuePending(): Promise<void> {
+  return track((async () => {
+    const waiting = await db.items.filter((i) => i.cutout === 'pending' && i.deletedAt === undefined).toArray();
+    // A piece being saved is still "pending" in the database but already cut: queuing it again would cut it twice.
+    for (const i of waiting.sort((a, b) => a.createdAt - b.createdAt)) if (!queue.has(i.id) && !landing.has(i.id)) queue.add(i.id, i.id);
+  })());
+}
+
+/** Resolves once nothing is queued, being cut, being saved or being requeued. */
+export async function whenIdle(): Promise<void> {
+  for (;;) {
+    if (working.size) {
+      await Promise.allSettled([...working]);
+      continue;
+    }
+    await queue.idle();
+    if (!working.size) return;
+  }
 }
 
 /** Starts listening to the queue, and re-queues pieces whose cut-out never finished (the app was closed, or the tool was not ready). */
 export async function startConveyor(): Promise<void> {
   if (started) return;
   started = true;
-  queue.onDone(async (id, res) => {
+  queue.onDone((id, res) => {
     // The tool itself was unavailable: the piece stays waiting and is tried again once the model loads.
     if (res.error instanceof ModelUnavailable) return;
-    try {
-      if (res.value) await landCutout(id, res.value);
-      else if (res.error) await db.items.update(id, { cutout: 'uncut', updatedAt: Date.now() });
-      else return; // deleted or already done meanwhile
-    } catch {
-      return; // e.g. phone full: it stays waiting and is tried again next time
-    }
-    doneListeners.forEach((l) => l(id, !!res.value?.cutout));
+    landing.add(id); // at once, before the queue moves on, so a requeue meanwhile skips this piece
+    void track((async () => {
+      try {
+        if (res.value) await landCutout(id, res.value);
+        else if (res.error) await db.items.update(id, { cutout: 'uncut', updatedAt: Date.now() });
+        else return; // deleted or already done meanwhile
+      } catch {
+        return; // e.g. phone full: it stays waiting and is tried again next time
+      } finally {
+        landing.delete(id);
+      }
+      doneListeners.forEach((l) => l(id, !!res.value?.cutout));
+    })());
   });
   onModelReady(() => void requeuePending());
   await requeuePending();

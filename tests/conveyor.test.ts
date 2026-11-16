@@ -3,13 +3,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../src/db/db';
 import { seedIfEmpty } from '../src/db/seed';
 import { createItemWithPhoto, undoLast, clearUndo } from '../src/db/actions';
-import { addShot, keepUncut, landCutout, retakeShot, startConveyor, _setCutter, requeuePending } from '../src/photo/conveyor';
+import { addShot, keepUncut, landCutout, retakeShot, startConveyor, _setCutter, requeuePending, whenIdle } from '../src/photo/conveyor';
 import { ModelUnavailable, type CutResult } from '../src/photo/cutout';
 
 const blob = new Blob(['x'], { type: 'image/webp' });
 const navy = (n: number) => { const a = new Uint8ClampedArray(n * 4); for (let i = 0; i < n; i++) a.set([31, 47, 87, 255], i * 4); return a; };
 
 beforeEach(async () => {
+  await whenIdle(); // the last test's queued cut-outs finish before the database goes
   clearUndo();
   await db.delete();
   await db.open();
@@ -47,7 +48,6 @@ describe('landCutout', () => {
 });
 
 describe('the conveyor', () => {
-  const settle = () => new Promise((r) => setTimeout(r, 30));
   const result = (): CutResult => ({ original: blob, cutout: blob, w: 10, h: 10, pixels: navy(100) });
 
   it('queues pieces by id and reads each photo only when its turn comes', async () => {
@@ -55,8 +55,8 @@ describe('the conveyor', () => {
     _setCutter(async (photo) => { seen.push(await photo.text()); return result(); });
     await startConveyor();
     const id = await createItemWithPhoto({ needsDetails: true, cutout: 'pending' }, [{ role: 'original', blob: new Blob(['orig'], { type: 'image/webp' }), w: 10, h: 10 }]);
-    requeuePending();
-    await settle();
+    await requeuePending();
+    await whenIdle();
     expect(seen).toEqual(['orig']);
     expect((await db.items.get(id))!.cutout).toBe('done');
   });
@@ -66,21 +66,36 @@ describe('the conveyor', () => {
     _setCutter(async () => { if (!up) throw new ModelUnavailable(); return result(); });
     await startConveyor();
     const id = await createItemWithPhoto({ needsDetails: true, cutout: 'pending' }, [{ role: 'original', blob, w: 10, h: 10 }]);
-    requeuePending();
-    await settle();
+    await requeuePending();
+    await whenIdle();
     expect((await db.items.get(id))!.cutout).toBe('pending');
     up = true;
-    requeuePending();
-    await settle();
+    await requeuePending();
+    await whenIdle();
     expect((await db.items.get(id))!.cutout).toBe('done');
+  });
+
+  it('never cuts a piece twice: a requeue while its cut-out is being saved does not queue it again', async () => {
+    let cuts = 0;
+    let cutDone!: () => void;
+    const cut = new Promise<void>((r) => { cutDone = r; });
+    _setCutter(async () => { cuts++; cutDone(); return result(); });
+    await startConveyor();
+    const id = await createItemWithPhoto({ needsDetails: true, cutout: 'pending' }, [{ role: 'original', blob, w: 10, h: 10 }]);
+    void requeuePending();
+    await cut;
+    // While the cut-out is being saved, the app asks again (the model became ready, the app came back to the front).
+    while ((await db.items.get(id))!.cutout === 'pending') await requeuePending();
+    await whenIdle();
+    expect(cuts).toBe(1);
   });
 
   it('marks a piece uncut when its own cut-out failed', async () => {
     _setCutter(async () => { throw new Error('bad photo'); });
     await startConveyor();
     const id = await createItemWithPhoto({ needsDetails: true, cutout: 'pending' }, [{ role: 'original', blob, w: 10, h: 10 }]);
-    requeuePending();
-    await settle();
+    await requeuePending();
+    await whenIdle();
     expect((await db.items.get(id))!.cutout).toBe('uncut');
   });
 
@@ -105,7 +120,6 @@ describe('the conveyor', () => {
 });
 
 describe('after a cut-out failed', () => {
-  const settle = () => new Promise((r) => setTimeout(r, 30));
   it('Retake swaps in the new photo, drops the old cut-out and cuts again', async () => {
     const seen: string[] = [];
     _setCutter(async (photo) => { seen.push(await photo.text()); return { original: photo, cutout: blob, w: 10, h: 10, pixels: navy(100) }; });
@@ -118,7 +132,7 @@ describe('after a cut-out failed', () => {
     const shot = { width: 10, height: 10, close() { closed = true; } } as unknown as ImageBitmap;
     await retakeShot(id, shot, async () => ({ blob: new Blob(['new'], { type: 'image/webp' }), w: 10, h: 10 }));
     expect(closed).toBe(true);
-    await settle();
+    await whenIdle();
     expect(seen).toEqual(['new']);
     const photos = await db.photos.where('itemId').equals(id).toArray();
     expect(photos.map((p) => p.role).sort()).toEqual(['main', 'original']);
