@@ -20,8 +20,8 @@ export default defineConfig({
       manifest: {
         name: 'Inventory',
         short_name: 'Inventory',
-        description: 'Everything you own, clothes first. Everything stays on this phone.',
-        start_url: './#/wardrobe',
+        description: 'Everything you own: clothes and everything else. It all stays on this phone.',
+        start_url: './#/home',
         scope: './',
         display: 'standalone',
         orientation: 'portrait',

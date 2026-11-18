@@ -8,6 +8,8 @@ import { showToast } from '../ui/Toast';
 import { FIT_LABEL, FIT_TONE } from './Piece';
 import { LetGoSheet } from './Details';
 import { pieces } from '../db/actions';
+import { Tick } from '../ui/Tick';
+import { IconPin } from '../ui/icons';
 
 export interface SelectionState {
   ids: Set<Id>;
@@ -37,19 +39,19 @@ export function Selection({ sel, trees }: { sel: SelectionState; trees: Trees })
   return (
     <>
       <div className="top">
-        <h1 className="caps">{n} selected</h1>
-        <button type="button" className="link" style={{ marginLeft: 'auto', color: 'var(--m)', fontWeight: 400 }} onClick={sel.clear}>Cancel</button>
+        <h1 className="title"><Tick value={n} /> selected</h1>
+        <span className="top-right"><button type="button" className="link" onClick={sel.clear}>Cancel</button></span>
       </div>
       <Sheet open={!editing && !letting} modal={false} onClose={sel.clear} label={`Move ${pieces(n)}`}>
-        <p className="m">Move {pieces(n)} to</p>
-        <div className="chips" style={{ paddingTop: 8 }}>
-          {spots.map((s) => <Chip key={s.id} on={spot === s.id} onClick={() => setSpot(spot === s.id ? undefined : s.id)}>{s.name}</Chip>)}
+        <p className="name">Move {pieces(n)} to</p>
+        <div className="chips" style={{ paddingTop: 12 }}>
+          {spots.map((s) => <Chip key={s.id} on={spot === s.id} onClick={() => setSpot(spot === s.id ? undefined : s.id)}><IconPin size={16} />{s.name}</Chip>)}
           <Chip on={spot === 'none'} onClick={() => setSpot(spot === 'none' ? undefined : 'none')}>No spot</Chip>
         </div>
-        <div style={{ display: 'flex', gap: 8, paddingTop: 12 }}>
+        <div className="sel-acts">
           <button type="button" className="ghost" onClick={() => setEditing(true)}>Edit</button>
           <button type="button" className="ghost" onClick={() => setLetting(true)}>Let go</button>
-          <button type="button" className="acc" style={{ flex: 1 }} disabled={!spot} onClick={async () => { await moveItems(ids, spot === 'none' ? undefined : spot); setSpot(undefined); done(`Moved ${pieces(n)}`); }}>Move</button>
+          <button type="button" className="acc" disabled={!spot} onClick={async () => { await moveItems(ids, spot === 'none' ? undefined : spot); setSpot(undefined); done(`Moved ${pieces(n)}`); }}>Move</button>
         </div>
       </Sheet>
       <BatchEdit open={editing} onClose={() => setEditing(false)} trees={trees} n={n} onSave={async (patch, tags) => { await editMany(ids, patch, tags); setEditing(false); done(`Edited ${pieces(n)}`); }} onDelete={async () => { await trash(ids); setEditing(false); done(`Deleted ${pieces(n)}`); }} />
@@ -73,10 +75,10 @@ function BatchEdit({ open, onClose, trees, n, onSave, onDelete }: { open: boolea
         <div className="q"><p className="ql">Fit</p><Chips label="Fit" value={fit} onChange={(v) => setFit(fit === v ? undefined : v)} options={(['tight', 'fits', 'loose'] as Fit[]).map((f) => ({ value: f, label: FIT_LABEL[f], tone: FIT_TONE[f] }))} /></div>
         <div className="q"><label className="ql" htmlFor="b-tag">Add tags, separated by commas</label><input id="b-tag" className="field" value={tag} onChange={(e) => setTag(e.target.value)} placeholder="gym, travel" /></div>
         <div className="q"><p className="ql">Spot</p><Chips label="Spot" value={spot} onChange={(v) => setSpot(spot === v ? undefined : v)} options={trees.places.filter((p) => p.role !== 'home').map((p) => ({ value: p.id, label: p.name }))} /></div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="sel-acts">
           <button type="button" className="ghost" onClick={onDelete}>Delete</button>
           <button type="button" className="ghost" onClick={onClose}>Cancel</button>
-          <button type="button" className="acc" style={{ flex: 1 }} disabled={!kindId && !fit && !tags.length && !spot} onClick={() => onSave({ ...(kindId ? { kindId } : {}), ...(fit ? { fit } : {}), ...(spot ? { spotId: spot } : {}) }, tags)}>Save</button>
+          <button type="button" className="acc" disabled={!kindId && !fit && !tags.length && !spot} onClick={() => onSave({ ...(kindId ? { kindId } : {}), ...(fit ? { fit } : {}), ...(spot ? { spotId: spot } : {}) }, tags)}>Save</button>
         </div>
       </div>
     </Sheet>

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { rollFrames } from './light';
 
-/** A condensed numeral that rolls up from zero when it first appears and when it changes. */
+/** A big numeral. It appears at its value (no roll on every visit); when the value changes while shown, it rolls to it. */
 export function Numeral({ value, roll = true, className = '', style }: { value: number; roll?: boolean; className?: string; style?: CSSProperties }) {
-  const [shown, setShown] = useState(roll ? 0 : value);
-  const from = useRef(roll ? 0 : value);
+  const [shown, setShown] = useState(value);
+  const from = useRef(value);
   useEffect(() => {
     if (!roll) {
       setShown(value);

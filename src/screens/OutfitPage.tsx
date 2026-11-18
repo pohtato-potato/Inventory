@@ -9,10 +9,10 @@ import { back, go, useRoute } from '../router';
 import { askConfirm } from '../ui/Ask';
 import { Tile } from '../ui/Tile';
 import { showToast } from '../ui/Toast';
-import { Window } from '../ui/Window';
+import { Bands } from '../ui/Stage';
 import { OutfitStage, outfitShots, piecesText } from './Outfits';
-import { Mini, pieceColour, SubTop } from './shared';
-import { lightPiece, layout } from '../domain/outfit';
+import { Mini, openItem, pieceColour, SubTop } from './shared';
+import { layout } from '../domain/outfit';
 
 /** Takes a photo from the phone and keeps it as a mirror photo of `ownerId` (an outfit or a wear day). */
 export async function addMirrorPhoto(ownerId: string, f: File): Promise<void> {
@@ -28,7 +28,7 @@ export async function addMirrorPhoto(ownerId: string, f: File): Promise<void> {
 }
 
 /**
- * One saved outfit. With mirror photos, the newest fills the window with the pieces along its bottom edge; older ones
+ * One saved outfit. With mirror photos, the newest fills the top with the pieces along its bottom edge; older ones
  * are a swipe away, and "Show the pieces" flips to the laid-out stage. Then times worn, wear it today, change or remove.
  */
 export function OutfitPage() {
@@ -58,25 +58,25 @@ export function OutfitPage() {
   const shots = outfitShots(outfit, wears, selfies);
   const showPhoto = shots.length > 0 && !pieces_;
   const placed = layout(pieces, trees.kinds, new Map());
-  const litId = lightPiece(placed);
-  const light = litId ? pieceColour(all.find((i) => i.id === litId)!, trees.shades) : undefined;
+  const colours = [...placed].sort((p, q) => p.y - q.y).map((p) => pieceColour(all.find((i) => i.id === p.itemId)!, trees));
   const shown = shots[Math.min(at, shots.length - 1)];
 
   return (
-    <main className="screen">
+    <main className="screen outfit-page">
+      <div className="outfit-bands"><Bands colours={colours} down /></div>
       <SubTop title="Outfit" />
       <div className="outfit-hero">
         {showPhoto ? (
           <div className="face-hero">
             <div className="face-track" aria-label={`${title}: mirror photos, ${shots.length}`} onScroll={(e) => { const el = e.currentTarget; setAt(Math.round(el.scrollLeft / el.clientWidth)); }}>
               {shots.map((s, i) => (
-                <Window key={s.photo.id} className="face-slide" colour={light} delay={i ? 0 : 0}>
+                <div key={s.photo.id} className="face-slide">
                   <img className="face-img" src={s.url} alt={i === 0 ? `${title}, newest mirror photo` : 'An older mirror photo'} draggable={false} decoding="async" />
-                </Window>
+                </div>
               ))}
             </div>
             <div className="face-pieces">
-              {pieces.map((i) => <Mini key={i.id} item={i} thumb={thumbs.get(i.id)} shades={trees.shades} size={48} onPress={() => go('/piece', { id: i.id })} />)}
+              {pieces.map((i) => <Mini key={i.id} item={i} thumb={thumbs.get(i.id)} trees={trees} size={48} onPress={() => openItem(i.id)} />)}
             </div>
             <button type="button" className="face-flip" onClick={() => setPieces(true)}>Show the pieces</button>
             {shots.length > 1 && <p className="face-count sm" aria-live="polite">{at + 1} of {shots.length}</p>}
@@ -124,7 +124,7 @@ export function OutfitPage() {
       <div className="grid">
         {pieces.map((i, k) => {
           const t = thumbs.get(i.id);
-          return <Tile key={i.id} item={i} photo={t?.url} cut={t?.cut ?? true} colour={pieceColour(i, trees.shades)} index={k} onPress={() => go('/piece', { id: i.id })} />;
+          return <Tile key={i.id} item={i} photo={t?.url} cut={t?.cut ?? true} colour={pieceColour(i, trees)} index={k} onPress={() => openItem(i.id)} />;
         })}
       </div>
     </main>

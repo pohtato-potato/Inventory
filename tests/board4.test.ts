@@ -12,7 +12,7 @@ let n = 0;
 const piece = (p: Partial<Item> = {}): Item => ({
   id: `i${++n}`, name: `Piece ${n}`, kindId: 'k-tees', count: 1, currency: 'INR', tags: [], usualSpotIds: [], status: 'owned', needsDetails: false, extra: {}, createdAt: dayStart('2026-03-01'), updatedAt: 1, ...p,
 });
-const css = readFileSync('src/styles/base.css', 'utf8');
+const css = readFileSync('src/styles/base.css', 'utf8') + readFileSync('src/styles/screens.css', 'utf8');
 const rule = (sel: string) => {
   const at = css.indexOf(`\n${sel} {`);
   return at < 0 ? '' : css.slice(at, css.indexOf('}', at));

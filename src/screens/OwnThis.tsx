@@ -8,7 +8,7 @@ import { go, useRoute } from '../router';
 import { Chips } from '../ui/Chips';
 import { Numeral } from '../ui/Numeral';
 import { Seg } from '../ui/Seg';
-import { Piece, Window } from '../ui/Window';
+import { Cut, Swatch } from '../ui/Swatch';
 import { showToast } from '../ui/Toast';
 import { pieceColour, SubTop, type Trees } from './shared';
 
@@ -55,7 +55,7 @@ export function OwnThis() {
         </div>
       </div>
       {asked && (
-        <Window as="section" className="own-answer" colour={like[0] ? pieceColour(like[0], trees.shades) : undefined} lit={like.length > 0} aria-live="polite">
+        <Swatch as="section" className="own-answer" colour={like[0] ? pieceColour(like[0], trees) : undefined} aria-live="polite">
           <div className="own-count">
             <Numeral value={like.length} className="own-num" />
             <p className="caps">{like.length ? likeWords(kindName_, familyName, like.length) : 'Nothing like this yet'}</p>
@@ -64,14 +64,14 @@ export function OwnThis() {
             <div className="own-pieces">
               {like.map((i) => (
                 <button key={i.id} type="button" className="own-piece" onClick={() => go('/piece', { id: i.id })} aria-label={`${i.name}, ${ownLine(i, wear.count.get(i.id) ?? 0)}`}>
-                  <span className="own-pc"><Piece src={thumbs.get(i.id)?.url} cut={thumbs.get(i.id)?.cut ?? true} /></span>
+                  <span className="own-pc"><Cut src={thumbs.get(i.id)?.url} cut={thumbs.get(i.id)?.cut ?? true} /></span>
                   <span className="lbl" aria-hidden="true">{i.name}</span>
                   <span className="sm m" aria-hidden="true">{ownLine(i, wear.count.get(i.id) ?? 0)}</span>
                 </button>
               ))}
             </div>
           )}
-        </Window>
+        </Swatch>
       )}
       {wishes && <GapHints items={items} wishes={wishes} trees={trees} />}
     </main>

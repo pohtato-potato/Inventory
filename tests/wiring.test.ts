@@ -16,8 +16,8 @@ describe('sharing in and the tabs (Task 7)', () => {
     expect(cfg).toMatch(/method:\s*'GET'/);
     expect(readFileSync('src/main.tsx', 'utf8')).toMatch(/parseShare\(/);
   });
-  it('has five tabs: Wardrobe, Things, +, Wishes, Home', async () => {
+  it('has five tabs: Home, Everything, +, Places, Wishes', async () => {
     const { TABS } = await import('../src/ui/TabBar');
-    expect(TABS.map((t) => t.label)).toEqual(['Wardrobe', 'Things', 'Add a piece', 'Wishes', 'Home']);
+    expect(TABS.map((t) => t.label)).toEqual(['Home', 'Everything', 'Add a piece', 'Places', 'Wishes']);
   });
 });

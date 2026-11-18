@@ -40,3 +40,12 @@ export function monthText(t: number): string {
 export function plural(n: number, one: string, many = `${one}s`): string {
   return `${n} ${n === 1 ? one : many}`;
 }
+
+/** A fact tile's short date: "Mar '25" for a month or a day, "2023" for a year. */
+export function shortDate(d: Rough<string> | undefined): string {
+  if (!d) return '';
+  const [y, m] = d.value.split('-');
+  if (!m) return y;
+  const month = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-GB', { month: 'short' });
+  return `${month} '${y.slice(2)}`;
+}

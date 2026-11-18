@@ -1,3 +1,6 @@
+import type { CSSProperties } from 'react';
+import { itemColour } from '../domain/colour';
+import { groupColour, kindColour } from '../domain/kinds';
 import { useMemo } from 'react';
 import { useItems, useMainPhotos, useTrees, useWearLog } from '../db/hooks';
 import { money } from '../domain/format';
@@ -7,8 +10,8 @@ import type { Item } from '../domain/types';
 import { go, useRoute } from '../router';
 import { Numeral } from '../ui/Numeral';
 import { Seg } from '../ui/Seg';
-import { Piece, Window } from '../ui/Window';
-import { homesWithSpots, pieceColour, SubTop, type Thumb, type Trees } from './shared';
+import { Cut, Swatch } from '../ui/Swatch';
+import { homesWithSpots, openItem, pieceColour, SubTop, type Thumb, type Trees } from './shared';
 
 type By = 'kind' | 'shop' | 'brand';
 
@@ -60,14 +63,9 @@ export function Numbers() {
             return (
               <div key={s.currency} className="bars" role="list" aria-label={`Spend in ${s.currency}`}>
                 {money_.length > 1 && <p className="caps m sm bars-cur">{s.currency}</p>}
-                {s.rows.map((r) => (
-                  <div key={r.label} className="bar-row" role="listitem">
-                    <span className="bar-label">{r.label}</span>
-                    <span className="bar-amt">{money(r.amount, s.currency)}</span>
-                    <span className="bar" aria-hidden="true" style={{ width: `${Math.max(4, (r.amount / max) * 100)}%` }}>
-                      {(r.shades.length ? r.shades : ['var(--t)']).map((c, k) => <span key={k} style={{ background: c }} />)}
-                    </span>
-                  </div>
+                {s.rows.map((r, k) => (
+                  <Bar key={r.label} label={r.label} value={money(r.amount, s.currency)} share={r.amount / max} index={k}
+                    colour={by === 'kind' ? kindColourByName(r.label, trees) : r.shades[0] ? itemColour(r.shades[0]) : groupColour('other')} />
                 ))}
               </div>
             );
@@ -101,12 +99,11 @@ function KindCounts({ items, trees }: { items: Item[]; trees: Trees }) {
   const counts = countAtEveryLevel(items.map((i) => ({ key: i.kindId, n: i.count })), trees.kinds, (k) => k.parentId);
   const tops = trees.kinds.filter((k) => !k.parentId && (counts.get(k.id) ?? 0) > 0).sort((a, b) => Number(b.clothing) - Number(a.clothing) || a.order - b.order);
   if (!tops.length) return <p className="m empty-line">Nothing here yet.</p>;
+  const max = Math.max(...tops.map((k) => counts.get(k.id) ?? 0));
   return (
-    <>
-      {tops.map((k) => (
-        <div key={k.id} className="li"><span>{k.name}</span><span className="n">{counts.get(k.id)}</span></div>
-      ))}
-    </>
+    <div className="bars" role="list" aria-label="By kind">
+      {tops.map((k, n) => <Bar key={k.id} label={k.name} value={String(counts.get(k.id))} share={(counts.get(k.id) ?? 0) / max} colour={kindColour(k.id, trees.kinds)} index={n} />)}
+    </div>
   );
 }
 
@@ -133,13 +130,29 @@ function PlaceCounts({ items, trees }: { items: Item[]; trees: Trees }) {
   );
 }
 
-/** Three small windows, each with its cost per wear under it. */
+/** A plain labelled bar: its name and value written on it, filled in its kind's colour to its share of the largest. */
+function Bar({ label, value, share, colour, index }: { label: string; value: string; share: number; colour: string; index: number }) {
+  return (
+    <div className="bar-row" role="listitem" aria-label={`${label}: ${value}`}>
+      <span className="bar" aria-hidden="true" style={{ width: `${Math.max(6, share * 100)}%`, '--k': colour, '--d': `${index * 60}ms` } as CSSProperties} />
+      <span className="bar-label" aria-hidden="true">{label}</span>
+      <span className="bar-amt" aria-hidden="true">{value}</span>
+    </div>
+  );
+}
+
+function kindColourByName(name: string, trees: Trees): string {
+  const k = trees.kinds.find((x) => x.name === name);
+  return k ? kindColour(k.id, trees.kinds) : groupColour('other');
+}
+
+/** Three small tiles, each with its cost per wear under it. */
 function ValueTiles({ list, thumbs, trees }: { list: Ranked[]; thumbs: Map<string, Thumb>; trees: Trees }) {
   return (
     <div className="value-row">
       {list.map((r, i) => (
-        <button key={r.item.id} type="button" className="value-cell" onClick={() => go('/piece', { id: r.item.id })} aria-label={`${r.item.name}, ${r.text}`}>
-          <Window className="value-win" colour={pieceColour(r.item, trees.shades)} delay={i * 50}><Piece src={thumbs.get(r.item.id)?.url} cut={thumbs.get(r.item.id)?.cut ?? true} /></Window>
+        <button key={r.item.id} type="button" className="value-cell" onClick={() => openItem(r.item.id)} aria-label={`${r.item.name}, ${r.text}`}>
+          <Swatch className="value-win" colour={pieceColour(r.item, trees)} delay={i * 50}><Cut src={thumbs.get(r.item.id)?.url} cut={thumbs.get(r.item.id)?.cut ?? true} /></Swatch>
           <span className="lbl" aria-hidden="true">{r.text}</span>
         </button>
       ))}

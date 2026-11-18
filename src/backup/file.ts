@@ -1,11 +1,12 @@
 import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from 'fflate';
 import { db, TABLES } from '../db/db';
 import { clearUndo, getSetting, setSetting } from '../db/actions';
-import { wearsFromEvents, withStarterLane } from '../db/migrate';
-import type { ItemEvent, Kind, Photo } from '../domain/types';
+import { sizeRowForward, wearsFromEvents, withStarterLane } from '../db/migrate';
+import type { ItemEvent, Kind, Photo, SizeRow } from '../domain/types';
 
-/** 2 adds wears, outfits and wishes. A version 1 file still restores: its wears are made from its 'worn' events. */
-export const BACKUP_VERSION = 2;
+/** 2 adds wears, outfits and wishes; 3 gives a brand several sizes. Older files still restore: a version 1 file's
+ *  wears are made from its 'worn' events, and older brand sizes become the brand's first entry. */
+export const BACKUP_VERSION = 3;
 export const NOT_A_BACKUP = 'This file is not an Inventory backup';
 export const TOO_NEW = 'This backup was made by a newer version of Inventory';
 const LAST_KEY = 'backup.last';
@@ -82,6 +83,7 @@ export async function importAll(zip: Blob): Promise<{ items: number; photos: num
     data.tables.wears = wearsFromEvents((data.tables.events ?? []) as ItemEvent[]);
     data.tables.kinds = (data.tables.kinds as Kind[]).map(withStarterLane);
   }
+  if (data.version < 3 && Array.isArray(data.tables.sizes)) data.tables.sizes = (data.tables.sizes as SizeRow[]).map(sizeRowForward);
   await db.transaction('rw', TABLES.map((t) => db.table(t)), async () => {
     for (const t of TABLES) {
       await db.table(t).clear();

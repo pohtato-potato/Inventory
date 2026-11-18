@@ -3,7 +3,9 @@ import { useState } from 'react';
 import { db, newId } from '../db/db';
 import { setSetting } from '../db/actions';
 import { useItems, useSetting, useTrees } from '../db/hooks';
-import type { SizeRow } from '../domain/types';
+import type { SizeEntry, SizeRow } from '../domain/types';
+import type { CSSProperties } from 'react';
+import { KIND_PALETTE } from '../domain/kinds';
 import { fitSummary } from '../domain/wears';
 import { go } from '../router';
 import { askConfirm, askText } from '../ui/Ask';
@@ -36,7 +38,7 @@ export function Sizes() {
   };
 
   return (
-    <main className="screen">
+    <main className="screen sizes">
       <SubTop title="My sizes" />
       {!unit ? (
         <div style={{ padding: '8px 18px 0', display: 'grid', gap: 10 }}>
@@ -57,17 +59,27 @@ export function Sizes() {
         </div>
       )}
 
-      <h2 className="caps m" style={{ padding: '22px 18px 4px' }}>Brand by brand</h2>
-      {brands.map((b) => (
-        <button key={b.id} type="button" className="li" onClick={() => setBrand(b)}>
-          <span>{b.name}</span>
-          {b.note && <span className="m sm">{b.note}</span>}
-          <span className="n name" style={{ fontSize: 22, color: 'var(--t)' }}>{b.value}</span>
-        </button>
-      ))}
-      <div style={{ padding: '6px 18px 0' }}><button type="button" className="ghost wide" onClick={() => setBrand('new')}>Add a brand</button></div>
+      <h2 className="caps m section-cap">Brand by brand</h2>
+      <div className="brands">
+        {brands.map((b, n) => (
+          <button key={b.id} type="button" className="brand rise" style={{ '--d': `${n * 50}ms`, '--k': KIND_PALETTE[n % KIND_PALETTE.length] } as CSSProperties} onClick={() => setBrand(b)}>
+            <span className="brand-mark" aria-hidden="true">{b.name.trim().charAt(0).toUpperCase()}</span>
+            <span className="brand-text">
+              <span className="b">{b.name}</span>
+              {(b.entries ?? []).map((e, i) => (
+                <span key={i} className="brand-entry">
+                  <span className="m sm">{e.covers || 'Size'}{e.note ? `, ${e.note}` : ''}</span>
+                  <span className="brand-size">{e.size}</span>
+                  {e.tailoring && <span className="tailor sm">Needs tailoring: {e.tailoring}</span>}
+                </span>
+              ))}
+            </span>
+          </button>
+        ))}
+      </div>
+      <div className="page-acts"><button type="button" className="ghost wide" onClick={() => setBrand('new')}>Add a brand</button></div>
 
-      <h2 className="caps m" style={{ padding: '22px 18px 8px' }}>How it all fits now</h2>
+      <h2 className="caps m section-cap">How it all fits now</h2>
       {fit.fits + fit.tight + fit.loose > 0 ? (
         <>
           <div className="fitbar" aria-hidden="true">
@@ -93,36 +105,53 @@ export function Sizes() {
   );
 }
 
+const BLANK: SizeEntry = { covers: '', size: '' };
+
+/** A brand and its sizes: what each covers ("Trousers", "Shoes"), the size, a note, and whether it needs tailoring. */
 function BrandSheet({ row, onClose, next }: { row: SizeRow | 'new' | null; onClose: () => void; next: number }) {
   const cur = row && row !== 'new' ? row : null;
   const [name, setName] = useState('');
-  const [size, setSize] = useState('');
-  const [note, setNote] = useState('');
+  const [entries, setEntries] = useState<SizeEntry[]>([BLANK]);
   const [key, setKey] = useState<string | null>(null);
   const id = cur?.id ?? (row === 'new' ? 'new' : null);
   if (id !== key) {
     setKey(id);
     setName(cur?.name ?? '');
-    setSize(cur?.value ?? '');
-    setNote(cur?.note ?? '');
+    setEntries(cur?.entries?.length ? cur.entries : [BLANK]);
   }
+  const edit = (i: number, p: Partial<SizeEntry>) => setEntries((es) => es.map((e, n) => (n === i ? { ...e, ...p } : e)));
+  const clean = entries
+    .map((e) => ({ covers: e.covers.trim(), size: e.size.trim(), ...(e.note?.trim() ? { note: e.note.trim() } : {}), ...(e.tailoring?.trim() ? { tailoring: e.tailoring.trim() } : {}) }))
+    .filter((e) => e.size);
+  const ok = !!name.trim() && clean.length > 0;
   const save = async () => {
-    if (!name.trim() || !size.trim()) return;
-    if (cur) await db.sizes.update(cur.id, { name: name.trim(), value: size.trim(), note: note.trim() || undefined, updatedAt: Date.now() });
-    else await db.sizes.add({ id: newId(), type: 'brand', name: name.trim(), value: size.trim(), note: note.trim() || undefined, order: next, updatedAt: Date.now() });
+    if (!ok) return;
+    if (cur) await db.sizes.update(cur.id, { name: name.trim(), entries: clean, updatedAt: Date.now() });
+    else await db.sizes.add({ id: newId(), type: 'brand', name: name.trim(), entries: clean, order: next, updatedAt: Date.now() });
     onClose();
   };
   return (
-    <Sheet open={!!row} onClose={onClose} label="A brand's size">
-      <form style={{ display: 'grid', gap: 12 }} onSubmit={(e) => { e.preventDefault(); void save(); }}>
-        <p className="name" style={{ fontSize: 22 }}>{cur ? cur.name : 'A brand'}</p>
-        <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Brand, or Shoes" aria-label="Brand" />
-        <input className="field" value={size} onChange={(e) => setSize(e.target.value)} placeholder="Your size there, e.g. M or 32 × 30" aria-label="Size" />
-        <input className="field" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note, e.g. runs small (optional)" aria-label="Note" />
-        <div style={{ display: 'flex', gap: 8 }}>
+    <Sheet open={!!row} onClose={onClose} label="A brand's sizes">
+      <form className="sheet-body" onSubmit={(e) => { e.preventDefault(); void save(); }}>
+        <p className="name">{cur ? cur.name : 'A brand'}</p>
+        <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Brand, for example Levi's" aria-label="Brand" />
+        {entries.map((e, i) => (
+          <fieldset key={i} className="entry">
+            <legend className="caps m">Size {entries.length > 1 ? i + 1 : ''}</legend>
+            <div className="pair">
+              <input className="field" value={e.covers} onChange={(ev) => edit(i, { covers: ev.target.value })} placeholder="For: Trousers" aria-label="What this size is for" />
+              <input className="field" value={e.size} onChange={(ev) => edit(i, { size: ev.target.value })} placeholder="32 × 30" aria-label="Size" />
+            </div>
+            <input className="field" value={e.note ?? ''} onChange={(ev) => edit(i, { note: ev.target.value })} placeholder="Note, e.g. runs small (optional)" aria-label="Note" />
+            <input className="field" value={e.tailoring ?? ''} onChange={(ev) => edit(i, { tailoring: ev.target.value })} placeholder="Needs tailoring? e.g. take in waist to 31" aria-label="Needs tailoring" />
+            {entries.length > 1 && <button type="button" className="link" onClick={() => setEntries((es) => es.filter((_, n) => n !== i))}>Remove this size</button>}
+          </fieldset>
+        ))}
+        <button type="button" className="ghost" onClick={() => setEntries((es) => [...es, BLANK])}>Add another size</button>
+        <div className="pair">
           {cur && <button type="button" className="ghost" onClick={async () => { if (await askConfirm(`Remove ${cur.name}?`, 'Remove')) { await db.sizes.update(cur.id, { deletedAt: Date.now(), updatedAt: Date.now() }); onClose(); } }}>Remove</button>}
           <button type="button" className="ghost" onClick={onClose}>Cancel</button>
-          <button type="submit" className="acc" style={{ flex: 1 }} disabled={!name.trim() || !size.trim()}>Save</button>
+          <button type="submit" className="acc" style={{ flex: 1 }} disabled={!ok}>Save</button>
         </div>
       </form>
     </Sheet>

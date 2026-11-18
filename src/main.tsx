@@ -1,8 +1,10 @@
 import '@fontsource-variable/archivo/wdth.css';
 import '@fontsource/atkinson-hyperlegible/latin-400.css';
 import '@fontsource/atkinson-hyperlegible/latin-700.css';
+import '@fontsource-variable/bricolage-grotesque/wght.css';
 import './styles/tokens.css';
 import './styles/base.css';
+import './styles/screens.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import archivoLatin from '@fontsource-variable/archivo/files/archivo-latin-wdth-normal.woff2?url';

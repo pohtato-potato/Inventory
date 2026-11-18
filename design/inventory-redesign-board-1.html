@@ -1,0 +1,759 @@
+<meta charset="utf-8">
+<title>Inventory Redesign Board 1</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Atkinson+Hyperlegible:wght@400;700&family=Big+Shoulders+Display:wght@600;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Anybody:wdth,wght@50..150,400..900&family=Saira+Stencil+One&family=Epilogue:wght@400;500;700&display=swap">
+<style>
+/* Board: one column of directions. Each direction: heading row, facts, two live phones, reactions. */
+:root{
+  --bg:#EEF0F2; --panel:#FFFFFF; --ink:#12171C; --muted:#38434D; --rule:#BFC7CE; --focus:#1D4ED8;
+  --love:#9A3412; --like:#166534; --unsure:#6B4F00; --no:#475569;
+  --body:"Atkinson Hyperlegible", Verdana, system-ui, sans-serif;
+  --disp:Archivo, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#101418; --panel:#1A2027; --ink:#F1F3F5; --muted:#C3CBD2; --rule:#3B4651; --focus:#93C5FD;
+  --love:#FDBA74; --like:#86EFAC; --unsure:#FDE68A; --no:#CBD5E1; color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#101418; --panel:#1A2027; --ink:#F1F3F5; --muted:#C3CBD2; --rule:#3B4651; --focus:#93C5FD;
+  --love:#FDBA74; --like:#86EFAC; --unsure:#FDE68A; --no:#CBD5E1; color-scheme:dark; }
+*{box-sizing:border-box}
+body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--body); font-size:18px; line-height:1.55}
+::selection{background:var(--focus); color:var(--panel)}
+:focus-visible{outline:3px solid var(--focus); outline-offset:2px}
+h1,h2,h3{margin:0; line-height:1.12; text-wrap:balance; font-family:var(--disp); font-stretch:88%}
+p{margin:0}
+button,textarea{font-family:inherit; font-size:16px}
+.wrap{max-width:1280px; margin-inline:auto; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); padding-block:28px 96px; display:grid; grid-template-columns:minmax(0,1fr); gap:28px}
+.wrap > *{min-width:0}
+.hero{display:grid; gap:12px; max-width:44em}
+h1{font-size:clamp(34px,6vw,54px); font-weight:800}
+.hero ul{margin:0; padding-left:1.2em; display:grid; gap:4px}
+.status{font-size:15px; color:var(--muted)}
+.dir{background:var(--panel); border:2px solid var(--rule); border-radius:18px; padding:20px; display:grid; gap:16px}
+.dir.lead{border-color:var(--ink); border-width:3px}
+.dhead{display:flex; flex-wrap:wrap; align-items:baseline; gap:10px 14px}
+.dhead h2{font-size:clamp(28px,4vw,40px); font-weight:800}
+.badge{font-size:15px; font-weight:700; padding:3px 12px; border-radius:20px; border:2px solid currentColor}
+.thesis{font-size:19px; max-width:44em}
+.facts{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:14px 24px; font-size:16px}
+.facts h3{font-size:17px; font-weight:800; margin-bottom:4px; font-stretch:100%}
+.facts ul{margin:0; padding-left:1.1em; display:grid; gap:3px}
+.sw{display:flex; gap:8px; align-items:flex-start}
+.sw i{flex:none; width:22px; height:22px; border-radius:6px; margin-top:2px; box-shadow:inset 0 0 0 1px #0003}
+.sw + .sw{margin-top:6px}
+.risk{font-size:16px; color:var(--muted)}
+.phones{display:flex; flex-wrap:wrap; gap:26px; justify-content:center}
+.pcard{display:grid; gap:8px; justify-items:center; width:300px; max-width:100%; align-content:start}
+.pcard .cap{font-size:15px; color:var(--muted); text-align:center; min-height:2.6em}
+.replay{min-height:44px; padding:6px 16px; border-radius:22px; border:2px solid var(--rule); background:transparent; color:var(--ink); cursor:pointer}
+.react{display:grid; gap:8px}
+.row{display:flex; flex-wrap:wrap; gap:6px}
+.v{min-height:44px; padding:6px 14px; border-radius:22px; border:2px solid var(--rule); background:transparent; color:var(--ink); cursor:pointer}
+.v[aria-pressed="true"][data-v="love"]{background:var(--love); border-color:var(--love); color:var(--panel)}
+.v[aria-pressed="true"][data-v="like"]{background:var(--like); border-color:var(--like); color:var(--panel)}
+.v[aria-pressed="true"][data-v="unsure"]{background:var(--unsure); border-color:var(--unsure); color:var(--panel)}
+.v[aria-pressed="true"][data-v="no"]{background:var(--no); border-color:var(--no); color:var(--panel)}
+textarea{width:100%; min-height:84px; padding:10px 12px; border-radius:10px; border:2px solid var(--rule); background:var(--bg); color:var(--ink); line-height:1.5}
+.react label{font-weight:700; font-size:16px}
+.demoted{display:grid; gap:10px}
+.demoted h2{font-size:26px; font-weight:800}
+.dlist{display:grid; grid-template-columns:repeat(auto-fit, minmax(250px,1fr)); gap:12px}
+.dcard{border:2px dashed var(--rule); border-radius:14px; padding:12px 14px; font-size:16px; display:grid; gap:4px}
+.dcard b{font-size:17px}
+.secnote{display:grid; gap:6px; max-width:44em}
+.secnote label{font-weight:700}
+.credits{font-size:14px; color:var(--muted)}
+.credits a{color:inherit}
+
+/* ===== shared phone frame. 300 px wide stands for the S23's 360. ===== */
+.ph{width:300px; max-width:100%; height:621px; border-radius:30px; overflow:hidden; position:relative; border:6px solid #050506; box-shadow:0 14px 30px -8px #0006; font:13.5px/1.35 var(--body); flex:none; text-align:left; isolation:isolate}
+.ph p{margin:0}
+.ph .pc{display:block; object-fit:contain}
+.ph .top{display:flex; align-items:center; gap:10px; padding:14px 16px 0; position:relative; z-index:4}
+.ph .sm{font-size:12px}
+.ph .nav{position:absolute; bottom:0; left:0; right:0; z-index:6; display:flex; justify-content:space-around; align-items:center; padding:9px 6px 12px; font-size:12px}
+.ph .nav .plus{width:36px; height:36px; display:grid; place-items:center}
+.ph .ico{display:inline-grid; place-items:center}
+/* No reduced-motion branch: PRODUCT.md says motion is wanted and the app has no reduced-motion mode. */
+
+/* ===== A. Dressing Room ===== */
+.dr{--g:#170B15; --plum:#3A1033; --t:#F7EEE4; --m:#D2C1B8; --bulb:#FFD08A; --act:#FFB547; --ok:#8EE0A8; background:var(--g); color:var(--t)}
+.dr .caps{font:800 15px/1 "Big Shoulders Display", var(--disp); letter-spacing:.16em; text-transform:uppercase}
+.dr .mirror{position:relative; margin:12px 12px 0; height:262px; border-radius:16px; background:#22121F; overflow:hidden; box-shadow:inset 0 0 0 3px #4A2142}
+.dr .spot{position:absolute; inset:0; background:radial-gradient(ellipse 46% 62% at var(--sx,70%) 70%, var(--c) 0%, transparent 72%); animation:drspot 8s cubic-bezier(.16,1,.3,1) infinite}
+@keyframes drspot{0%,8%{opacity:0; --sx:20%} 22%{opacity:1} 30%,100%{opacity:1; --sx:70%}}
+@property --sx{syntax:'<percentage>'; inherits:true; initial-value:70%}
+.dr .floor{position:absolute; left:0; right:0; bottom:0; height:46px; background:linear-gradient(#0000,#0009)}
+.dr .bulbs{position:absolute; inset:7px; pointer-events:none; z-index:3}
+.dr .b{position:absolute; width:9px; height:9px; border-radius:50%; background:#5A4030; animation:bulb 8s infinite}
+@keyframes bulb{0%,3%{background:#5A4030; box-shadow:none} 6%,100%{background:var(--bulb); box-shadow:0 2px 10px 2px #FFC56B88}}
+.dr .cur{position:absolute; top:0; bottom:0; width:51%; z-index:2; background:repeating-linear-gradient(90deg,#5C1446 0 10px,#4A0F38 10px 20px); animation:drcur 8s cubic-bezier(.7,0,.2,1) infinite}
+.dr .cur.l{left:0; transform-origin:left} .dr .cur.r{right:0; transform-origin:right}
+@keyframes drcur{0%,6%{transform:scaleX(1)} 20%,100%{transform:scaleX(.06)}}
+.dr .count{position:absolute; left:20px; top:20px; z-index:2}
+.dr .num{font:900 104px/.8 "Big Shoulders Display", var(--disp); font-variant-numeric:tabular-nums; display:block}
+.dr .lab{font:800 14px/1 "Big Shoulders Display"; letter-spacing:.24em; text-transform:uppercase; color:var(--m); margin-top:6px; display:block}
+.dr .fit{display:flex; align-items:center; gap:6px; margin-top:10px; font-size:13px}
+.dr .fit i{width:9px; height:9px; border-radius:50%; background:var(--ok)}
+.dr .star{position:absolute; right:6px; bottom:30px; z-index:1; filter:drop-shadow(0 10px 8px #000B)}
+.dr .billing{position:absolute; left:20px; bottom:18px; z-index:2; display:grid; gap:1px}
+.dr .billing .k{font-size:12px; color:var(--bulb); font-weight:700; letter-spacing:.06em}
+.dr .billing b{font:800 22px/1.05 "Big Shoulders Display"; letter-spacing:.02em}
+.dr .tabs{display:flex; gap:18px; padding:14px 16px 0; font-size:13px}
+.dr .tabs span{padding-bottom:5px; color:var(--m)}
+.dr .tabs .on{color:var(--t); font-weight:700; box-shadow:0 2px 0 var(--act)}
+.dr .cues{display:flex; gap:8px; padding:12px 16px 0; overflow:hidden}
+.dr .cue{flex:none; background:#2A1527; border-radius:4px; padding:6px 10px 5px; font-size:12.5px; transform:rotate(-1.5deg); box-shadow:0 3px 6px -2px #000A}
+.dr .cue:nth-child(even){transform:rotate(1.2deg)}
+.dr .cue b{font-family:"Big Shoulders Display"; font-size:16px; margin-left:4px}
+.dr .cue.on{background:var(--act); color:#1A0E00; font-weight:700}
+.dr .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:14px 12px 0}
+.dr .mini{height:96px; border-radius:10px; background:radial-gradient(ellipse 60% 64% at 50% 64%, var(--c), transparent 74%), #22121F; position:relative; display:grid; place-items:center; box-shadow:inset 0 0 0 2px #4A2142}
+.dr .mini::before,.dr .mini::after{content:""; position:absolute; top:5px; width:6px; height:6px; border-radius:50%; background:var(--bulb); box-shadow:0 0 6px var(--bulb)}
+.dr .mini::before{left:6px} .dr .mini::after{right:6px}
+.dr .lbl{font-size:12px; padding:4px 2px 0}
+.dr .nav{background:var(--g); border-top:1px solid #3A1D35; color:var(--m)}
+.dr .nav b{color:var(--t)}
+.dr .nav .plus{border-radius:12px; background:var(--act); color:#1A0E00; box-shadow:0 6px 14px -4px #FFB54788}
+/* Curtain call */
+.dr .date{font-size:13px; color:var(--m)}
+.dr h4{font:800 30px/1 "Big Shoulders Display"; margin:6px 16px 0; letter-spacing:.01em}
+.dr .stage{position:relative; height:250px; margin:12px 12px 0; border-radius:16px; background:#1E0F1B; overflow:hidden}
+.dr .cone{position:absolute; top:-10px; width:120px; height:260px; clip-path:polygon(40% 0,60% 0,100% 100%,0 100%); background:linear-gradient(#FFE7B8AA,#FFE7B800 92%); opacity:0; animation:cone 7s infinite}
+@keyframes cone{0%,4%{opacity:0} 10%,100%{opacity:1}}
+.dr .boards{position:absolute; left:0; right:0; bottom:0; height:44px; background:repeating-linear-gradient(90deg,#3A2014 0 26px,#331B10 26px 27px); box-shadow:inset 0 10px 14px -6px #000C}
+.dr .actor{position:absolute; bottom:28px; filter:drop-shadow(0 8px 6px #000B); transform-origin:50% 100%; animation:bow 7s cubic-bezier(.5,0,.2,1) infinite}
+@keyframes bow{0%,46%{transform:none} 52%{transform:rotate(-7deg) translateY(4px)} 60%,100%{transform:none}}
+.dr .stamp{position:absolute; right:14px; top:16px; z-index:3; border:3px solid var(--act); color:var(--act); border-radius:8px; padding:6px 10px 4px; font:900 20px/1 "Big Shoulders Display"; letter-spacing:.08em; text-transform:uppercase; transform:rotate(-8deg); opacity:0; animation:stampin 7s cubic-bezier(.2,1.4,.4,1) infinite; text-align:center}
+.dr .stamp small{display:block; font:700 12px/1.2 var(--body); letter-spacing:0; text-transform:none}
+@keyframes stampin{0%,58%{opacity:0; transform:rotate(-8deg) scale(2.2)} 64%,100%{opacity:1; transform:rotate(-8deg) scale(1)}}
+.dr .btns{display:flex; gap:8px; padding:12px 12px 0}
+.dr .btn{flex:1; text-align:center; padding:11px 8px; border-radius:12px; font-weight:700}
+.dr .btn.go{background:var(--act); color:#1A0E00}
+.dr .btn.gh{box-shadow:inset 0 0 0 2px #5A3352}
+.dr .glad{margin:12px 12px 0; padding:10px 12px; border-radius:12px; background:#24121F}
+.dr .scale{display:flex; gap:6px; margin-top:8px}
+.dr .scale span{flex:1; height:30px; border-radius:8px; display:grid; place-items:center; font-weight:700; background:#3A2236; color:var(--m)}
+.dr .scale .lit{background:var(--bulb); color:#1A0E00; box-shadow:0 0 10px #FFC56B66}
+
+/* ===== B. Lit Street (pick) ===== */
+@property --hc{syntax:'<color>'; inherits:true; initial-value:#B4552C}
+.st{--g:#06070B; --t:#F2EEE8; --m:#B9B3AA; --act:#7FB0FF; --ok:#7BD3A0; background:radial-gradient(120% 60% at 75% 22%, color-mix(in oklab, var(--hc) 55%, transparent), transparent 70%), var(--g); color:var(--t); animation:hue 9s infinite}
+@keyframes hue{0%,28%{--hc:#B4552C} 33%,61%{--hc:#2F5FD0} 66%,94%{--hc:#B8325A} 100%{--hc:#B4552C}}
+.st .caps{font:600 12px/1 var(--disp); letter-spacing:.22em; text-transform:uppercase}
+.st .num{font:500 128px/.78 var(--disp); font-stretch:62%; font-variant-numeric:tabular-nums; display:block; letter-spacing:-.02em}
+.st .hero{position:relative; height:300px; margin-top:4px}
+.st .count{position:absolute; left:18px; top:12px; z-index:2}
+.st .count .lab{font:600 13px/1 var(--disp); letter-spacing:.28em; color:var(--m); display:block; margin-top:8px}
+.st .fit{display:flex; align-items:center; gap:6px; margin-top:10px}
+.st .fit i{width:9px; height:9px; border-radius:50%; background:var(--ok)}
+.st .disp{position:absolute; right:-6px; top:36px; width:180px; height:180px}
+.st .disp img{position:absolute; inset:0; width:180px; height:180px; object-fit:contain; opacity:0; filter:drop-shadow(0 12px 10px #0009); animation:show 9s infinite}
+.st .disp img:nth-child(2){animation-delay:3s} .st .disp img:nth-child(3){animation-delay:6s}
+@keyframes show{0%{opacity:0; transform:translateY(8px) scale(.96)} 4%,30%{opacity:1; transform:none} 34%,100%{opacity:0; transform:translateY(-6px)}}
+.st .wet{position:absolute; right:-6px; top:214px; width:180px; height:80px; overflow:hidden; mask:linear-gradient(#000A,#0000); -webkit-mask:linear-gradient(#000A,#0000)}
+.st .wet img{position:absolute; left:0; bottom:0; width:180px; height:180px; object-fit:contain; transform:scaleY(-1) translateY(-100px); filter:blur(2px); opacity:0; animation:show 9s infinite}
+.st .wet img:nth-child(2){animation-delay:3s} .st .wet img:nth-child(3){animation-delay:6s}
+.st .names{position:absolute; left:18px; bottom:14px; z-index:2; height:44px; width:150px}
+.st .names p{position:absolute; inset:0; opacity:0; animation:show 9s infinite}
+.st .names p:nth-child(2){animation-delay:3s} .st .names p:nth-child(3){animation-delay:6s}
+.st .names b{display:block; font:600 18px/1.1 var(--disp); font-stretch:84%}
+.st .names span{font-size:12.5px; color:var(--m)}
+.st .seg{display:flex; margin:4px 12px 0; border-radius:12px; background:#FFFFFF10; padding:3px; font-size:12.5px}
+.st .seg span{flex:1; text-align:center; padding:7px 0; border-radius:9px}
+.st .seg .on{background:var(--t); color:var(--g); font-weight:700}
+.st .chips{display:flex; gap:6px; padding:10px 12px 0; overflow:hidden}
+.st .chip{flex:none; border-radius:16px; padding:6px 11px; font-size:12px; background:#FFFFFF12}
+.st .chip.on{background:var(--hc); color:#fff; font-weight:700}
+.st .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px 8px; padding:14px 12px 0}
+.st .win{height:84px; border-radius:10px; display:grid; place-items:center; background:radial-gradient(ellipse 60% 70% at 50% 62%, var(--c), transparent 72%), #13141A; box-shadow:0 18px 22px -12px var(--c); animation:winon 9s infinite; animation-delay:var(--d)}
+@keyframes winon{0%{filter:brightness(.25)} 6%,100%{filter:none}}
+.st .lbl{font-size:12px; padding:4px 2px 0}
+.st .nav{background:#06070BE6; color:var(--m); border-top:1px solid #FFFFFF14}
+.st .nav b{color:var(--t)}
+.st .nav .plus{border-radius:50%; background:var(--act); color:#06070B}
+/* Night street numbers */
+.st.ns{animation:none; background:linear-gradient(#0B0F22 0%, #140F1E 60%, #06070B 100%)}
+.st .big2{padding:10px 18px 0}
+.st .big2 .num{font-size:84px}
+.st .sub{font-size:13px; color:var(--m); margin-top:4px}
+.st .city{position:absolute; left:0; right:0; bottom:120px; height:250px; display:flex; align-items:flex-end; gap:6px; padding:0 10px}
+.st .bld{flex:1; background:#14161F; border-radius:4px 4px 0 0; position:relative; display:grid; grid-template-columns:repeat(3,1fr); align-content:start; gap:4px; padding:22px 5px 5px; box-shadow:0 0 0 1px #FFFFFF0C}
+.st .bld i{height:9px; border-radius:1px; background:var(--k); opacity:0; animation:wl 6s infinite; animation-delay:var(--d)}
+@keyframes wl{0%{opacity:0} 8%,100%{opacity:1; box-shadow:0 0 6px var(--k)}}
+.st .bld .n{position:absolute; top:-30px; left:0; right:0; text-align:center; font:500 28px/1 var(--disp); font-stretch:62%}
+.st .bld .kn{position:absolute; bottom:-20px; left:-4px; right:-4px; text-align:center; font-size:11.5px; color:var(--m); white-space:nowrap}
+.st .road{position:absolute; left:0; right:0; bottom:58px; height:62px; background:linear-gradient(#0E0F15,#06070B); padding:12px 16px; font-size:12.5px}
+.st .road b{font:600 16px var(--disp); font-stretch:84%}
+
+/* ===== C. Shade Card ===== */
+.sc{--g:#111013; --t:#FBF7F0; --m:#C8C2B8; --act:#FBF7F0; background:var(--g); color:var(--t)}
+.sc .disp{font:800 30px/1 "Bricolage Grotesque", var(--disp); letter-spacing:-.02em}
+.sc .head{padding:16px 16px 0}
+.sc .head p{font-size:13px; color:var(--m); margin-top:4px}
+.sc .seg{display:flex; margin:12px 12px 0; gap:6px; font-size:12.5px}
+.sc .seg span{flex:1; text-align:center; padding:8px 0; border-radius:20px; box-shadow:inset 0 0 0 1.5px #FFFFFF33}
+.sc .seg .on{background:var(--t); color:var(--g); font-weight:700; box-shadow:none}
+.sc .fan{position:relative; margin:14px 12px 0; height:388px}
+.sc .strip{position:absolute; left:0; right:0; height:58px; border-radius:10px; background:var(--f); color:var(--ink2,#fff); display:flex; align-items:center; padding:0 14px 0 30px; transform-origin:12px 50%; animation:fanout 8s cubic-bezier(.16,1,.3,1) infinite; animation-delay:var(--d); box-shadow:0 8px 14px -8px #000C; overflow:hidden}
+.sc .strip::before{content:""; position:absolute; left:10px; top:50%; width:10px; height:10px; margin-top:-5px; border-radius:50%; background:var(--g); box-shadow:inset 0 1px 2px #0008}
+@keyframes fanout{0%,4%{top:0; transform:rotate(-14deg)} 16%,88%{top:var(--y); transform:none} 100%{top:0; transform:rotate(-14deg)}}
+.sc .strip b{font:700 15px/1 "Bricolage Grotesque"}
+.sc .strip small{display:block; font-size:11.5px; opacity:.85; margin-top:3px}
+.sc .strip .n{margin-left:auto; font:800 30px/1 "Bricolage Grotesque"; font-variant-numeric:tabular-nums}
+.sc .strip .cut{position:absolute; right:56px; bottom:-8px; display:flex}
+.sc .strip .cut img{width:44px; height:58px; object-fit:contain; margin-left:-12px; filter:drop-shadow(0 4px 4px #0006)}
+.sc .nav{background:var(--g); color:var(--m); border-top:1px solid #FFFFFF14}
+.sc .nav b{color:var(--t)}
+.sc .nav .plus{border-radius:12px; background:var(--t); color:var(--g)}
+/* drench */
+.sc.dren{background:#111013}
+.sc .flood{position:absolute; inset:0; background:#9A4524; clip-path:circle(0% at 18% 92%); animation:flood 7s cubic-bezier(.65,0,.2,1) infinite}
+@keyframes flood{0%,6%{clip-path:circle(0% at 18% 92%)} 26%,100%{clip-path:circle(150% at 18% 92%)}}
+.sc .dc{position:absolute; inset:0; z-index:1; opacity:0; animation:fadein 7s infinite; display:flex; flex-direction:column}
+@keyframes fadein{0%,18%{opacity:0; transform:translateY(10px)} 30%,100%{opacity:1; transform:none}}
+.sc .dc .pz{align-self:center; margin-top:4px; filter:drop-shadow(0 18px 14px #0007)}
+.sc .dc h4{font:800 40px/.95 "Bricolage Grotesque"; margin:0 16px; letter-spacing:-.03em}
+.sc .dc .sh{margin:6px 16px 0; font-size:13px; color:#FFE3D2}
+.sc .where{margin:12px 16px 0; display:flex; gap:8px; align-items:center; font:700 17px/1.2 "Bricolage Grotesque"}
+.sc .stats{display:flex; gap:20px; margin:12px 16px 0}
+.sc .stats b{display:block; font:800 28px/1 "Bricolage Grotesque"}
+.sc .stats span{font-size:12px; color:#FFE3D2}
+.sc .goes{margin:14px 16px 0; font-size:12.5px; color:#FFE3D2}
+.sc .gw{display:flex; gap:8px; margin:6px 16px 0}
+.sc .gw div{flex:1; height:58px; border-radius:10px; background:var(--f); display:grid; place-items:center}
+.sc .gw img{width:46px; height:52px; object-fit:contain}
+.sc .worn{margin:14px 16px 0; text-align:center; padding:12px; border-radius:14px; background:var(--t); color:#4A1E0C; font-weight:700}
+
+/* ===== D. The Rail ===== */
+.rl{--g:#15110D; --t:#F5EFE6; --m:#CBBFAF; --brass:#C99A4B; --act:#F2A33A; --ok:#8EE0A8; background:linear-gradient(#211913, #15110D 50%); color:var(--t)}
+.rl .disp{font:800 20px/1 Anybody, var(--disp); font-stretch:70%; letter-spacing:.04em; text-transform:uppercase}
+.rl .hdr{display:flex; align-items:flex-end; gap:12px; padding:10px 16px 0}
+.rl .num{font:900 84px/.8 Anybody; font-stretch:55%; font-variant-numeric:tabular-nums}
+.rl .hdr p{font-size:12.5px; color:var(--m); padding-bottom:4px}
+.rl .hdr p b{color:var(--t); font-size:14px; display:block}
+.rl .rail{position:relative; height:250px; margin-top:12px; overflow:hidden}
+.rl .bar{position:absolute; left:0; right:0; top:18px; height:5px; background:linear-gradient(#E6C27A,#8A6526); box-shadow:0 3px 6px #000A; z-index:2}
+.rl .track{position:absolute; top:0; left:10px; display:flex; gap:4px; animation:slide 10s cubic-bezier(.65,0,.25,1) infinite}
+@keyframes slide{0%,30%{transform:none} 45%,75%{transform:translateX(-150px)} 90%,100%{transform:none}}
+.rl .hang{width:104px; flex:none; position:relative; transform-origin:52px 20px; animation:swing 3.2s ease-in-out infinite; animation-delay:var(--d)}
+@keyframes swing{0%,100%{transform:rotate(-2.5deg)} 50%{transform:rotate(2.5deg)}}
+.rl .hang svg{display:block; margin:8px auto 0; position:relative; z-index:3}
+.rl .hang img{display:block; margin:-6px auto 0; width:100px; height:150px; object-fit:contain; filter:drop-shadow(0 10px 8px #000A)}
+.rl .tag{position:absolute; left:8px; top:44px; z-index:4; padding:3px 7px; border-radius:4px; font-size:11.5px; font-weight:700; background:var(--tg); color:#140F0A; transform:rotate(-6deg)}
+.rl .hang .nm{text-align:center; font-size:12px; margin-top:2px}
+.rl .shelf{margin:0 12px; height:70px; border-radius:6px; background:linear-gradient(#2A2018,#1A140F); display:flex; align-items:flex-end; justify-content:space-around; padding:0 10px 8px; box-shadow:inset 0 -6px 0 #3A2C20}
+.rl .shelf img{width:66px; height:52px; object-fit:contain; filter:drop-shadow(0 4px 3px #000A)}
+.rl .secs{display:flex; gap:6px; padding:10px 12px 0; overflow:hidden}
+.rl .sec{flex:none; padding:6px 11px; border-radius:6px; font-size:12px; background:#FFFFFF10}
+.rl .sec b{font:800 15px Anybody; font-stretch:60%; margin-left:4px}
+.rl .sec.on{background:var(--act); color:#140F0A}
+.rl .places{display:flex; gap:10px; padding:10px 16px 0; font-size:12px; color:var(--m); flex-wrap:wrap}
+.rl .places i{display:inline-block; width:10px; height:10px; border-radius:2px; background:var(--tg); margin-right:4px; vertical-align:-1px}
+.rl .nav{background:#120E0B; color:var(--m); border-top:1px solid #FFFFFF12}
+.rl .nav b{color:var(--t)}
+.rl .nav .plus{border-radius:8px; background:var(--act); color:#140F0A}
+/* outfits */
+.rl .ofit{margin:12px 12px 0; border-radius:14px; background:#FFFFFF08; padding:10px 10px 12px; position:relative}
+.rl .ofit .band{display:flex; height:6px; border-radius:3px; overflow:hidden; margin-bottom:8px}
+.rl .ofit .band i{flex:1}
+.rl .ofit .row3{display:flex; justify-content:center; gap:0; position:relative; height:104px}
+.rl .ofit .row3::before{content:""; position:absolute; left:10px; right:10px; top:6px; height:3px; background:var(--brass); border-radius:2px}
+.rl .ofit .h{width:76px; position:relative; animation:gather 6s cubic-bezier(.16,1,.3,1) infinite; transform-origin:50% 6px}
+.rl .ofit .h:nth-child(1){--x:-40px} .rl .ofit .h:nth-child(3){--x:40px}
+@keyframes gather{0%,8%{transform:translateX(var(--x,0)) rotate(0)} 24%{transform:none rotate(2deg)} 32%,100%{transform:none}}
+.rl .ofit .h img{display:block; margin:6px auto 0; width:72px; height:92px; object-fit:contain; filter:drop-shadow(0 6px 5px #000A)}
+.rl .ofit .meta{display:flex; align-items:center; gap:8px; margin-top:6px; font-size:12.5px}
+.rl .ofit .meta b{font-size:14px}
+.rl .ofit .go{margin-left:auto; padding:8px 12px; border-radius:8px; background:var(--act); color:#140F0A; font-weight:700}
+
+/* ===== E. Dhobi Tags ===== */
+.dt{--g:#0D1020; --t:#F4F2EC; --m:#BFC3D6; --mari:#FFB000; --rani:#F0428B; --parrot:#5BC236; --sky:#46A6FF; background:var(--g); color:var(--t)}
+.dt .sten{font-family:"Saira Stencil One", var(--disp)}
+.dt .hdr{display:flex; align-items:center; gap:12px; padding:12px 16px 0}
+.dt .bigtag{position:relative; background:var(--mari); color:#1B1200; padding:10px 16px 10px 26px; border-radius:6px 14px 14px 6px; transform:rotate(-3deg); box-shadow:0 10px 16px -8px #000C}
+.dt .bigtag::before{content:""; position:absolute; left:9px; top:50%; width:9px; height:9px; margin-top:-4.5px; border-radius:50%; background:var(--g)}
+.dt .bigtag .num{font:64px/.9 "Saira Stencil One"; display:block}
+.dt .bigtag span{font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase}
+.dt .hdr p{font-size:13px; color:var(--m)}
+.dt .hdr p b{color:var(--parrot); font-size:15px; display:block}
+.dt .legend{display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:14px 12px 0}
+.dt .lg{display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; background:#FFFFFF0C; font-size:12.5px}
+.dt .lg i{width:14px; height:20px; border-radius:2px 5px 5px 2px; background:var(--tg)}
+.dt .lg b{margin-left:auto; font:16px "Saira Stencil One"}
+.dt .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px 8px; padding:14px 12px 0}
+.dt .tile{height:100px; border-radius:10px; background:#171B33; position:relative; display:grid; place-items:center}
+.dt .tile img{filter:drop-shadow(0 6px 6px #0009)}
+.dt .ptag{position:absolute; left:-3px; top:6px; z-index:2; background:var(--tg); color:#140F0A; font:12px/1 "Saira Stencil One"; padding:4px 6px 4px 11px; border-radius:2px 6px 6px 2px; transform-origin:0 50%; animation:flutter 2.6s ease-in-out infinite; animation-delay:var(--d)}
+.dt .ptag::before{content:""; position:absolute; left:3px; top:50%; width:4px; height:4px; margin-top:-2px; border-radius:50%; background:#171B33}
+@keyframes flutter{0%,100%{transform:rotate(-4deg)} 50%{transform:rotate(3deg)}}
+.dt .wstamp{position:absolute; inset:auto 6px 8px auto; z-index:3; color:var(--rani); border:2.5px solid var(--rani); border-radius:5px; font:14px/1 "Saira Stencil One"; padding:3px 6px; transform:rotate(-12deg); opacity:0; animation:thunk 6s cubic-bezier(.2,1.5,.4,1) infinite}
+@keyframes thunk{0%,40%{opacity:0; transform:rotate(-12deg) scale(2.4)} 46%,100%{opacity:1; transform:rotate(-12deg) scale(1)}}
+.dt .lbl{font-size:12px; padding:4px 2px 0}
+.dt .nav{background:#0A0C18; color:var(--m); border-top:1px solid #FFFFFF14}
+.dt .nav b{color:var(--t)}
+.dt .nav .plus{border-radius:6px 12px 12px 6px; background:var(--mari); color:#1B1200}
+/* where is it */
+.dt .ask{margin:12px 12px 0; padding:11px 12px; border-radius:10px; background:#FFFFFF10; display:flex; gap:8px; align-items:center; font-size:14px}
+.dt .ask .caret{width:2px; height:16px; background:var(--mari); animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.dt .found{margin:14px 12px 0; display:flex; gap:10px; align-items:center}
+.dt .found img{filter:drop-shadow(0 8px 8px #000B)}
+.dt .ansr{position:relative; flex:1; background:var(--rani); color:#1A0710; border-radius:4px 16px 16px 4px; padding:12px 12px 12px 22px; transform-origin:0 50%; animation:swingin 6s cubic-bezier(.2,1.3,.4,1) infinite}
+.dt .ansr::before{content:""; position:absolute; left:8px; top:14px; width:7px; height:7px; border-radius:50%; background:var(--g)}
+@keyframes swingin{0%,10%{transform:rotate(-30deg); opacity:0} 22%,100%{transform:rotate(-2deg); opacity:1}}
+.dt .ansr b{font:24px/1 "Saira Stencil One"; display:block}
+.dt .ansr span{font-size:12.5px; font-weight:700}
+.dt .crumb{margin:10px 16px 0; font-size:12.5px; color:var(--m)}
+.dt .plist{display:grid; gap:8px; padding:14px 12px 0}
+.dt .pl{display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:10px; background:#FFFFFF0A}
+.dt .pl i{width:16px; height:24px; border-radius:2px 6px 6px 2px; background:var(--tg)}
+.dt .pl b{margin-left:auto; font:22px/1 "Saira Stencil One"}
+.dt .drum{width:24px; height:24px; border-radius:50%; border:3px dashed var(--sky); animation:spin 2.4s linear infinite}
+@keyframes spin{to{transform:rotate(1turn)}}
+
+/* ===== F. Panorama Tiles (challenger) ===== */
+.mt{--g:#000; --t:#fff; --m:#BDBDBD; background:#000; color:#fff}
+.mt .giant{font:400 64px/1 Epilogue, var(--disp); letter-spacing:-.04em; white-space:nowrap; margin:16px 0 0 14px; animation:glide 8s cubic-bezier(.16,1,.3,1) infinite}
+@keyframes glide{0%{transform:translateX(60px); opacity:0} 10%,100%{transform:none; opacity:1}}
+.mt .pivot{display:flex; gap:16px; margin:4px 0 0 16px; font:500 19px Epilogue; white-space:nowrap}
+.mt .pivot span{color:#8E8E8E} .mt .pivot .on{color:#fff}
+.mt .tiles{display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:12px 12px 0}
+.mt .t{height:118px; background:var(--f); position:relative; perspective:500px; animation:tin 8s cubic-bezier(.16,1,.3,1) infinite; animation-delay:var(--d)}
+@keyframes tin{0%{opacity:0; transform:translateX(30px)} 8%,100%{opacity:1; transform:none}}
+.mt .t.w{grid-column:span 2}
+.mt .t .lab{position:absolute; left:8px; bottom:6px; font:500 14px Epilogue; z-index:2}
+.mt .t .n{position:absolute; right:8px; top:4px; font:400 40px/1 Epilogue; letter-spacing:-.03em; z-index:2}
+.mt .flip{position:absolute; inset:0; transform-style:preserve-3d; animation:flip 6s cubic-bezier(.7,0,.3,1) infinite; animation-delay:var(--fd,0s)}
+@keyframes flip{0%,40%{transform:none} 50%,90%{transform:rotateX(180deg)} 100%{transform:rotateX(360deg)}}
+.mt .face{position:absolute; inset:0; backface-visibility:hidden; display:grid; place-items:center}
+.mt .face.b{transform:rotateX(180deg)}
+.mt .face img{filter:drop-shadow(0 6px 5px #0006)}
+.mt .nav{background:#000; color:#9A9A9A}
+.mt .nav b{color:#fff}
+.mt .nav .plus{background:#00A8E8; color:#000}
+.mt .kv{font:400 13px Epilogue; color:#E8E8E8}
+
+/* ===== G. One Piece at a Time (challenger) ===== */
+.fd{background:#000; color:#fff}
+.fd .reel{position:absolute; inset:0; animation:snap 9s cubic-bezier(.8,0,.2,1) infinite}
+@keyframes snap{0%,30%{transform:none} 33%,63%{transform:translateY(-621px)} 66%,96%{transform:translateY(-1242px)} 100%{transform:translateY(-1863px)}}
+.fd .item{height:621px; position:relative; background:var(--f); overflow:hidden}
+.fd .item .pz{position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); filter:drop-shadow(0 20px 16px #0008)}
+.fd .item::after{content:""; position:absolute; left:0; right:0; bottom:0; height:46%; background:linear-gradient(#0000,#000C)}
+.fd .capt{position:absolute; left:16px; right:70px; bottom:74px; z-index:2}
+.fd .capt b{display:block; font:800 30px/1 Archivo; font-stretch:112%; letter-spacing:-.01em}
+.fd .capt span{font-size:13px; opacity:.92}
+.fd .railr{position:absolute; right:10px; bottom:84px; z-index:5; display:grid; gap:14px; justify-items:center; font-size:11.5px; text-align:center}
+.fd .railr .g{width:42px; height:42px; border-radius:50%; background:#FFFFFF22; display:grid; place-items:center; backdrop-filter:blur(6px)}
+.fd .railr .g.hot{background:#fff; color:#000; animation:pop 3s cubic-bezier(.2,1.6,.4,1) infinite}
+@keyframes pop{0%,60%{transform:none} 68%{transform:scale(1.25)} 76%,100%{transform:none}}
+.fd .topf{position:absolute; top:12px; left:12px; right:12px; z-index:5; display:flex; gap:6px; align-items:center}
+.fd .pill{padding:7px 12px; border-radius:18px; background:#0006; backdrop-filter:blur(6px); font-size:12.5px; font-weight:700}
+.fd .nav{background:#000C; color:#BDBDBD}
+.fd .nav b{color:#fff}
+.fd .nav .plus{border-radius:50%; background:#fff; color:#000}
+/* own this */
+.fd.own{background:#1A1D22}
+.fd .cam{position:absolute; inset:0; background:radial-gradient(70% 50% at 50% 38%, #3C4552, #15181D)}
+.fd .frame{position:absolute; left:40px; right:40px; top:70px; height:250px; border-radius:20px; box-shadow:0 0 0 2px #FFFFFF55; overflow:hidden}
+.fd .scan{position:absolute; left:0; right:0; height:3px; background:#7FFFD4; box-shadow:0 0 12px 2px #7FFFD488; animation:scan 3s ease-in-out infinite}
+@keyframes scan{0%,100%{top:8%} 50%{top:90%}}
+.fd .verdict{position:absolute; left:12px; right:12px; bottom:66px; z-index:3; border-radius:22px; background:#F4F1EA; color:#16130F; padding:14px; animation:rise 6s cubic-bezier(.16,1,.3,1) infinite}
+@keyframes rise{0%,22%{transform:translateY(120%)} 34%,100%{transform:none}}
+.fd .verdict b{font:800 26px/1 Archivo; font-stretch:110%; display:block}
+.fd .verdict p{font-size:13px; margin-top:4px}
+.fd .matches{display:flex; gap:8px; margin-top:10px}
+.fd .matches div{flex:1; height:76px; border-radius:12px; background:#E2DDD3; display:grid; place-items:center; position:relative}
+.fd .matches span{position:absolute; bottom:3px; left:0; right:0; text-align:center; font-size:11.5px}
+
+/* ===== Canon (quiet) ===== */
+.cn{background:#F6F6F4; color:#16181B}
+.cn .h{font:700 22px/1 var(--body); padding:14px 16px 0}
+.cn .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:12px}
+.cn .grid div{height:92px; border-radius:10px; background:#fff; box-shadow:0 2px 6px -2px #0002; display:grid; place-items:center}
+.cn .chips{display:flex; gap:6px; padding:10px 12px 0}
+.cn .chips span{padding:6px 10px; border-radius:16px; background:#E7E8EA; font-size:12px}
+.cn .chips .on{background:#16181B; color:#fff}
+.cn .nav{background:#fff; color:#6B7076; border-top:1px solid #E2E3E5}
+.cn .nav b{color:#16181B}
+.cn .nav .plus{border-radius:50%; background:#2F6BFF; color:#fff}
+</style>
+<script src="inventory-photos.js"></script>
+
+<div class="wrap">
+  <header class="hero">
+    <h1>Inventory redesign, round 1: breadth</h1>
+    <p>Seven different worlds for the same app, each shown on two live phones. Every one keeps the app's parts: the piece count, a featured piece, browse by kind, colour and place, counts on every filter, fit at a glance, logging what you wore, wishes, numbers, and the add button in the middle of the tab bar.</p>
+    <ul>
+      <li>All of them add real colour. Colour always has a job (a piece's own colour, a place, a kind, or a state), so none of it is decoration.</li>
+      <li>The phones animate on a loop. Press <b>Replay</b> under a phone to watch from the start.</li>
+      <li>React to each world with Love, Like, Unsure or No, and say which parts you would steal from it. Mixing is expected in round 2.</li>
+      <li>The clothes are example photos. Names, counts and prices are made up.</li>
+    </ul>
+    <p class="status" id="status" role="status">Connecting…</p>
+  </header>
+
+  <div id="dirs" style="display:grid; gap:26px"></div>
+
+  <section class="demoted" aria-labelledby="dm-h">
+    <h2 id="dm-h">Also weighed, set aside</h2>
+    <p class="risk">These lost on both "would you recognise your own wardrobe in it" and "is the app still clear". Each one still gave something to the worlds above, named below. Ask for any of them and I'll draw it properly.</p>
+    <div class="dlist" id="declined"></div>
+  </section>
+
+  <section class="secnote" aria-labelledby="ov-h">
+    <h2 id="ov-h" style="font-size:26px; font-weight:800">Your notes on the whole round</h2>
+    <label for="note-board">Which two or three worlds should go to round 2, and which parts would you take from the others?</label>
+    <textarea id="note-board" placeholder="For example: Dressing Room's curtain call plus Shade Card's piece page"></textarea>
+    <p class="credits">Photos: free-licence images from <a href="https://unsplash.com/license" target="_blank" rel="noopener">Unsplash</a>, cut out with the same tool the app uses.</p>
+  </section>
+</div>
+
+<script>
+const PH0 = window.PHOTOS || {};
+const img = (n, w, h, st='', cls='pc') => `<img class="${cls}" src="${PH0[n]||''}" alt="" width="${w}" height="${h}" style="width:${w}px; height:${h}px; ${st}">`;
+const ico = (d, s=18, sw=2) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const SEARCH = ico('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>');
+const MORE = ico('<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>');
+const BACK = ico('<path d="M15 6l-6 6 6 6"/>', 18);
+const PLUS = ico('<path d="M12 5v14M5 12h14"/>', 20, 2.6);
+const PIN = ico('<path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>', 16);
+const HEART = ico('<path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z"/>', 20);
+const HANG = ico('<path d="M12 6a2 2 0 112 2c-1 .5-2 1-2 2v1l9 6H3l9-6"/>', 20);
+const CAM = ico('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>', 20);
+const CHECK = ico('<path d="M5 12l5 5 9-10"/>', 20, 2.6);
+const NAV = (on) => `<div class="nav">${['Wardrobe','Things','+','Wishes','Home'].map(t => t==='+' ? `<span class="plus">${PLUS}</span>` : (t===on?`<b>${t}</b>`:`<span>${t}</span>`)).join('')}</div>`;
+const hanger = `<svg width="84" height="30" viewBox="0 0 84 30" aria-hidden="true"><path d="M42 2a5 5 0 115 5c-2 1-5 2-5 5v3L80 27H4l38-12" fill="none" stroke="#D9B66A" stroke-width="2.4" stroke-linejoin="round"/></svg>`;
+
+/* Piece colours used for light and fields (vivid versions of each piece's own colour). */
+const C = { 'flat-tee-white':'#D8CBB0', 'flat-tee-black':'#4B5B7A', 'flat-jeans-blue':'#2F5FD0', 'flat-chinos':'#7D7A35', 'flat-jacket-leather':'#7A4535',
+  'white-shirt':'#9AA6B2', 'floral-shirt':'#B8325A', 'white-sneakers':'#C9C2B4', 'brown-loafers':'#B4552C', 'black-watch':'#4F6377', 'silver-watch':'#8C98A4', 'headphones':'#5E6573' };
+
+function bulbs() {
+  let s = '', i = 0; const W = 262, H = 248;
+  for (let x = 0; x <= 10; x++) s += `<i class="b" style="left:${x*W/10-4}px; top:-4px; animation-delay:${(i++*0.05).toFixed(2)}s"></i>`;
+  for (let y = 1; y <= 7; y++) { s += `<i class="b" style="left:-4px; top:${y*H/8-4}px; animation-delay:${(i*0.05).toFixed(2)}s"></i><i class="b" style="right:-4px; top:${y*H/8-4}px; animation-delay:${(i++*0.05).toFixed(2)}s"></i>`; }
+  return `<div class="bulbs">${s}</div>`;
+}
+
+/* ---------- A. Dressing Room ---------- */
+const drWard = `<div class="ph dr">
+  <div class="top"><span class="caps">Wardrobe</span><span style="margin-left:auto; display:flex; gap:14px">${SEARCH}${MORE}</span></div>
+  <div class="mirror" style="--c:${C['brown-loafers']}">
+    <div class="spot"></div><div class="floor"></div>
+    <div class="cur l"></div><div class="cur r"></div>
+    ${bulbs()}
+    <div class="count"><span class="num" data-roll="64">64</span><span class="lab">Pieces</span><span class="fit"><i></i>41 fit now</span></div>
+    ${img('brown-loafers',150,150,'','pc star')}
+    <div class="billing"><span class="k">On stage</span><b>Brown loafers</b><span class="sm" style="color:var(--m)">not worn for 3 weeks</span></div>
+  </div>
+  <div class="tabs"><span class="on">By kind</span><span>By colour</span><span>By place</span><span style="margin-left:auto">Outfits</span></div>
+  <div class="cues"><span class="cue on">All<b>64</b></span><span class="cue">Tops<b>24</b></span><span class="cue">Bottoms<b>12</b></span><span class="cue">Shoes<b>8</b></span></div>
+  <div class="grid">
+    ${[['floral-shirt','Floral shirt'],['flat-jeans-blue','Blue jeans'],['flat-chinos','Cargo trousers']].map(([p,n])=>`<div><div class="mini" style="--c:${C[p]}">${img(p,70,82)}</div><p class="lbl">${n}</p></div>`).join('')}
+  </div>
+  ${NAV('Wardrobe')}
+</div>`;
+const drCall = `<div class="ph dr">
+  <div class="top"><span class="caps">Home</span><span class="date" style="margin-left:auto">Wed 18 Nov</span></div>
+  <h4>What did you wear today?</h4>
+  <p class="sm" style="margin:4px 16px 0; color:var(--m)">Your usual for a Wednesday</p>
+  <div class="stage">
+    <div class="cone" style="left:-6px; animation-delay:0s"></div><div class="cone" style="left:84px; animation-delay:.25s"></div><div class="cone" style="left:172px; animation-delay:.5s"></div>
+    <div class="boards"></div>
+    ${img('flat-tee-white',96,110,'left:12px; animation-delay:0s','pc actor')}
+    ${img('flat-jeans-blue',84,150,'left:104px; animation-delay:.08s','pc actor')}
+    ${img('white-sneakers',86,70,'left:186px; animation-delay:.16s','pc actor')}
+    <div class="stamp">Worn<small>18th time for the jeans</small></div>
+  </div>
+  <div class="btns"><span class="btn go">Yes, this</span><span class="btn gh">Something else</span></div>
+  <div class="glad"><p><b>Glad you bought the loafers?</b> <span class="sm" style="color:var(--m)">1 not at all · 7 very</span></p>
+    <div class="scale">${[1,2,3,4,5,6,7].map(n=>`<span class="${n<=6?'lit':''}">${n}</span>`).join('')}</div></div>
+  ${NAV('Home')}
+</div>`;
+
+/* ---------- B. Lit Street ---------- */
+const stWard = `<div class="ph st">
+  <div class="top"><span class="caps">Wardrobe</span><span style="margin-left:auto; display:flex; gap:14px">${SEARCH}${MORE}</span></div>
+  <div class="hero">
+    <div class="count"><span class="num" data-roll="64">64</span><span class="lab">PIECES</span><span class="fit"><i></i>41 fit now</span></div>
+    <div class="disp">${['brown-loafers','flat-jeans-blue','floral-shirt'].map(p=>`<img src="${PH0[p]||''}" alt="">`).join('')}</div>
+    <div class="wet">${['brown-loafers','flat-jeans-blue','floral-shirt'].map(p=>`<img src="${PH0[p]||''}" alt="">`).join('')}</div>
+    <div class="names"><p><b>Brown loafers</b><span>not worn for 3 weeks</span></p><p><b>Blue jeans</b><span>worn most this month</span></p><p><b>Floral shirt</b><span>added today</span></p></div>
+  </div>
+  <div class="seg"><span class="on">By kind</span><span>By colour</span><span>By place</span></div>
+  <div class="chips"><span class="chip on">All 64</span><span class="chip">Tops 24</span><span class="chip">Bottoms 12</span><span class="chip">Shoes 8</span></div>
+  <div class="grid">${[['flat-tee-white','White tee'],['flat-tee-black','Graphic tee'],['white-shirt','Crew tee']].map(([p,n],i)=>`<div><div class="win" style="--c:${C[p]}; --d:${(i*.12).toFixed(2)}s">${img(p,62,74)}</div><p class="lbl">${n}</p></div>`).join('')}</div>
+  ${NAV('Wardrobe')}
+</div>`;
+const KB = [['Tops',24,'#B8325A',[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]],['Bottoms',12,'#2F5FD0',[0,1,2,3,4,5,6,7,8]],['Shoes',8,'#B4552C',[0,1,2,3,4,5]],['Outer',6,'#7D7A35',[0,1,2,3]],['Watches',4,'#8C98A4',[0,1,2]],['Other',10,'#D8CBB0',[0,1,2,3,4,5,6]]];
+const stNum = `<div class="ph st ns">
+  <div class="top"><span>${BACK}</span><span class="caps">Numbers</span></div>
+  <div class="big2"><span class="num" data-roll="64">64</span><p class="sub">pieces, 41 fit now · 152 wears this year</p></div>
+  <div class="city">${KB.map(([k,n,c,w],bi)=>`<div class="bld" style="height:${40+n*7.5}px; --k:${c}"><span class="n">${n}</span>${w.map((_,i)=>`<i style="--d:${(bi*.15+i*.07).toFixed(2)}s"></i>`).join('')}<span class="kn">${k}</span></div>`).join('')}</div>
+  <div class="road"><p style="color:var(--m)">Best value</p><p><b>Blue jeans</b> · ₹21 a wear</p></div>
+  ${NAV('Home')}
+</div>`;
+
+/* ---------- C. Shade Card ---------- */
+const SH = [['Blues','Indigo, denim, navy',14,'#2F5FD0','#fff',['flat-jeans-blue']],['Whites','Off-white, chalk',11,'#E9E1D0','#1A1712',['flat-tee-white','white-sneakers']],['Blacks','Jet, charcoal',10,'#2B2D33','#fff',['flat-tee-black','headphones']],
+  ['Greys','Light grey, steel',8,'#8E99A5','#111',['white-shirt','silver-watch']],['Browns','Chestnut, tan',6,'#9A4524','#fff',['brown-loafers','flat-jacket-leather']],['Greens','Olive',5,'#6B6A2C','#fff',['flat-chinos']],['Reds','Burgundy, rose',4,'#A62A50','#fff',['floral-shirt']]];
+const scWard = `<div class="ph sc">
+  <div class="head"><p class="disp">64 pieces in 7 shades</p><p>41 fit now · tap a shade to open it</p></div>
+  <div class="seg"><span>Kind</span><span class="on">Colour</span><span>Place</span></div>
+  <div class="fan">${SH.map(([n,s,c,f,ink,ps],i)=>`<div class="strip" style="--f:${f}; --ink2:${ink}; --y:${i*54}px; --d:${(i*.06).toFixed(2)}s; color:${ink}; z-index:${10-i}"><div><b>${n}</b><small>${s}</small></div><div class="cut">${ps.map(p=>`<img src="${PH0[p]||''}" alt="">`).join('')}</div><span class="n">${c}</span></div>`).join('')}</div>
+  ${NAV('Wardrobe')}
+</div>`;
+const scPiece = `<div class="ph sc dren">
+  <div class="flood"></div>
+  <div class="dc">
+    <div class="top"><span>${BACK}</span><span style="margin-left:auto; font-weight:700">Edit</span></div>
+    ${img('brown-loafers',190,170,'','pc pz')}
+    <h4>Brown loafers</h4>
+    <p class="sh">Chestnut · 1 of 6 browns · fits</p>
+    <div class="where">${PIN}Hall rack, bottom shelf</div>
+    <div class="stats"><div><b>23</b><span>wears</span></div><div><b>Sat</b><span>last worn</span></div><div><b>₹140</b><span>a wear</span></div></div>
+    <p class="goes">Goes with</p>
+    <div class="gw">${[['flat-jeans-blue','#2F5FD0'],['flat-tee-white','#E9E1D0'],['flat-chinos','#6B6A2C']].map(([p,f])=>`<div style="--f:${f}">${img(p,46,52)}</div>`).join('')}</div>
+    <div class="worn">Worn today</div>
+  </div>
+</div>`;
+
+/* ---------- D. The Rail ---------- */
+const TG = { cup:'#F2A33A', rack:'#2BB3A3', case:'#E85A8C', wash:'#5B8DEF' };
+const RL = [['floral-shirt','Floral shirt','cup','Cupboard'],['flat-jacket-leather','Leather jacket','case','Suitcase'],['flat-tee-black','Graphic tee','cup','Cupboard'],['white-shirt','Crew tee','wash','Laundry'],['flat-jeans-blue','Blue jeans','cup','Cupboard'],['flat-chinos','Cargo trousers','rack','Hall rack']];
+const rlWard = `<div class="ph rl">
+  <div class="top"><span class="disp">Wardrobe</span><span style="margin-left:auto; display:flex; gap:14px">${SEARCH}${MORE}</span></div>
+  <div class="hdr"><span class="num" data-roll="64">64</span><p><b>pieces</b>41 fit now · swipe the rail</p></div>
+  <div class="rail"><div class="bar"></div><div class="track">${RL.map(([p,n,t,tn],i)=>`<div class="hang" style="--d:${(i*-.5).toFixed(1)}s">${hanger}<span class="tag" style="--tg:${TG[t]}">${tn}</span>${img(p,100,150)}<p class="nm">${n}</p></div>`).join('')}</div></div>
+  <div class="shelf">${img('brown-loafers',66,52)}${img('white-sneakers',66,52)}${img('black-watch',66,52)}</div>
+  <div class="secs"><span class="sec on">All<b>64</b></span><span class="sec">Tops<b>24</b></span><span class="sec">Bottoms<b>12</b></span><span class="sec">Shoes<b>8</b></span></div>
+  <div class="places">${[['cup','Cupboard 38'],['rack','Hall rack 8'],['case','Suitcase 11'],['wash','Laundry 7']].map(([t,n])=>`<span><i style="--tg:${TG[t]}"></i>${n}</span>`).join('')}</div>
+  ${NAV('Wardrobe')}
+</div>`;
+const OF = [[['flat-tee-white','flat-jeans-blue','white-sneakers'],'Your Wednesday','Worn 17 times'],[['floral-shirt','flat-chinos','brown-loafers'],'Lunch out','Worn 6 times'],[['flat-tee-black','flat-jeans-blue','flat-jacket-leather'],'Evening','Worn 4 times']];
+const rlOut = `<div class="ph rl">
+  <div class="top"><span>${BACK}</span><span class="disp">Your regulars</span></div>
+  ${OF.map(([ps,n,w],i)=>`<div class="ofit"><div class="band">${ps.map(p=>`<i style="background:${C[p]}"></i>`).join('')}</div><div class="row3">${ps.map(p=>`<div class="h" style="animation-delay:${(i*.2).toFixed(1)}s">${img(p,72,92)}</div>`).join('')}</div><div class="meta"><div><b>${n}</b><br><span style="color:var(--m)">${w}</span></div>${i===0?'<span class="go">Wear today</span>':''}</div></div>`).join('')}
+  ${NAV('Wardrobe')}
+</div>`;
+
+/* ---------- E. Dhobi Tags ---------- */
+const DT = { cup:'#FFB000', rack:'#5BC236', case:'#F0428B', wash:'#46A6FF' };
+const dtWard = `<div class="ph dt">
+  <div class="top"><span class="sten" style="font-size:17px; letter-spacing:.06em">WARDROBE</span><span style="margin-left:auto; display:flex; gap:14px">${SEARCH}${MORE}</span></div>
+  <div class="hdr"><div class="bigtag"><span class="num" data-roll="64">64</span><span>pieces</span></div><p><b>41 fit now</b>Each tag says where a piece lives</p></div>
+  <div class="legend">${[['cup','Cupboard',38],['rack','Hall rack',8],['case','Suitcase',11],['wash','Laundry',7]].map(([t,n,c])=>`<div class="lg" style="--tg:${DT[t]}"><i></i>${n}<b>${c}</b></div>`).join('')}</div>
+  <div class="grid">${[['floral-shirt','Floral shirt','cup','SH-04'],['flat-jacket-leather','Leather jacket','case','JK-02'],['white-shirt','Crew tee','wash','TS-11'],['flat-jeans-blue','Blue jeans','cup','JN-01'],['brown-loafers','Loafers','rack','SO-03'],['flat-tee-black','Graphic tee','cup','TS-07']].map(([p,n,t,code],i)=>`<div><div class="tile"><span class="ptag" style="--tg:${DT[t]}; --d:${(i*-.4).toFixed(1)}s">${code}</span>${img(p,64,76)}${i===3?'<span class="wstamp">WORN</span>':''}</div><p class="lbl">${n}</p></div>`).join('')}</div>
+  ${NAV('Wardrobe')}
+</div>`;
+const dtWhere = `<div class="ph dt">
+  <div class="top"><span>${BACK}</span><span class="sten" style="font-size:17px; letter-spacing:.06em">WHERE IS IT</span></div>
+  <div class="ask">${SEARCH}<span>leather jack</span><span class="caret"></span></div>
+  <div class="found">${img('flat-jacket-leather',92,110)}<div class="ansr"><b>SUITCASE</b><span>Blue suitcase, top layer</span></div></div>
+  <p class="crumb">Bedroom › Loft › Blue suitcase · packed 2 Oct</p>
+  <div class="plist">${[['cup','Bedroom cupboard',38,''],['rack','Hall rack',8,''],['case','Blue suitcase',11,''],['wash','Laundry',7,'drum']].map(([t,n,c,x])=>`<div class="pl" style="--tg:${DT[t]}"><i></i><span>${n}</span>${x?'<span class="drum"></span>':''}<b>${c}</b></div>`).join('')}</div>
+  ${NAV('Things')}
+</div>`;
+
+/* ---------- F. Panorama Tiles ---------- */
+const mtWard = `<div class="ph mt">
+  <div class="giant">wardrobe <span style="color:#8E8E8E">things</span></div>
+  <div class="pivot"><span class="on">pieces 64</span><span>outfits</span><span>places</span></div>
+  <div class="tiles">
+    <div class="t w" style="--f:#E3008C; --d:0s"><div class="flip" style="--fd:0s"><div class="face">${img('floral-shirt',110,108)}</div><div class="face b">${img('flat-tee-black',100,106)}</div></div><span class="lab">tops</span><span class="n">24</span></div>
+    <div class="t" style="--f:#00A8E8; --d:.08s"><div class="flip" style="--fd:1.5s"><div class="face">${img('flat-jeans-blue',70,104)}</div><div class="face b">${img('flat-chinos',70,104)}</div></div><span class="lab">bottoms</span><span class="n">12</span></div>
+    <div class="t" style="--f:#F09609; --d:.16s"><div class="flip" style="--fd:3s"><div class="face">${img('brown-loafers',88,80)}</div><div class="face b">${img('white-sneakers',88,80)}</div></div><span class="lab">shoes</span><span class="n">8</span></div>
+    <div class="t" style="--f:#8CBF26; --d:.24s"><div class="face"><span class="kv" style="font-size:40px; color:#fff; letter-spacing:-.03em">41</span></div><span class="lab">fit now</span></div>
+    <div class="t" style="--f:#A200FF; --d:.32s"><div class="flip" style="--fd:4.5s"><div class="face">${img('black-watch',70,90)}</div><div class="face b">${img('headphones',80,90)}</div></div><span class="lab">other</span><span class="n">20</span></div>
+  </div>
+  ${NAV('Wardrobe')}
+</div>`;
+const mtHome = `<div class="ph mt">
+  <div class="giant">wednesday</div>
+  <div class="pivot"><span class="on">today</span><span>this week</span><span>year</span></div>
+  <div class="tiles">
+    <div class="t w" style="--f:#00A8E8; height:150px; --d:0s"><div class="flip"><div class="face" style="display:flex; gap:2px">${img('flat-tee-white',70,82)}${img('flat-jeans-blue',56,100)}${img('white-sneakers',62,50)}</div><div class="face b"><span style="font:400 54px/1 Epilogue; letter-spacing:-.04em">18th wear</span></div></div><span class="lab">wear your usual? tap once</span></div>
+    <div class="t" style="--f:#F09609; --d:.1s"><div class="face">${img('brown-loafers',90,80)}</div><span class="lab">glad you bought?</span></div>
+    <div class="t" style="--f:#E3008C; --d:.2s"><div class="face"><span style="font:400 40px/1 Epilogue">2024</span></div><span class="lab">on this day</span></div>
+    <div class="t w" style="--f:#333; height:80px; --d:.3s"><div class="face" style="justify-items:start; padding-left:10px"><span class="kv">do I own this? point the camera</span></div></div>
+  </div>
+  ${NAV('Home')}
+</div>`;
+
+/* ---------- G. One Piece at a Time ---------- */
+const FD = [['floral-shirt','#8E2346','Floral shirt','Shirts · Bedroom cupboard · fits',6],['flat-jeans-blue','#1F47A8','Blue jeans','Jeans · Bedroom cupboard · fits',18],['brown-loafers','#8C3A18','Brown loafers','Shoes · Hall rack · fits',23],['floral-shirt','#8E2346','Floral shirt','Shirts · Bedroom cupboard · fits',6]];
+const fdWard = `<div class="ph fd">
+  <div class="reel">${FD.map(([p,f,n,s])=>`<div class="item" style="--f:${f}">${img(p,230,280,'','pc pz')}<div class="capt"><b>${n}</b><span>${s}</span></div></div>`).join('')}</div>
+  <div class="topf"><span class="pill">64 pieces</span><span class="pill">All kinds ▾</span><span style="margin-left:auto" class="pill">${SEARCH}</span></div>
+  <div class="railr"><div><div class="g hot">${CHECK}</div>Worn</div><div><div class="g">${HANG}</div>Outfits</div><div><div class="g">${PIN}</div>Place</div><div><div class="g">${MORE}</div>More</div></div>
+  ${NAV('Wardrobe')}
+</div>`;
+const fdOwn = `<div class="ph fd own">
+  <div class="cam"></div>
+  <div class="topf"><span class="pill">${BACK}</span><span class="pill">Do I own this?</span></div>
+  <div class="frame">${img('white-shirt',180,220,'position:absolute; left:20px; top:14px; opacity:.92')}<div class="scan"></div></div>
+  <div class="verdict"><b>Yes, 3 like it</b><p>White tees and crew tees, all fit. Worn 31 times between them.</p>
+    <div class="matches">${[['flat-tee-white','White tee'],['white-shirt','Crew tee'],['flat-tee-white','Gym tee']].map(([p,n])=>`<div>${img(p,54,56)}<span>${n}</span></div>`).join('')}</div></div>
+  ${NAV('Wishes')}
+</div>`;
+
+const cnWard = `<div class="ph cn">
+  <div class="h">My closet</div>
+  <div class="chips"><span class="on">All 64</span><span>Tops 24</span><span>Bottoms 12</span><span>Shoes 8</span></div>
+  <div class="grid">${['flat-tee-white','flat-tee-black','white-shirt','flat-jeans-blue','flat-chinos','floral-shirt','brown-loafers','white-sneakers','flat-jacket-leather'].map(p=>`<div>${img(p,60,74)}</div>`).join('')}</div>
+  ${NAV('Wardrobe')}
+</div>`;
+
+const DIRS = [
+  { id:'dressing-room', name:'Dressing Room', badge:'Lead: the roll', lead:true,
+    thesis:'The wardrobe is backstage before a show. Your pieces wait in a bulb-lit mirror; a spotlight finds the one that matters; logging what you wore is a curtain call.',
+    colour:[['#3A1033','Plum curtain','The chrome: tab bar, panels and the curtain. Warm and dark, so piece colours still win.'],['#FFB547','Bulb amber','The one action colour (add, "Yes, this", Worn today), because bulbs are what switch on.'],['#B4552C','The piece\'s own colour','Spotlight. Every lit piece is lit in its own colour, as now, but much brighter.']],
+    type:'Big Shoulders Display, a marquee-condensed face, for counts and names. Atkinson Hyperlegible for everything you read.',
+    motion:'Curtains part when a screen opens, bulbs switch on in a run, the spotlight slides to whatever you touch. Logging a wear makes the outfit bow and a WORN stamp slams in.',
+    raises:['From the ticket wallet: states stamp themselves. Worn, bought and let go are stamps. A let-go piece is stamped, never vanishes.','From the timetable rack: one light travels. Only the spotlight moves; nothing else glows.','From the type specimen: the count\'s weight follows the number. A bigger wardrobe gets a heavier numeral.'],
+    risk:'Theatre is a costume if overdone. The bulbs must stay in the hero and the tiles, never on every control.',
+    phones:[['Wardrobe: the mirror, cue-card filters, lit tiles', drWard],['Home: logging today is a curtain call', drCall]] },
+  { id:'lit-street', name:'Lit Street', badge:'My pick',
+    thesis:'Today\'s Shop Window, pushed all the way. The window light spills out and colours the whole street: the screen background warms to whichever piece is on display, and every window throws its reflection on the wet pavement.',
+    colour:[['#06070B','Night street','The ground. Near-black so lit windows read from across a room.'],['#B4552C','The piece in the window','Floods the top of the screen and the selected filter, so colour always says which piece you are looking at.'],['#7FB0FF','Street-lamp blue','The add button only.']],
+    type:'Archivo condensed numerals as now, bigger (128px count). Atkinson for reading.',
+    motion:'The display changes every few seconds, the street re-tints to match, reflections ripple. In Numbers, windows switch on floor by floor.',
+    raises:[],
+    risk:'Familiar: this is the closest to what you have, so it may feel like polish rather than a redesign.',
+    phones:[['Wardrobe: the street takes the window\'s colour', stWard],['Numbers: a night street of kinds, lit window by window', stNum]] },
+  { id:'shade-card', name:'Shade Card', badge:'Grounded',
+    thesis:'A tailor\'s shade card. Your wardrobe is sorted into fabric swatches that fan open; opening a piece drenches the whole screen in its colour.',
+    colour:[['#2F5FD0','Every shade you own','Strips are the real colour families of your pieces, so the screen is a picture of your wardrobe.'],['#9A4524','The open piece','The piece page is painted entirely in that piece\'s shade.'],['#FBF7F0','Chalk','Text and the one main button, so they work on any shade.']],
+    type:'Bricolage Grotesque, chunky and friendly, for counts and names. Atkinson for reading.',
+    motion:'The swatch stack fans open. Tapping a piece floods its colour out from your finger.',
+    raises:[],
+    risk:'Pale pieces (whites, greys) make quiet pages; the drench needs a richer version of their colour.',
+    phones:[['Wardrobe by colour: a swatch fan', scWard],['Piece page drenched in its own colour', scPiece]] },
+  { id:'rail', name:'The Rail', badge:'Grounded',
+    thesis:'A real clothes rail. Pieces hang on brass, swing a little, and slide past when you swipe; shoes sit on a shelf below. Each hanger carries a coloured tag for where it lives.',
+    colour:[['#F2A33A','Saffron tag','Cupboard, and the action colour.'],['#2BB3A3','Teal tag','Hall rack.'],['#E85A8C','Pink tag','Suitcase.'],['#5B8DEF','Blue tag','Laundry. Places get colours because "where is it?" is the question you ask at the cupboard.']],
+    type:'Anybody, a width-flexible face, squeezed tall for counts. Atkinson for reading.',
+    motion:'Hangers sway, the rail slides on a swipe, outfits gather onto one rail.',
+    raises:[],
+    risk:'A rail shows fewer pieces at once than a grid, so a big wardrobe takes more swiping.',
+    phones:[['Wardrobe: the rail, the shoe shelf, place tags', rlWard],['Outfits: your regulars, gathered on rails (no mannequins)', rlOut]] },
+  { id:'dhobi', name:'Dhobi Tags', badge:'Grounded',
+    thesis:'The laundry man\'s coloured tags. Every piece wears a bright numbered tag whose colour is where it lives; wearing it gets a stamp.',
+    colour:[['#FFB000','Marigold','Cupboard, and the count.'],['#5BC236','Parrot green','Hall rack, and "fits".'],['#F0428B','Rani pink','Suitcase, and the WORN stamp.'],['#46A6FF','Sky','Laundry.']],
+    type:'Saira Stencil for tag codes and counts. Atkinson for reading.',
+    motion:'Tags flutter, stamps thunk, the answer to "where is it?" swings in on its tag.',
+    raises:[],
+    risk:'The codes (SH-04) are new information you would have to want; they can be hidden.',
+    phones:[['Wardrobe: every piece tagged by place', dtWard],['Where is it? The answer arrives as a tag', dtWhere]] },
+  { id:'panorama', name:'Panorama Tiles', badge:'Challenger: competitive',
+    thesis:'Flat colour tiles on black with giant lowercase words cropped off the edge. Each kind owns a colour; tiles flip to show other pieces.',
+    colour:[['#E3008C','Magenta','Tops.'],['#00A8E8','Cyan','Bottoms, and the add button.'],['#F09609','Orange','Shoes.'],['#8CBF26','Lime','Fit.']],
+    type:'Epilogue, plain and large, lowercase.',
+    motion:'Words glide in from the right, tiles flip on their own like a living board.',
+    raises:[],
+    risk:'Kind colours compete with the pieces\' own colours. Strong, but less "your wardrobe".',
+    verdict:'Competitive. It wins on clarity (every kind is one big tile) but loses on feeling like your own wardrobe.',
+    phones:[['Wardrobe: each kind a colour tile', mtWard],['Home: today as tiles', mtHome]] },
+  { id:'one-piece', name:'One Piece at a Time', badge:'Challenger: competitive',
+    thesis:'One piece fills the whole screen on a field of its own colour. Flick up for the next. Actions sit in a rail on the right.',
+    colour:[['#8E2346','The piece\'s colour, full screen','The whole screen changes with each piece.'],['#FFFFFF','White glyphs','The only interface colour, so the piece owns everything.']],
+    type:'Archivo, wide and heavy, for the caption.',
+    motion:'Hard snap from piece to piece; the Worn button pops when tapped.',
+    raises:[],
+    risk:'Great for "show me my things", slow for "find my black belt". Would need the grid as a second view.',
+    verdict:'Competitive. It wins on feeling like your own wardrobe but loses on finding one thing fast.',
+    phones:[['Wardrobe: one piece at a time, flick for the next', fdWard],['In a shop: "Do I own this?" answers with what you own', fdOwn]] },
+];
+const DECLINED = [
+  ['Ticket wallet','Airline coupons that stamp themselves.','Gave: states stamp themselves, nothing disappears (now in Dressing Room).'],
+  ['Timetable slide rack','Tinted glass slides on a lit bed, one type size.','Gave: one moving light only (now in Dressing Room).'],
+  ['Type specimen','A giant letter whose weight you drag.','Gave: the count\'s weight follows the number (now in Dressing Room).'],
+  ['Reference page','Two columns around a rail of keys, ruled in hairlines.','Gave nothing that fits a phone wardrobe.'],
+];
+
+const $ = (s, el=document) => el.querySelector(s);
+const LS = 'inv-redesign-1';
+let state = {}, boardNote = '', db = null;
+const setStatus = t => { $('#status').textContent = t; };
+try { const s = JSON.parse(localStorage.getItem(LS) || '{}'); Object.assign(state, s.r || {}); boardNote = s.n || ''; } catch (e) {}
+const keep = () => { try { localStorage.setItem(LS, JSON.stringify({ r: state, n: boardNote })); } catch (e) {} };
+
+function build() {
+  const root = $('#dirs');
+  for (const d of DIRS) {
+    const s = document.createElement('section'); s.className = 'dir' + (d.lead ? ' lead' : ''); s.dataset.id = d.id; s.setAttribute('aria-labelledby', 'h-' + d.id);
+    s.innerHTML = `<div class="dhead"><h2 id="h-${d.id}">${d.name}</h2><span class="badge">${d.badge}</span></div>
+      <p class="thesis">${d.thesis}</p>
+      <div class="facts">
+        <div><h3>Colour, and the job each does</h3>${d.colour.map(([c,n,w])=>`<div class="sw"><i style="background:${c}"></i><span><b>${n}.</b> ${w}</span></div>`).join('')}</div>
+        <div><h3>Type</h3><p>${d.type}</p><h3 style="margin-top:10px">Motion</h3><p>${d.motion}</p></div>
+        ${d.raises.length ? `<div><h3>Taken from the set-aside worlds</h3><ul>${d.raises.map(r=>`<li>${r}</li>`).join('')}</ul></div>` : ''}
+      </div>
+      ${d.verdict ? `<p class="risk"><b>How it weighed up:</b> ${d.verdict}</p>` : ''}
+      <p class="risk"><b>Honest risk:</b> ${d.risk}</p>
+      <div class="phones">${d.phones.map(([cap,html],i)=>`<div class="pcard"><div class="slot" data-i="${i}">${html}</div><p class="cap">${cap}</p><button type="button" class="replay">Replay</button></div>`).join('')}</div>
+      <div class="react"><div class="row" role="group" aria-label="Your reaction to ${d.name}">${['love','like','unsure','no'].map(v=>`<button type="button" class="v" data-v="${v}" aria-pressed="false">${v[0].toUpperCase()+v.slice(1)}</button>`).join('')}</div>
+        <label for="note-${d.id}">What would you keep or steal from ${d.name}?</label><textarea id="note-${d.id}"></textarea></div>`;
+    root.append(s);
+  }
+  const cn = document.createElement('section'); cn.className = 'dir'; cn.setAttribute('aria-labelledby','h-canon');
+  cn.innerHTML = `<div class="dhead"><h2 id="h-canon" style="font-size:26px">The standard closet app</h2><span class="badge">Always available</span></div>
+    <p class="risk">Light grey grid, one blue button, the way most wardrobe apps look. Here so you can say "just make it clean" if none of the worlds land. Not recommended.</p>
+    <div class="phones"><div class="pcard" style="transform:scale(.8); transform-origin:top center; margin-bottom:-120px">${cnWard}</div></div>`;
+  root.append(cn);
+  $('#declined').innerHTML = DECLINED.map(([n,w,g])=>`<div class="dcard"><b>${n}</b><span>${w}</span><span class="risk">${g}</span></div>`).join('');
+}
+function paint() {
+  document.querySelectorAll('.dir[data-id]').forEach(c => {
+    const s = state[c.dataset.id] || {};
+    c.querySelectorAll('.v').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === s.v)));
+    const ta = $('textarea', c); if (document.activeElement !== ta) ta.value = s.note || '';
+  });
+  if (document.activeElement !== $('#note-board')) $('#note-board').value = boardNote;
+}
+function rollNumbers(scope=document) {
+  scope.querySelectorAll('[data-roll]').forEach(el => {
+    const to = +el.dataset.roll, t0 = performance.now(), dur = 1100;
+    const step = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(2, -10 * k); el.textContent = Math.round(to * (k === 1 ? 1 : e)); if (k < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  });
+}
+async function save(id) {
+  keep(); paint();
+  if (!db) return;
+  const s = state[id] || {};
+  try { await db.collection('reactions').doc(id).set({ v: s.v || null, note: s.note || '', at: new Date().toISOString() }); setStatus('Saved'); }
+  catch (e) { setStatus('Not saved online; kept on this device only'); }
+}
+async function saveBoard() {
+  keep();
+  if (!db) return;
+  try { await db.doc('notes/board').set({ text: boardNote, at: new Date().toISOString() }); setStatus('Saved'); }
+  catch (e) { setStatus('Not saved online; kept on this device only'); }
+}
+build(); paint(); rollNumbers();
+document.addEventListener('click', ev => {
+  const v = ev.target.closest('.v');
+  if (v) { const id = v.closest('.dir').dataset.id; const s = state[id] = state[id] || {}; s.v = s.v === v.dataset.v ? null : v.dataset.v; save(id); return; }
+  const r = ev.target.closest('.replay');
+  if (r) { const slot = $('.slot', r.closest('.pcard')); const html = slot.innerHTML; slot.innerHTML = ''; void slot.offsetWidth; slot.innerHTML = html; rollNumbers(slot); }
+});
+document.addEventListener('change', ev => {
+  const ta = ev.target;
+  if (ta.id === 'note-board') { boardNote = ta.value.trim(); saveBoard(); return; }
+  const c = ta.closest && ta.closest('.dir[data-id]'); if (!c) return;
+  (state[c.dataset.id] = state[c.dataset.id] || {}).note = ta.value.trim(); save(c.dataset.id);
+});
+(async () => {
+  try { db = await window.claude?.use?.('db'); } catch (e) { db = null; }
+  if (!db) { setStatus('Saving on this device only'); return; }
+  setStatus('Connected. Reactions save as you go.');
+  db.collection('reactions').onSnapshot(snap => {
+    snap.docs.forEach(d => { const x = d.data(); state[d.id] = { v: x.v || null, note: x.note || '' }; });
+    keep(); paint();
+  }, () => setStatus('Lost connection; reactions kept on this device'));
+  db.doc('notes/board').onSnapshot(d => { if (d.exists) { boardNote = d.data().text || ''; paint(); } });
+})();
+</script>

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { type CSSProperties, useRef, useState } from 'react';
 import { answerGlad, buyWish, dropWish, undoLast, updateWish } from '../db/actions';
 import { useItems, useMainPhotos, useTrees, useWish, useWishes, useWishPhotos, type Thumb } from '../db/hooks';
 import { parseRoughPrice } from '../domain/estimate';
@@ -16,8 +16,9 @@ import { Numeral } from '../ui/Numeral';
 import { Seg } from '../ui/Seg';
 import { Sheet } from '../ui/Sheet';
 import { showToast } from '../ui/Toast';
-import { Piece, Window } from '../ui/Window';
-import { DayPicker, kindName, Mini, SubTop } from './shared';
+import { Cut, Swatch } from '../ui/Swatch';
+import { kindColour } from '../domain/kinds';
+import { DayPicker, kindName, Mini, pieceColour, SubTop } from './shared';
 import { setPendingWishPhoto } from './WishForm';
 import { GapHints } from './OwnThis';
 
@@ -44,19 +45,26 @@ export function Wishes() {
   const done = sorted.filter((w) => w.status !== 'open');
   const params0 = tier === 'now' ? {} : { tier };
   const totals = wishTotals(open);
+  // Bought in the last two weeks: its tile fills with its colour and says "Yours now".
+  const fresh = tier === 'now' ? done.filter((w) => w.status === 'bought' && w.boughtOn && daysBetween(w.boughtOn, today) <= 14) : [];
+  const wishColour = (w: Wish) => {
+    const item = w.itemId ? items?.find((i) => i.id === w.itemId) : undefined;
+    if (item && trees) return pieceColour(item, trees);
+    return trees?.shades.find((x) => x.id === w.shadeId)?.hex ?? (w.kindId && trees ? kindColour(w.kindId, trees.kinds) : '#59626D');
+  };
 
   return (
     <main className="screen">
-      <Window as="section" lit={false} className="wish-head" aria-label="Wishes">
+      <section className="wish-head" aria-label="Wishes">
         <div className="top">
-          <h1 className="caps">Wishes</h1>
-          <button type="button" className="link" style={{ marginLeft: 'auto' }} onClick={() => go('/own')}>Do I own this?</button>
+          <h1 className="title">Wishes</h1>
+          <span className="top-right"><button type="button" className="link" onClick={() => go('/own')}>Do I own this?</button></span>
         </div>
-        <div className="home-date">
-          <Numeral value={open.length} className="home-num" />
-          <p className="caps m">on the list{totals.map((t) => <span key={t.currency}><br />about {money(t.total, t.currency)}</span>)}</p>
+        <div className="count-head">
+          <Numeral value={open.length} className="num count-num" />
+          <p className="m sm">on the list{totals.map((t) => <span key={t.currency}><br />about {money(t.total, t.currency)}</span>)}</p>
         </div>
-      </Window>
+      </section>
       {open.length === 0 && (
         <div className="wish-empty">
           <p className="name" style={{ fontSize: 24 }}>Nothing wished for yet</p>
@@ -65,8 +73,9 @@ export function Wishes() {
       )}
 
       <Seg label="Which wishes" value={tier} onChange={(t) => go('/wishes', t === 'now' ? {} : { tier: t }, { replace: true })} options={TIERS.map((t) => ({ value: t.value, label: `${t.label} ${open.filter((w) => w.tier === t.value).length}` }))} />
-      {shown.length ? (
+      {shown.length || fresh.length ? (
         <div className="wish-grid">
+          {fresh.map((w) => <WishTile key={w.id} w={w} thumb={thumbs.get(w.id)} today={today} colour={wishColour(w)} />)}
           {shown.map((w) => <WishTile key={w.id} w={w} thumb={thumbs.get(w.id)} today={today} />)}
         </div>
       ) : (
@@ -101,7 +110,7 @@ function wishTotals(open: Wish[]): { currency: string; total: number }[] {
   return [...by].map(([currency, total]) => ({ currency, total }));
 }
 
-/** A wish's photo on the light shop ground (not a lit window: it is not yours yet), with the waiting tag on it. */
+/** A wish's photo on a graphite tile (not its colour yet: it is not yours), with the waiting tag on it. */
 function ShopGround({ w, thumb, today, big = false }: { w: Wish; thumb?: Thumb; today: string; big?: boolean }) {
   const wait = w.status === 'open' ? waitText(w, today) : null;
   return (
@@ -112,14 +121,21 @@ function ShopGround({ w, thumb, today, big = false }: { w: Wish; thumb?: Thumb; 
   );
 }
 
-function WishTile({ w, thumb, today }: { w: Wish; thumb?: Thumb; today: string }) {
+function WishTile({ w, thumb, today, colour }: { w: Wish; thumb?: Thumb; today: string; colour?: string }) {
   const wait = waitText(w, today);
   const line = [shopPrice(w), addedText(w, today)].filter(Boolean).join(' · ');
   return (
     <div className={`wish-cell${wait ? ' waiting' : ''}`}>
-      <button type="button" className="shop wish-tile" aria-label={[w.name, line, wait].filter(Boolean).join(', ')} onClick={() => go('/wish', { id: w.id })}>
-        <ShopGround w={w} thumb={thumb} today={today} />
-      </button>
+      {colour ? (
+        <Swatch as="button" type="button" tone="page" colour={colour} className="shop wish-tile bought" aria-label={`${w.name}, yours now`} onClick={() => go('/wish', { id: w.id })}>
+          {thumb ? <img className="shop-img" src={thumb.url} alt="" draggable={false} decoding="async" /> : <span className="wish-word" aria-hidden="true">{w.name}</span>}
+          <span className="shop-tag yours">Yours now</span>
+        </Swatch>
+      ) : (
+        <button type="button" className="shop wish-tile" aria-label={[w.name, line, wait].filter(Boolean).join(', ')} onClick={() => go('/wish', { id: w.id })}>
+          <ShopGround w={w} thumb={thumb} today={today} />
+        </button>
+      )}
       <p className="wish-name" aria-hidden="true">{w.name}</p>
       <p className="sm wish-line" aria-hidden="true">{shopPrice(w) || '\u00a0'}</p>
       <p className="m sm wish-line" aria-hidden="true">{addedText(w, today)}</p>
@@ -207,7 +223,7 @@ export function WishPage() {
       </div>
       {w.status === 'open' && like.length > 0 && (
         <button type="button" className="li" onClick={() => go('/own', { kind: w.kindId, shade: family })}>
-          <Mini item={like[0]} thumb={pieceThumbs.get(like[0].id)} shades={trees.shades} size={41} />
+          <Mini item={like[0]} thumb={pieceThumbs.get(like[0].id)} trees={trees} size={41} />
           <span>You own <b>{like.length}</b> like this</span>
           <span className="n link-text">See</span>
         </button>
@@ -310,34 +326,38 @@ export function BuySheet({ open, onClose, wish }: { open: boolean; onClose: () =
   );
 }
 
-/** "Glad you bought it?", 30 days after a wish was bought: the piece in a window and a 1 to 7 scale (Home shows it). */
+/** "Glad you bought it?", 30 days after a wish was bought: the piece on its colour and a 1 to 7 scale (Home shows it). */
 export function GladCard({ wish, photo, cut, colour, today }: { wish: Wish; photo?: string; cut?: boolean; colour?: string; today: string }) {
   const days = wish.boughtOn ? daysBetween(wish.boughtOn, today) : 30;
+  const [lit, setLit] = useState(0);
   const answer = async (v: number | 'skip') => {
     await answerGlad(wish.id, v);
     showToast(v === 'skip' ? 'Skipped' : `Saved: ${v} of 7`, () => void undoLast());
   };
+  // The scale fills up to the number tapped, then the answer is kept.
+  const tap = (n: number) => { if (lit) return; setLit(n); setTimeout(() => void answer(n), 350 + n * 25); };
   return (
-    <section className="card glad" aria-label="Glad you bought it?">
+    <Swatch as="section" tone="page" colour={colour} className="glad rise" aria-label="Glad you bought it?">
       <div className="glad-head">
-        <Window className="glad-win" colour={colour} lit>
-          <Piece src={photo} cut={cut} />
-        </Window>
+        <span className="glad-win">
+          <Cut src={photo} cut={cut} />
+        </span>
         <div>
-          <p><b>{wish.name}</b> <span className="m">· bought {days} days ago</span></p>
-          <p className="m">Glad you bought it?</p>
+          <p><b>{wish.name}</b> <span className="tint">· bought {days} days ago</span></p>
+          <p className="name glad-q">Glad you bought it?</p>
         </div>
       </div>
       <div className="glad-scale" role="group" aria-label="From 1, not at all, to 7, very">
         {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-          <button key={n} type="button" aria-label={n === 1 ? '1, not at all' : n === 7 ? '7, very' : String(n)} onClick={() => void answer(n)}>{n}</button>
+          <button key={n} type="button" className={n <= lit ? 'lit' : ''} style={{ '--fd': `${(n - 1) * 25}ms` } as CSSProperties} aria-pressed={n === lit || undefined}
+            aria-label={n === 1 ? '1, not at all' : n === 7 ? '7, very' : String(n)} onClick={() => tap(n)}>{n}</button>
         ))}
       </div>
-      <div className="glad-ends m">
+      <div className="glad-ends tint">
         <span aria-hidden="true">not at all</span>
         <button type="button" className="link" onClick={() => void answer('skip')}>Skip</button>
         <span aria-hidden="true">very</span>
       </div>
-    </section>
+    </Swatch>
   );
 }

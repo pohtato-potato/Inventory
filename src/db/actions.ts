@@ -563,10 +563,6 @@ export async function rename(table: 'kinds' | 'shades' | 'places', id: Id, name:
   });
 }
 
-export async function setKindHidden(id: Id, hide: boolean): Promise<void> {
-  await db.kinds.update(id, { hideFromWindow: hide, updatedAt: stamp() });
-}
-
 /** Where a kind stands in outfits. Each lane brings its usual size; tops sit as an over layer. */
 export async function setKindLane(id: Id, lane: Lane | undefined): Promise<void> {
   const k = await db.kinds.get(id);

@@ -96,3 +96,83 @@ export function guessShades(pixels: Uint8ClampedArray, shades: Shade[]): { main:
   const second = nearestShade(next.rgb, shades);
   return second.id === main.id ? { main } : { main, second };
 }
+
+// ---------- the redesign: item colours as whole pages ----------
+
+/** Chalk: the app's text and primary-button colour. */
+export const CHALK = '#F4F1EB';
+/** Dark text on chalk. */
+export const INK = '#16130F';
+
+/** WCAG relative luminance. */
+export function luminance(hex: string): number {
+  const lin = (c: number) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  const [r, g, b] = hexToRgb(hex);
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+/** WCAG contrast ratio between two colours, 1 to 21. */
+export function contrast(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+function toHsl(hex: string): [number, number, number] {
+  const [r, g, b] = hexToRgb(hex).map((v) => v / 255);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  const h = (max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4) * 60;
+  return [h, s, l];
+}
+
+function fromHsl(h: number, s: number, l: number): string {
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return rgbToHex([f(0) * 255, f(8) * 255, f(4) * 255]);
+}
+
+/** A colour scaled toward black (k = 1 keeps it). */
+export function darken(hex: string, k: number): string {
+  return rgbToHex(hexToRgb(hex).map((v) => v * k) as RGB);
+}
+
+/**
+ * A thing's colour as a whole page: its own hue, dark enough that chalk text reads at 4.5:1 or better,
+ * and lifted off the graphite ground when it is nearly black, so a black thing still reads as a colour.
+ */
+export function itemColour(hex: string): string {
+  let c = hex.toUpperCase();
+  const [h, s, l] = toHsl(c);
+  if (l < 0.16) c = fromHsl(h, Math.min(s, 0.5), 0.16);
+  let k = 1;
+  while (contrast(CHALK, c) < 4.5 && k > 0) {
+    k -= 0.01;
+    c = darken(hex, k);
+  }
+  return c;
+}
+
+/** Quiet text on an item colour: the colour lightened to about 88 %, raised further until it reads at 4.5:1. */
+export function tintOf(hex: string): string {
+  const base = itemColour(hex);
+  const [h, s] = toHsl(base);
+  let l = 0.88;
+  let t = fromHsl(h, Math.min(s, 0.45), l);
+  while (contrast(t, base) < 4.5 && l < 0.99) {
+    l += 0.01;
+    t = fromHsl(h, Math.min(s, 0.45), l);
+  }
+  return t;
+}
+
+/** A tile's ground: the item colour, darker, so the photo and the name on it stand out. */
+export function tileColour(hex: string): string {
+  return darken(itemColour(hex), 0.72);
+}

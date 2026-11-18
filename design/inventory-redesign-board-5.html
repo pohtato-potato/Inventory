@@ -1,0 +1,733 @@
+<meta charset="utf-8">
+<title>Inventory Redesign Board 5</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Archivo:wdth,wght@62..125,400..800&display=swap">
+<style>
+/* Board: decisions with letters, then the whole app in one look, grouped by job, a reaction under every phone. */
+:root{
+  --bg:#EEF0F2; --panel:#FFFFFF; --ink:#12171C; --muted:#38434D; --rule:#BFC7CE; --focus:#1D4ED8;
+  --love:#9A3412; --like:#166534; --no:#475569;
+  --body:"Atkinson Hyperlegible", Verdana, system-ui, sans-serif;
+  --disp:"Bricolage Grotesque", Archivo, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#101418; --panel:#1A2027; --ink:#F1F3F5; --muted:#C3CBD2; --rule:#3B4651; --focus:#93C5FD;
+  --love:#FDBA74; --like:#86EFAC; --no:#CBD5E1; color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#101418; --panel:#1A2027; --ink:#F1F3F5; --muted:#C3CBD2; --rule:#3B4651; --focus:#93C5FD;
+  --love:#FDBA74; --like:#86EFAC; --no:#CBD5E1; color-scheme:dark; }
+*{box-sizing:border-box}
+body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--body); font-size:18px; line-height:1.55}
+::selection{background:var(--focus); color:var(--panel)}
+:focus-visible{outline:3px solid var(--focus); outline-offset:2px}
+h1,h2,h3{margin:0; line-height:1.12; text-wrap:balance; font-family:var(--disp)}
+p{margin:0}
+button,textarea{font-family:inherit; font-size:16px}
+.wrap{max-width:1280px; margin-inline:auto; padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); padding-block:28px 96px; display:grid; grid-template-columns:minmax(0,1fr); gap:28px}
+.wrap > *{min-width:0}
+.hero{display:grid; gap:12px; max-width:46em}
+h1{font-size:clamp(34px,6vw,54px); font-weight:800; letter-spacing:-.02em}
+.heard{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px 24px; font-size:17px}
+.heard h2{font-size:20px; font-weight:800; margin-bottom:4px}
+.heard ul{margin:0; padding-left:1.1em; display:grid; gap:3px}
+.status{font-size:15px; color:var(--muted)}
+.sys{background:var(--panel); border:2px solid var(--rule); border-radius:18px; padding:20px; display:grid; gap:12px}
+.sys h2{font-size:clamp(24px,3.4vw,32px); font-weight:800}
+.facts{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:14px 24px; font-size:16px}
+.facts h3{font-size:17px; font-weight:800; margin-bottom:4px}
+.sw{display:flex; gap:8px; align-items:flex-start}
+.sw + .sw{margin-top:6px}
+.sw i{flex:none; width:22px; height:22px; border-radius:6px; margin-top:2px; box-shadow:inset 0 0 0 1px #0003}
+.dir{background:var(--panel); border:2px solid var(--rule); border-radius:18px; padding:20px; display:grid; gap:14px}
+.dhead{display:flex; flex-wrap:wrap; align-items:baseline; gap:10px 14px}
+.dhead h2{font-size:clamp(28px,4vw,40px); font-weight:800; letter-spacing:-.02em}
+.badge{font-size:15px; font-weight:700; padding:3px 12px; border-radius:20px; border:2px solid currentColor}
+.thesis{font-size:19px; max-width:46em}
+.risk{font-size:16px; color:var(--muted); max-width:46em}
+.phones{display:flex; flex-wrap:wrap; gap:26px; justify-content:center}
+.pcard{display:grid; gap:8px; justify-items:center; width:300px; max-width:100%; align-content:start}
+.pcard .cap{font-size:15px; color:var(--muted); text-align:center; min-height:2.6em}
+.row{display:flex; flex-wrap:wrap; gap:6px; justify-content:center}
+.replay,.v,.nb{min-height:44px; padding:6px 14px; border-radius:22px; border:2px solid var(--rule); background:transparent; color:var(--ink); cursor:pointer}
+.nb{border-style:dashed}
+.v[aria-pressed="true"][data-v="love"]{background:var(--love); border-color:var(--love); color:var(--panel)}
+.v[aria-pressed="true"][data-v="like"]{background:var(--like); border-color:var(--like); color:var(--panel)}
+.v[aria-pressed="true"][data-v="no"]{background:var(--no); border-color:var(--no); color:var(--panel)}
+textarea{width:100%; min-height:76px; padding:10px 12px; border-radius:10px; border:2px solid var(--rule); background:var(--bg); color:var(--ink); line-height:1.5}
+.dnote label,.secnote label{font-weight:700; font-size:16px}
+.dnote,.secnote{display:grid; gap:6px}
+.secnote{max-width:46em}
+.credits{font-size:14px; color:var(--muted)}
+.credits a{color:inherit}
+
+/* ===== the shared app look ===== */
+.ph{--g:#101114; --s:#1A1B20; --s2:#24262C; --t:#F4F1EB; --m:#BDB8B0; --chalk:#F4F1EB; --ok:#7BD3A0; --warn:#F0B95B;
+  width:300px; max-width:100%; height:621px; border-radius:30px; overflow:hidden; position:relative; border:6px solid #050506; box-shadow:0 14px 30px -8px #0006;
+  background:var(--g); color:var(--t); font:13.5px/1.35 var(--body); flex:none; text-align:left; isolation:isolate}
+.ph p{margin:0}
+.ph .d{font-family:var(--disp)}
+.ph .m{color:var(--m)} .ph .sm{font-size:12px}
+.ph .pc{display:block; object-fit:contain; filter:drop-shadow(0 8px 8px #0007)}
+.ph .top{display:flex; align-items:center; gap:12px; padding:14px 16px 0; position:relative; z-index:4}
+.ph .ttl{font:800 24px/1 var(--disp); letter-spacing:-.02em}
+.ph .nav{position:absolute; bottom:0; left:0; right:0; z-index:8; display:flex; justify-content:space-around; align-items:center; padding:9px 6px 12px; font-size:12px; color:var(--m); background:#101114F2; border-top:1px solid #FFFFFF12}
+.ph .nav b{color:var(--t)}
+.ph .nav .plus{width:40px; height:40px; border-radius:14px; display:grid; place-items:center; background:var(--chalk); color:var(--g)}
+.ph .seg{display:flex; margin:12px 12px 0; gap:6px; font-size:12.5px}
+.ph .seg span{flex:1; text-align:center; padding:8px 0; border-radius:20px; box-shadow:inset 0 0 0 1.5px #FFFFFF2A}
+.ph .seg .on{background:var(--t); color:var(--g); font-weight:700; box-shadow:none}
+.ph .chips{display:flex; gap:6px; padding:10px 12px 0; overflow:hidden}
+.ph .chip{flex:none; display:inline-flex; align-items:center; gap:6px; border-radius:16px; padding:6px 11px; font-size:12px; background:#FFFFFF10}
+.ph .chip i{width:9px; height:9px; border-radius:50%; background:var(--k)}
+.ph .chip.on{background:var(--t); color:var(--g); font-weight:700}
+.ph .noimg{display:grid; place-items:center; color:#FFFFFFD0}
+.ph .btn{text-align:center; padding:12px 10px; border-radius:14px; font-weight:700}
+.ph .btn.p{background:var(--chalk); color:#16130F}
+.ph .btn.g{box-shadow:inset 0 0 0 2px #FFFFFF55}
+@keyframes rise{0%{opacity:0; transform:translateY(14px)} 100%{opacity:1; transform:none}}
+.ph .rs{animation:rise .7s cubic-bezier(.16,1,.3,1) both; animation-delay:var(--d,0s)}
+
+/* the drench: an item's colour floods out from where you tapped */
+.ph .flood{position:absolute; inset:0; z-index:5; background:var(--f); clip-path:circle(0% at var(--fx) var(--fy)); animation:flood 8s cubic-bezier(.65,0,.2,1) infinite}
+@keyframes flood{0%,14%{clip-path:circle(0% at var(--fx) var(--fy))} 30%,100%{clip-path:circle(150% at var(--fx) var(--fy))}}
+.ph .under{position:absolute; inset:0; z-index:1; animation:dim 8s infinite}
+@keyframes dim{0%,14%{opacity:1} 24%,100%{opacity:0}}
+.ph .tap{position:absolute; z-index:6; width:44px; height:44px; margin:-22px 0 0 -22px; left:var(--fx); top:var(--fy); border-radius:50%; background:#FFFFFF66; animation:tap 8s infinite}
+@keyframes tap{0%,6%{transform:scale(0); opacity:0} 9%{transform:scale(1); opacity:1} 14%,100%{transform:scale(1.6); opacity:0}}
+.ph .dc{position:absolute; inset:0; z-index:7; display:flex; flex-direction:column; opacity:0; animation:dcin 8s infinite}
+@keyframes dcin{0%,22%{opacity:0; transform:translateY(12px)} 34%,100%{opacity:1; transform:none}}
+.ph .dc .hero{align-self:center; margin-top:2px}
+.ph .dc h4{font:800 38px/.95 var(--disp); margin:6px 16px 0; letter-spacing:-.03em}
+.ph .dc .sh{margin:6px 16px 0; font-size:13px; color:var(--tint)}
+.ph .where{margin:12px 16px 0; display:flex; gap:8px; align-items:center; font:700 18px/1.2 var(--disp)}
+.ph .kv{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin:14px 16px 0}
+.ph .kv b{display:block; font:800 20px/1.1 var(--disp)}
+.ph .kv span{font-size:12px; color:var(--tint)}
+.ph .line{display:flex; align-items:center; gap:10px; margin:12px 16px 0; padding:11px 12px; border-radius:12px; background:#0000002A; font-size:13px}
+.ph .line .ch{margin-left:auto}
+.ph .acts{display:flex; gap:8px; margin:14px 16px 0}
+.ph .acts .btn{flex:1}
+
+/* ---- 1. Colour Shelf ---- */
+.cs .count{display:flex; align-items:flex-end; gap:12px; padding:12px 16px 0}
+.cs .count .n{font:800 64px/.82 var(--disp); letter-spacing:-.04em; font-variant-numeric:tabular-nums}
+.cs .count p{padding-bottom:4px; font-size:13px}
+.cs .count p b{display:block; font-size:15px}
+.cs .fit{display:inline-flex; gap:6px; align-items:center; color:var(--ok)}
+.cs .fit i{width:8px; height:8px; border-radius:50%; background:var(--ok)}
+.cs .grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:12px 12px 0}
+.cs .tile{height:118px; border-radius:16px; background:color-mix(in oklab, var(--f) 78%, #101114); position:relative; overflow:hidden; display:grid; place-items:center}
+.cs .tile .nm{position:absolute; left:10px; bottom:8px; right:10px; font-size:12.5px; font-weight:700; z-index:2}
+.cs .tile .nm span{display:block; font-weight:400; font-size:11.5px; opacity:.9}
+.cs .tile::after{content:""; position:absolute; left:0; right:0; bottom:0; height:46%; background:linear-gradient(#0000,#0007)}
+/* numbers */
+.cs .sec{margin:16px 16px 0}
+.cs .sec h5{font:800 17px/1.1 var(--disp); margin:0 0 8px}
+.cs .bars{display:grid; gap:7px}
+.cs .bar{display:grid; grid-template-columns:86px 1fr 28px; align-items:center; gap:8px; font-size:12.5px}
+.cs .bar .tr{height:14px; border-radius:7px; background:#FFFFFF0E; overflow:hidden}
+.cs .bar .fl{height:100%; border-radius:7px; background:var(--k); width:var(--w); transform-origin:left; animation:grow 1.1s cubic-bezier(.16,1,.3,1) both; animation-delay:var(--d)}
+@keyframes grow{from{transform:scaleX(0)} to{transform:none}}
+.cs .bar b{text-align:right; font-variant-numeric:tabular-nums}
+.cs .split{display:flex; height:16px; border-radius:8px; overflow:hidden; margin-top:8px}
+.cs .split i{display:block; animation:grow 1.1s .4s cubic-bezier(.16,1,.3,1) both; transform-origin:left}
+.cs .leg{display:flex; gap:14px; font-size:12px; margin-top:6px}
+.cs .leg span::before{content:""; display:inline-block; width:9px; height:9px; border-radius:2px; background:var(--k); margin-right:5px}
+.cs .bv{display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid #FFFFFF14; font-size:13px}
+.cs .bv .th{width:40px; height:40px; border-radius:10px; background:color-mix(in oklab, var(--f) 78%, #101114); display:grid; place-items:center}
+.cs .bv b.r{margin-left:auto; font:800 16px var(--disp)}
+
+/* ---- 2. Where It Lives ---- */
+.wl .search{margin:12px 12px 0; padding:11px 12px; border-radius:14px; background:var(--s2); display:flex; gap:8px; align-items:center; color:var(--m)}
+.wl .list{position:absolute; left:0; right:0; top:104px; bottom:62px; overflow:hidden}
+.wl .scroll{animation:scrl 10s cubic-bezier(.65,0,.35,1) infinite}
+@keyframes scrl{0%,35%{transform:none} 55%,85%{transform:translateY(-190px)} 100%{transform:none}}
+.wl .ph-h{display:flex; align-items:baseline; gap:8px; padding:14px 16px 6px; font:800 17px/1.1 var(--disp); background:var(--g)}
+.wl .ph-h span{font:400 13px var(--body); color:var(--m)}
+.wl .ph-h .n{margin-left:auto; font:800 17px var(--disp)}
+.wl .r{display:flex; align-items:center; gap:10px; padding:6px 16px}
+.wl .r .th{width:44px; height:44px; border-radius:12px; flex:none; background:color-mix(in oklab, var(--f) 80%, #101114); display:grid; place-items:center; overflow:hidden}
+.wl .r b{display:block; font-size:13.5px}
+.wl .r span{font-size:12px; color:var(--m)}
+.wl .r .tag{margin-left:auto; font-size:11.5px; padding:3px 8px; border-radius:10px; background:#7BD3A022; color:var(--ok)}
+.wl .r .tag.w{background:#F0B95B22; color:var(--warn)}
+.wl .ask{margin:12px 12px 0; padding:11px 12px; border-radius:14px; background:var(--s2); display:flex; gap:8px; align-items:center; font-size:14px}
+.wl .typed{display:inline-block; overflow:hidden; white-space:nowrap; width:0; animation:type 7s steps(10) infinite}
+@keyframes type{0%,4%{width:0} 22%,100%{width:10ch}}
+.wl .caret{width:2px; height:16px; background:var(--t); animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.wl .ans{margin:14px 12px 0; border-radius:20px; background:var(--f); padding:16px; animation:ansin 7s cubic-bezier(.16,1,.3,1) infinite}
+@keyframes ansin{0%,24%{opacity:0; transform:translateY(24px)} 34%,100%{opacity:1; transform:none}}
+.wl .ans .big{font:800 30px/1 var(--disp); letter-spacing:-.02em; margin-top:8px}
+.wl .ans .crumb{font-size:12.5px; color:#DCEFEA; margin-top:6px}
+.wl .also{margin:14px 16px 6px; font-size:12.5px; color:var(--m)}
+.wl .toast{position:absolute; left:16px; right:16px; bottom:16px; z-index:9; display:flex; align-items:center; gap:10px; padding:11px 14px; border-radius:14px; background:#F4F1EB; color:#16130F; font-weight:700; animation:toast 8s cubic-bezier(.16,1,.3,1) infinite}
+.wl .toast u{margin-left:auto; text-underline-offset:3px}
+@keyframes toast{0%,62%{opacity:0; transform:translateY(20px)} 68%,92%{opacity:1; transform:none} 100%{opacity:0}}
+.wl .tick{position:relative; display:inline-block; height:1.1em; overflow:hidden; vertical-align:bottom}
+.wl .tick i{display:block; font-style:normal; animation:tick 8s cubic-bezier(.65,0,.2,1) infinite}
+@keyframes tick{0%,58%{transform:none} 64%,100%{transform:translateY(-1.1em)}}
+.wl .pressme{animation:press 8s infinite}
+@keyframes press{0%,54%{transform:none} 57%{transform:scale(.95)} 60%,100%{transform:none}}
+
+/* ---- 3. Ask First ---- */
+.af .askbox{margin:14px 12px 0; padding:16px; border-radius:22px; background:var(--s2)}
+.af .askbox p.q{font:800 26px/1.05 var(--disp); letter-spacing:-.02em}
+.af .askrow{display:flex; gap:8px; margin-top:12px}
+.af .field{flex:1; padding:11px 12px; border-radius:12px; background:var(--g); color:var(--m); display:flex; gap:8px; align-items:center}
+.af .camb{width:46px; border-radius:12px; background:var(--chalk); color:var(--g); display:grid; place-items:center}
+.af .today{margin:10px 12px 0; padding:12px; border-radius:18px; background:var(--s); display:flex; gap:10px; align-items:center}
+.af .today .th{display:flex}
+.af .today .th img{margin-left:-8px}
+.af .today .yes{margin-left:auto; padding:9px 12px; border-radius:12px; background:var(--chalk); color:#16130F; font-weight:700; font-size:13px}
+.af .cats{display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:10px 12px 0}
+.af .cat{height:76px; border-radius:16px; background:var(--k); padding:10px 12px; position:relative; overflow:hidden}
+.af .cat b{font:800 30px/1 var(--disp); letter-spacing:-.03em; display:block}
+.af .cat span{font-size:12.5px; font-weight:700}
+.af .cat .ic{position:absolute; right:10px; top:10px; opacity:.85}
+.af .cam{position:absolute; inset:0; background:radial-gradient(70% 50% at 50% 34%, #3C4552, #15181D)}
+.af .frame{position:absolute; left:40px; right:40px; top:62px; height:240px; border-radius:22px; box-shadow:0 0 0 2px #FFFFFF55; overflow:hidden}
+.af .scan{position:absolute; left:0; right:0; height:3px; background:#F4F1EB; box-shadow:0 0 12px 2px #F4F1EB66; animation:scan 3s ease-in-out infinite}
+@keyframes scan{0%,100%{top:8%} 50%{top:90%}}
+.af .verdict{position:absolute; left:10px; right:10px; bottom:64px; z-index:3; border-radius:24px; background:#F4F1EB; color:#16130F; padding:16px; animation:vrise 7s cubic-bezier(.16,1,.3,1) infinite}
+@keyframes vrise{0%,20%{transform:translateY(130%)} 32%,100%{transform:none}}
+.af .verdict b.big{font:800 28px/1 var(--disp); letter-spacing:-.02em; display:block}
+.af .verdict p{font-size:13px; margin-top:4px}
+.af .matches{display:flex; gap:8px; margin-top:10px}
+.af .matches div{flex:1; height:80px; border-radius:14px; background:var(--f); display:grid; place-items:center; position:relative; animation:rise .6s cubic-bezier(.16,1,.3,1) both}
+.af .matches span{position:absolute; bottom:4px; left:0; right:0; text-align:center; font-size:11.5px; color:#fff; font-weight:700}
+.af .verdict .btn.g{box-shadow:inset 0 0 0 2px #16130F44; margin-top:10px}
+.af .addph{align-self:center; width:150px; height:150px; margin-top:8px; border-radius:50%; border:2.5px dashed #FFFFFF77; display:grid; place-items:center; text-align:center; font-size:12.5px; animation:breathe 2.8s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1)} 50%{transform:scale(1.04)}}
+
+/* ---- round 3 additions ---- */
+.grp{display:grid; gap:14px}
+.grp > h2{font-size:clamp(26px,3.6vw,34px); font-weight:800; letter-spacing:-.02em}
+.grp > p{max-width:46em}
+.dec{background:var(--panel); border:3px solid var(--ink); border-radius:18px; padding:20px; display:grid; gap:12px}
+.dec h3{font-size:22px; font-weight:800}
+.opts{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+.opt{border:2px solid var(--rule); border-radius:14px; padding:12px 14px; display:grid; gap:6px; font-size:16px; align-content:start}
+.opt b.l{font:800 20px var(--disp)}
+.opt .rec{font-size:14px; font-weight:700; color:var(--like)}
+.lt{min-height:44px; padding:6px 16px; border-radius:22px; border:2px solid var(--rule); background:transparent; color:var(--ink); cursor:pointer; font-weight:700}
+.lt[aria-pressed="true"]{background:var(--ink); color:var(--panel); border-color:var(--ink)}
+.mini{width:100%; max-width:300px; height:150px; border-radius:20px; overflow:hidden; position:relative; justify-self:center}
+.mini .ph{height:150px; border-radius:20px; border-width:4px}
+
+.ph .ib{width:38px; height:38px; border-radius:12px; background:#FFFFFF12; display:grid; place-items:center}
+.ph .ib.press{animation:ibp 7s infinite}
+@keyframes ibp{0%,8%{transform:none; background:#FFFFFF12} 11%{transform:scale(.9); background:#F4F1EB; color:#16130F} 16%,100%{transform:none; background:#FFFFFF12}}
+.cs .tile .wt{position:absolute; right:8px; top:8px; z-index:2; font-size:11.5px; font-weight:700; padding:3px 8px; border-radius:10px; background:#0006}
+/* camera page that opens from the header button */
+.af .open{position:absolute; inset:0; z-index:5; clip-path:circle(0% at 82% 6%); animation:camopen 7s cubic-bezier(.65,0,.2,1) infinite}
+@keyframes camopen{0%,10%{clip-path:circle(0% at 82% 6%)} 22%,100%{clip-path:circle(150% at 82% 6%)}}
+.af .verdict{animation:vrise2 7s cubic-bezier(.16,1,.3,1) infinite}
+@keyframes vrise2{0%,40%{transform:translateY(130%)} 52%,100%{transform:none}}
+/* no-photo page recolours as you pick a swatch */
+@property --lf{syntax:'<color>'; inherits:true; initial-value:#3F4E66}
+.rc{background:var(--lf); animation:recol 10s infinite}
+@keyframes recol{0%,22%{--lf:#3F4E66} 30%,47%{--lf:#1F6F8B} 55%,72%{--lf:#7A3E8E} 80%,100%{--lf:#3F4E66}}
+.rc .pat{position:absolute; inset:0; z-index:0; opacity:.16; color:#fff; display:grid; grid-template-columns:repeat(4,1fr); align-content:start; gap:18px; padding:60px 10px 0; transform:rotate(-12deg) scale(1.3)}
+.rc > *:not(.pat){position:relative; z-index:1}
+.rc .bigic{align-self:center; margin-top:10px; width:150px; height:130px; border-radius:30px; background:#FFFFFF1F; display:grid; place-items:center; box-shadow:0 18px 30px -16px #0008; animation:bob 3.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:none} 50%{transform:translateY(-5px)}}
+.rc .swl{margin:12px 16px 0; font-size:12.5px; color:#FFFFFFD8}
+.rc .sws{display:flex; gap:10px; margin:6px 16px 0; position:relative}
+.rc .sws i{width:34px; height:34px; border-radius:50%; background:var(--c); box-shadow:inset 0 0 0 2px #FFFFFF55}
+.rc .ring{position:absolute; left:-4px; top:-4px; width:42px; height:42px; border-radius:50%; box-shadow:0 0 0 3px #F4F1EB; animation:ring 10s cubic-bezier(.65,0,.2,1) infinite}
+@keyframes ring{0%,22%{transform:none} 30%,47%{transform:translateX(44px)} 55%,72%{transform:translateX(88px)} 80%,100%{transform:none}}
+/* home */
+.hm .card{margin:10px 12px 0; padding:14px; border-radius:20px; background:var(--s)}
+.hm .card h5{font:800 19px/1.1 var(--disp); margin:0}
+.hm .lg{display:flex; gap:8px; margin-top:10px}
+.hm .lg div{flex:1; height:84px; border-radius:14px; background:color-mix(in oklab, var(--f) 80%, #101114); display:grid; place-items:center; position:relative; animation:rise .6s cubic-bezier(.16,1,.3,1) both; animation-delay:var(--d)}
+.hm .lg div::after{content:""; position:absolute; inset:0; border-radius:14px; box-shadow:inset 0 0 0 3px #F4F1EB; opacity:0; animation:sel 7s infinite; animation-delay:var(--d)}
+@keyframes sel{0%,40%{opacity:0} 46%,100%{opacity:1}}
+.hm .row2{display:flex; gap:8px; margin-top:10px}
+.hm .row2 .btn{flex:1}
+.hm .scale{display:flex; gap:5px; margin-top:10px}
+.hm .scale span{flex:1; height:36px; border-radius:10px; display:grid; place-items:center; font-weight:700; background:#FFFFFF10}
+.hm .scale span.f{background:var(--f); color:#fff; animation:fillin 7s infinite; animation-delay:var(--d)}
+@keyframes fillin{0%,30%{background:#FFFFFF10} 36%,100%{background:var(--f)}}
+.hm .otd{display:flex; gap:12px; align-items:center; margin:10px 12px 0; padding:12px; border-radius:20px; background:var(--f)}
+.hm .otd .yr{font:800 30px/1 var(--disp)}
+/* wishes */
+.ws .grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:12px 12px 0}
+.ws .w{height:150px; border-radius:16px; position:relative; overflow:hidden; display:grid; place-items:center; background:#24262C; box-shadow:inset 0 0 0 2px #FFFFFF22}
+.ws .w .pr{position:absolute; left:10px; top:8px; font:800 16px var(--disp)}
+.ws .w .nm{position:absolute; left:10px; bottom:8px; right:10px; font-size:12.5px; font-weight:700}
+.ws .w.buy{animation:owned 7s cubic-bezier(.65,0,.2,1) infinite}
+@keyframes owned{0%,30%{background:#24262C} 40%,100%{background:var(--f)}}
+.ws .w .yours{position:absolute; right:8px; top:36px; padding:4px 9px; border-radius:10px; background:#F4F1EB; color:#16130F; font-weight:700; font-size:11.5px; animation:yours 7s cubic-bezier(.2,1.5,.4,1) infinite}
+@keyframes yours{0%,38%{opacity:0; transform:scale(.4)} 46%,100%{opacity:1; transform:none}}
+.ws .tiers{display:flex; gap:6px; margin:12px 12px 0}
+.ws .tiers span{flex:1; text-align:center; padding:8px 0; border-radius:20px; font-size:12.5px; box-shadow:inset 0 0 0 1.5px #FFFFFF2A}
+.ws .tiers .on{background:var(--t); color:var(--g); font-weight:700; box-shadow:none}
+/* add sheet */
+.ad .shade{position:absolute; inset:0; z-index:5; background:#000A; animation:shade 7s infinite}
+@keyframes shade{0%,8%{opacity:0} 16%,100%{opacity:1}}
+.ad .sheet{position:absolute; left:0; right:0; bottom:0; z-index:9; padding:16px 12px 22px; border-radius:26px 26px 0 0; background:#1A1B20; animation:sheet 7s cubic-bezier(.16,1,.3,1) infinite}
+@keyframes sheet{0%,8%{transform:translateY(100%)} 20%,100%{transform:none}}
+.ad .sheet h5{font:800 22px/1 var(--disp); margin:0 4px 12px}
+.ad .ch{display:flex; align-items:center; gap:12px; padding:12px; border-radius:18px; margin-top:8px; background:var(--k); animation:rise .6s cubic-bezier(.16,1,.3,1) both; animation-delay:var(--d)}
+.ad .ch .ic{width:44px; height:44px; border-radius:14px; background:#0000002E; display:grid; place-items:center}
+.ad .ch b{display:block; font-size:15px}
+.ad .ch span{font-size:12.5px; opacity:.92}
+/* outfits */
+.of .card{margin:10px 12px 0; border-radius:20px; overflow:hidden; background:var(--s)}
+.of .band{display:flex; height:84px}
+.of .band div{flex:1; background:color-mix(in oklab, var(--f) 80%, #101114); display:grid; place-items:center; animation:slidein .8s cubic-bezier(.16,1,.3,1) both; animation-delay:var(--d)}
+@keyframes slidein{from{transform:translateY(100%)} to{transform:none}}
+.of .meta{display:flex; align-items:center; gap:8px; padding:10px 12px}
+.of .meta b{font-size:14.5px}
+.of .meta .go{margin-left:auto; padding:8px 12px; border-radius:12px; background:var(--chalk); color:#16130F; font-weight:700; font-size:13px}
+
+/* ---- round 5: the remaining screens ---- */
+.ph .bar2{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 12px}
+.ph .bar2 .btn,.ph .bar3 .btn{white-space:nowrap}
+.ph .bar3{display:grid; grid-template-columns:auto auto 1fr; gap:8px; margin:0 12px}
+.ph .foot{position:absolute; left:0; right:0; bottom:14px; z-index:6}
+.ph .lbl{font-size:12.5px; font-weight:700; color:var(--tint, var(--m)); margin:12px 16px 5px}
+.ph .well{margin:0 16px; padding:10px 12px; border-radius:12px; background:#00000038; font-size:14px; display:flex; align-items:center; gap:8px}
+.ph .well .ch{margin-left:auto; color:var(--tint, var(--m))}
+.ph .opt3{display:flex; gap:6px; margin:0 16px}
+.ph .opt3 span{flex:1; text-align:center; padding:9px 0; border-radius:12px; background:#00000038; font-size:12.5px; white-space:nowrap}
+.ph .opt3 .on{background:var(--chalk); color:#16130F; font-weight:700}
+.ph .cap2{font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--m); margin:14px 16px 6px}
+.ph .tile{border-radius:14px; background:color-mix(in oklab, var(--f) 82%, #101114); display:grid; place-items:center; position:relative; overflow:hidden}
+.ph .tile p{position:absolute; left:7px; bottom:5px; font-size:11.5px; font-weight:700}
+
+/* 1 camera: shutter, cut-out, it drops into the tray on its colour */
+.cam{background:#0A0B0D}
+.cam .vf{position:absolute; left:12px; right:12px; top:52px; height:330px; border-radius:20px; background:radial-gradient(120% 90% at 50% 40%, #3A332B, #1E1A16); overflow:hidden}
+.cam .vf .br{position:absolute; inset:22px; border:2.5px solid #F4F1EBAA; border-radius:16px; -webkit-mask:linear-gradient(#000 0 0) top left/36px 36px no-repeat, linear-gradient(#000 0 0) top right/36px 36px no-repeat, linear-gradient(#000 0 0) bottom left/36px 36px no-repeat, linear-gradient(#000 0 0) bottom right/36px 36px no-repeat; mask:linear-gradient(#000 0 0) top left/36px 36px no-repeat, linear-gradient(#000 0 0) top right/36px 36px no-repeat, linear-gradient(#000 0 0) bottom left/36px 36px no-repeat, linear-gradient(#000 0 0) bottom right/36px 36px no-repeat}
+.cam .vf .bgcut{position:absolute; inset:0; background:var(--f); opacity:0; animation:camcol 8s infinite}
+@keyframes camcol{0%,30%{opacity:0} 40%,62%{opacity:1} 70%,100%{opacity:0}}
+.cam .vf .shot{position:absolute; left:50%; top:50%; translate:-50% -50%; animation:camfly 8s cubic-bezier(.65,0,.25,1) infinite}
+@keyframes camfly{0%,62%{transform:none; opacity:1} 76%{transform:translate(64px,232px) scale(.24); opacity:1} 77%,92%{opacity:0; transform:translate(64px,232px) scale(.24)} 100%{opacity:1; transform:none}}
+.cam .flash{position:absolute; inset:0; background:#fff; opacity:0; z-index:9; animation:flash 8s infinite; pointer-events:none}
+@keyframes flash{0%,24%{opacity:0} 25.5%{opacity:.85} 31%,100%{opacity:0}}
+.cam .cutting{position:absolute; left:50%; top:344px; translate:-50% 0; padding:6px 12px; border-radius:16px; background:#000000AA; font-size:12.5px; font-weight:700; opacity:0; animation:cutting 8s infinite; z-index:3}
+@keyframes cutting{0%,28%{opacity:0} 32%,58%{opacity:1} 62%,100%{opacity:0}}
+.cam .tray{position:absolute; left:12px; right:12px; top:398px; display:flex; gap:8px}
+.cam .tray .tile{width:62px; height:70px; flex:none}
+.cam .tray .new{animation:trayin 8s infinite}
+@keyframes trayin{0%,74%{transform:scale(0); opacity:0} 80%{transform:scale(1.08); opacity:1} 84%,96%{transform:none; opacity:1} 100%{opacity:0}}
+.cam .count{position:absolute; left:16px; top:486px; font-size:13px; color:var(--m); height:1.35em; overflow:hidden}
+.cam .count span{display:block; animation:tick2 8s infinite}
+@keyframes tick2{0%,78%{transform:none} 82%,97%{transform:translateY(-1.35em)} 100%{transform:none}}
+.cam .ctrl{position:absolute; left:0; right:0; bottom:18px; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; padding:0 16px}
+.cam .shut{width:66px; height:66px; border-radius:50%; border:4px solid #F4F1EB; display:grid; place-items:center}
+.cam .shut i{width:50px; height:50px; border-radius:50%; background:#F4F1EB; animation:press 8s infinite}
+@keyframes press{0%,22%{transform:none} 24%{transform:scale(.82)} 27%,100%{transform:none}}
+
+/* 2 fix the cut-out: on the item's colour, taps leave keep/remove marks */
+.fx{background:var(--f)}
+.fx .board{position:relative; margin:12px 16px 0; height:262px; border-radius:16px; overflow:hidden; background:repeating-conic-gradient(#00000030 0 25%, #00000012 0 50%) 0 0/22px 22px; display:grid; place-items:center}
+.fx .board .pc{width:200px; height:170px}
+.fx .dot{position:absolute; width:26px; height:26px; margin:-13px 0 0 -13px; border-radius:50%; border:3px solid #fff; display:grid; place-items:center; font:800 15px/1 var(--body); animation:dotin 8s infinite; animation-delay:var(--d)}
+.fx .dot.k{background:#2E9E62} .fx .dot.r{background:#C93A3A}
+@keyframes dotin{0%,8%{transform:scale(0)} 12%{transform:scale(1.2)} 15%,88%{transform:none} 94%,100%{transform:scale(0)}}
+.fx .ghost{position:absolute; left:58%; top:26%; width:46px; height:34px; border-radius:10px; background:#00000055; animation:erase 8s infinite}
+@keyframes erase{0%,52%{opacity:1; transform:none} 60%,90%{opacity:0; transform:scale(.6)} 100%{opacity:1}}
+
+/* 3 receipt: a scan line reads it, the found facts rise below */
+.rq .paper{position:relative; margin:12px auto 0; width:196px; height:208px; background:#EFEAE0; color:#24201A; border-radius:4px 4px 0 0; padding:12px 14px; font:12px/1.55 ui-monospace, Menlo, monospace; transform:rotate(-2deg); box-shadow:0 10px 20px #0008; overflow:hidden}
+.rq .paper::after{content:""; position:absolute; left:0; right:0; bottom:-6px; height:12px; background:radial-gradient(circle at 6px 0, transparent 6px, #EFEAE0 6.5px) 0 0/12px 12px repeat-x; transform:rotate(180deg)}
+.rq .paper .hl{display:block; margin:0 -4px; padding:0 4px; border-radius:3px; animation:hl 8s infinite; animation-delay:var(--d)}
+@keyframes hl{0%,10%{background:transparent} 14%,90%{background:color-mix(in oklab, var(--k) 40%, #EFEAE0)} 100%{background:transparent}}
+.rq .scan{position:absolute; left:0; right:0; height:3px; background:#2F63D6; box-shadow:0 0 14px 4px #2F63D688; animation:scan 8s linear infinite}
+@keyframes scan{0%{top:0; opacity:1} 40%{top:100%; opacity:1} 41%,100%{top:100%; opacity:0}}
+.rq .found{margin:20px 12px 0; display:grid; gap:6px}
+.rq .found div{display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:12px; background:var(--s2); box-shadow:inset 4px 0 0 var(--k); animation:fin 8s cubic-bezier(.16,1,.3,1) infinite; animation-delay:var(--d)}
+@keyframes fin{0%,12%{opacity:0; transform:translateY(10px)} 18%,94%{opacity:1; transform:none} 100%{opacity:0}}
+.rq .found span{font-size:12px; color:var(--m); width:44px}
+.rq .found b{font-size:14px}
+.rq .found .ok{margin-left:auto; color:var(--ok)}
+
+/* 4 wear log: the day's pieces stand on bands of their own colours */
+.wl .day{display:grid; grid-template-columns:44px 1fr 44px; align-items:center; margin:8px 10px 0; text-align:center}
+.wl .day span{display:grid; place-items:center; height:44px}
+.wl .day .off{opacity:.35}
+.wl .day b{font:800 18px/1.1 var(--disp)}
+.wl .stage{position:relative; margin:8px 12px 0; height:250px; border-radius:20px; overflow:hidden; display:flex}
+.wl .stage i{flex:1; background:var(--f); transform-origin:bottom; animation:band 8s cubic-bezier(.16,1,.3,1) infinite; animation-delay:var(--d)}
+@keyframes band{0%,4%{transform:scaleY(0)} 18%,92%{transform:none} 100%{transform:none}}
+.wl .stage .pcs{position:absolute; inset:0; display:grid; place-items:center; align-content:center; gap:0}
+.wl .stage .pcs img{animation:drop 8s cubic-bezier(.16,1,.3,1) infinite; animation-delay:var(--d)}
+@keyframes drop{0%,10%{opacity:0; transform:translateY(-18px)} 22%,100%{opacity:1; transform:none}}
+.wl .stamp{position:absolute; right:12px; top:12px; padding:5px 10px; border-radius:10px; background:var(--chalk); color:#16130F; font-weight:800; font-size:13px; animation:stamp 8s infinite}
+@keyframes stamp{0%,60%{opacity:0; transform:scale(1.6) rotate(-8deg)} 64%,94%{opacity:1; transform:rotate(-4deg)} 100%{opacity:0}}
+.wl .qq{margin:12px 16px 10px}
+.wl .qq b{display:block; font:800 19px/1.15 var(--disp)}
+.wl .regs{display:flex; gap:8px; margin:0 12px}
+.wl .regs div{flex:1; height:46px; border-radius:12px; display:flex; overflow:hidden}
+.wl .regs div i{flex:1; background:var(--f)}
+
+/* 5 outfit page: the outfit's colours as the page */
+.op{background:#101114}
+.op .bands{position:absolute; left:0; right:0; top:0; height:330px; display:flex}
+.op .bands i{flex:1; background:var(--f); transform-origin:top; animation:opband 8s cubic-bezier(.16,1,.3,1) infinite; animation-delay:var(--d)}
+@keyframes opband{0%,3%{transform:scaleY(0)} 20%,100%{transform:none}}
+.op .bands::after{content:""; position:absolute; inset:0; background:linear-gradient(#10111400 55%, #101114)}
+.op .z{position:relative; z-index:2}
+.op .pcs{display:flex; justify-content:center; align-items:flex-end; gap:0; height:170px; margin-top:6px}
+.op h4{font:800 32px/1 var(--disp); margin:6px 16px 0; letter-spacing:-.02em}
+.op .sub{margin:6px 16px 0; color:#E4DED6; font-size:13px}
+.op .its{margin:6px 12px 0; display:grid; gap:6px}
+.op .its div{display:flex; align-items:center; gap:10px; padding:5px 8px 5px 5px; border-radius:12px; background:var(--s)}
+.op .its div .tile{width:38px; height:38px; border-radius:9px}
+.op .its .ch{margin-left:auto; color:var(--m)}
+
+/* 6 outfit builder: tap pieces, they fly into the tray and the strip takes their colour */
+.ob .tray{margin:10px 12px 0; padding:10px; border-radius:18px; background:var(--s)}
+.ob .slots{display:flex; gap:8px}
+.ob .slots div{flex:1; height:84px; border-radius:12px; border:2px dashed #FFFFFF33; display:grid; place-items:center; position:relative; overflow:hidden}
+.ob .slots div .in{position:absolute; inset:0; background:color-mix(in oklab, var(--f) 82%, #101114); display:grid; place-items:center; animation:slot 8s cubic-bezier(.16,1,.3,1) infinite; animation-delay:var(--d)}
+@keyframes slot{0%,8%{transform:translateY(120%)} 16%,92%{transform:none} 100%{transform:translateY(120%)}}
+.ob .strip{display:flex; height:8px; border-radius:4px; overflow:hidden; margin-top:10px; background:#FFFFFF14}
+.ob .strip i{flex:1; background:var(--f); transform-origin:left; animation:stripin 8s infinite; animation-delay:var(--d)}
+@keyframes stripin{0%,12%{transform:scaleX(0)} 18%,92%{transform:none} 100%{transform:scaleX(0)}}
+.ob .grid{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:0 12px}
+.ob .grid .tile{height:62px}
+.ob .grid .tile.pick{box-shadow:inset 0 0 0 2.5px var(--chalk); animation:pick 8s infinite; animation-delay:var(--d)}
+@keyframes pick{0%,4%{box-shadow:inset 0 0 0 0 var(--chalk)} 8%,92%{box-shadow:inset 0 0 0 2.5px var(--chalk)} 100%{box-shadow:inset 0 0 0 0 var(--chalk)}}
+
+/* 7 a place: the drawer slides open and its things sit inside */
+.sp .top .ttl{font-size:19px !important; white-space:nowrap}
+.sp .drawer{position:relative; margin:16px 14px 0; height:300px}
+.sp .front{position:absolute; left:0; right:0; bottom:0; height:62px; border-radius:16px; background:#2B2D34; box-shadow:0 -1px 0 #FFFFFF22 inset; display:grid; place-items:center; z-index:2}
+.sp .front i{width:70px; height:8px; border-radius:4px; background:#F4F1EB99}
+.sp .box{position:absolute; left:10px; right:10px; bottom:50px; height:236px; border-radius:16px 16px 0 0; background:#191A1F; box-shadow:inset 0 0 0 2px #FFFFFF14; padding:10px; display:grid; grid-template-columns:1fr 1fr; gap:8px; animation:drawer 8s cubic-bezier(.65,0,.2,1) infinite}
+@keyframes drawer{0%,6%{transform:translateY(200px); opacity:.0} 24%,100%{transform:none; opacity:1}}
+.sp .box .tile{height:auto}
+.sp .here{margin:14px 16px 0; display:flex; gap:8px; color:var(--m); font-size:13px}
+
+/* 8 select many: picked tiles lift with a check, the move sheet rises */
+.sl .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:10px 12px 0}
+.sl .grid .tile{height:96px}
+.sl .grid .sel{animation:lift 8s cubic-bezier(.16,1,.3,1) infinite; animation-delay:var(--d)}
+@keyframes lift{0%,6%{transform:none; box-shadow:none} 10%,94%{transform:scale(.93); box-shadow:0 0 0 3px var(--chalk)} 100%{transform:none}}
+.sl .grid .sel::after{content:"✓"; position:absolute; right:6px; top:6px; width:22px; height:22px; border-radius:50%; background:var(--chalk); color:#16130F; font:800 13px/22px var(--body); text-align:center; animation:ck 8s infinite; animation-delay:var(--d)}
+@keyframes ck{0%,7%{transform:scale(0)} 11%,94%{transform:none} 100%{transform:scale(0)}}
+.sl .grid .dim{opacity:.45}
+.sl .sheet{position:absolute; left:0; right:0; bottom:0; z-index:7; border-radius:22px 22px 0 0; background:#1E2026; padding:14px 0 14px; box-shadow:0 -12px 30px #0009; animation:sheet 8s cubic-bezier(.16,1,.3,1) infinite}
+@keyframes sheet{0%,34%{transform:translateY(105%)} 44%,94%{transform:none} 100%{transform:translateY(105%)}}
+.sl .sheet .chips{padding:8px 16px 12px; flex-wrap:wrap}
+
+/* 9 wish form: the wish tile fills with the colour you pick */
+.wf .wish{position:relative; margin:10px 16px 0; height:96px; border-radius:16px; border:2px dashed #FFFFFF44; overflow:hidden; display:flex; align-items:flex-end; padding:10px 12px}
+.wf .wish .fill{position:absolute; inset:0; background:var(--f); clip-path:inset(100% 0 0 0); animation:wfill 8s cubic-bezier(.65,0,.2,1) infinite}
+@keyframes wfill{0%,30%{clip-path:inset(100% 0 0 0)} 46%,94%{clip-path:inset(0 0 0 0)} 100%{clip-path:inset(100% 0 0 0)}}
+.wf .wish b{position:relative; font:800 22px/1 var(--disp)}
+.wf .wish small{position:relative; margin-left:auto; font-size:12.5px; font-weight:700}
+.wf .sws{display:flex; gap:8px; margin:0 16px}
+.wf .sws i{width:30px; height:30px; border-radius:50%; background:var(--k); box-shadow:inset 0 0 0 1px #FFFFFF33}
+.wf .sws i.on{animation:swon 8s infinite}
+@keyframes swon{0%,26%{box-shadow:inset 0 0 0 1px #FFFFFF33} 30%,94%{box-shadow:0 0 0 3px #101114, 0 0 0 5px #F4F1EB}}
+
+/* 10 staples: owned basics glow in their colour, missing ones say so */
+.sa .rw{display:flex; align-items:center; gap:12px; margin:0 12px; padding:8px; border-radius:14px; animation:rise .6s cubic-bezier(.16,1,.3,1) both; animation-delay:var(--d)}
+.sa .rw + .rw{margin-top:6px}
+.sa .rw .tile{width:46px; height:46px; flex:none; border-radius:12px}
+.sa .rw.no .tile{background:transparent; border:2px dashed #FFFFFF44}
+.sa .rw small{display:block; font-size:12px; color:var(--m)}
+.sa .rw .st{margin-left:auto; font-size:12px; font-weight:700; padding:5px 9px; border-radius:12px; white-space:nowrap}
+.sa .rw .st.have{background:#7BD3A022; color:var(--ok)}
+.sa .rw .st.none{background:#F0B95B22; color:var(--warn); animation:nudge 8s infinite}
+@keyframes nudge{0%,40%,52%,100%{transform:none} 44%{transform:translateX(-3px)} 48%{transform:translateX(3px)}}
+
+/* 11 sizes: brand rows, and a fit bar that grows */
+.sz .br{display:flex; align-items:center; gap:10px; margin:0 12px; padding:10px 12px; border-radius:14px; background:var(--s)}
+.sz .br + .br{margin-top:6px}
+.sz .br .mk{width:34px; height:34px; border-radius:10px; display:grid; place-items:center; font:800 14px var(--disp); background:var(--k)}
+.sz .br b{font:800 17px var(--disp); margin-left:auto; white-space:nowrap}
+.sz .br small{display:block; font-size:12px; color:var(--m)}
+.sz .fitbar{display:flex; height:32px; margin:0 16px; border-radius:10px; overflow:hidden; gap:3px}
+.sz .fitbar i{background:var(--k); transform-origin:left; animation:grow8 8s cubic-bezier(.16,1,.3,1) infinite; animation-delay:var(--d)}
+@keyframes grow8{0%,10%{transform:scaleX(0)} 30%,100%{transform:none}}
+.sz .fitkey{display:flex; justify-content:space-between; margin:6px 16px 0; font-size:12.5px}
+.sz .fitkey span{display:flex; align-items:center; gap:6px}
+.sz .fitkey i{width:10px; height:10px; border-radius:3px; background:var(--k)}
+
+/* 12 year review: rooms slide past, each lit by its most worn thing */
+.yr .track{position:absolute; top:54px; left:0; width:200%; display:flex; animation:yslide 10s cubic-bezier(.65,0,.2,1) infinite}
+@keyframes yslide{0%,42%{transform:none} 52%,92%{transform:translateX(-50%)} 100%{transform:none}}
+.yr .slide{width:50%; padding:0 12px}
+.yr .win{height:300px; border-radius:22px; background:var(--f); position:relative; overflow:hidden; padding:14px}
+.yr .win .caps{font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:#FFFFFFCC}
+.yr .win .pc{position:absolute; right:-6px; bottom:46px}
+.yr .win .cap{position:absolute; left:14px; right:14px; bottom:12px; font-size:13px}
+.yr .win .big{font:800 64px/.9 var(--disp); letter-spacing:-.04em; margin-top:8px}
+.yr .nums{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:12px}
+.yr .nums div{padding:10px; border-radius:14px; background:var(--s)}
+.yr .nums b{display:block; font:800 28px/1 var(--disp)}
+.yr .nums span{font-size:11.5px; color:var(--m)}
+.yr .spend{margin-top:12px; padding:10px 12px; border-radius:14px; background:var(--s); display:flex; align-items:baseline; justify-content:space-between}
+.yr .spend b{font:800 24px var(--disp)}
+.yr .dots{position:absolute; left:0; right:0; bottom:44px; display:flex; justify-content:center; gap:6px}
+.yr .dots i{width:7px; height:7px; border-radius:50%; background:#FFFFFF44}
+.yr .dots i.on{background:var(--t); width:20px; border-radius:4px}
+.yr .hint{position:absolute; left:0; right:0; bottom:18px; text-align:center; font-size:12.5px; color:var(--m)}
+</style>
+<script src="inventory-photos.js"></script>
+
+<div class="wrap">
+  <header class="hero">
+    <h1>Inventory redesign, round 5: every other screen</h1>
+    <div class="heard">
+      <div><h2>Your round 4 answers</h2><ul>
+        <li>Item facts: A, three separate tiles.</li>
+        <li>Loved the fixed Home and editing on the item's colour.</li>
+        <li>Liked search, settings and the empty first day.</li></ul></div>
+      <div><h2>What this round does</h2><ul>
+        <li>Draws the twelve screens no board has shown yet, in the same look.</li>
+        <li>Each one borrows something you already liked: the item's colour, the kind colours, or the colour flood.</li>
+        <li>Every screen moves to show what it does. Press Replay to watch again.</li></ul></div>
+    </div>
+    <p class="status" id="status" role="status">Connecting…</p>
+  </header>
+  <div id="groups" style="display:grid; gap:30px"></div>
+  <section class="secnote" aria-labelledby="ov-h">
+    <h2 id="ov-h" style="font-size:26px; font-weight:800">Your notes on the whole round</h2>
+    <label for="note-board">With these, every screen has a design. Anything that would stop you building it?</label>
+    <textarea id="note-board"></textarea>
+    <p class="credits">Photos: free-licence images from <a href="https://unsplash.com/license" target="_blank" rel="noopener">Unsplash</a>, cut out with the same tool the app uses. Names, counts and prices are made up.</p>
+  </section>
+</div>
+
+<script>
+const PH0 = window.PHOTOS || {};
+const img = (n, w, h, cls='pc', st='') => `<img class="${cls}" src="${PH0[n]||''}" alt="" width="${w}" height="${h}" style="width:${w}px; height:${h}px; ${st}">`;
+const ico = (d, s=18, sw=2) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const I = {
+  back:'<path d="M15 6l-6 6 6 6"/>', fwd:'<path d="M9 6l6 6-6 6"/>', plus:'<path d="M12 5v14M5 12h14"/>', pin:'<path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  chev:'<path d="M9 6l6 6-6 6"/>', check:'<path d="M5 12l5 5 9-10"/>', cam:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  bank:'<rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M12 8l-2 4h4l-2 4"/>', plug:'<path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 01-12 0zM12 17v4"/>',
+  umb:'<path d="M3 12a9 9 0 0118 0z"/><path d="M12 12v7a2 2 0 01-4 0"/>', belt:'<rect x="2" y="9" width="20" height="6" rx="1"/><rect x="9" y="8" width="6" height="8" rx="1"/>',
+  light:'<path d="M9 18h6M10 21h4M12 3a6 6 0 00-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0012 3z"/>',
+};
+const NAV = (on) => `<div class="nav">${['Home','Everything','+','Places','Wishes'].map(t => t==='+' ? `<span class="plus">${ico(I.plus,20,2.6)}</span>` : (t===on?`<b>${t}</b>`:`<span>${t}</span>`)).join('')}</div>`;
+const KC = { clothes:'#B23A5E', elec:'#2F63D6', home:'#7E52C0', tools:'#3D7A22', bags:'#A0600F', other:'#59626D' };
+const IT = {
+  tee:{n:'White tee', p:'flat-tee-white', f:'#7A7466'}, gtee:{n:'Graphic tee', p:'flat-tee-black', f:'#3A4458'}, jeans:{n:'Blue jeans', p:'flat-jeans-blue', f:'#2C55B8'},
+  chinos:{n:'Olive chinos', p:'flat-chinos', f:'#5E5D24'}, jacket:{n:'Leather jacket', p:'flat-jacket-leather', f:'#6B3B2C'}, shirt:{n:'White shirt', p:'white-shirt', f:'#6E7480'},
+  floral:{n:'Floral shirt', p:'floral-shirt', f:'#9A2A4C'}, sneak:{n:'Sneakers', p:'white-sneakers', f:'#77736A'}, loafers:{n:'Loafers', p:'brown-loafers', f:'#8E3F1F'},
+  watch:{n:'Field watch', p:'black-watch', f:'#3F4C5A'}, swatch:{n:'Silver watch', p:'silver-watch', f:'#5A6470'}, head:{n:'Headphones', p:'headphones', f:'#34405A'},
+};
+const tile = (k, w, h, label=true, extra='', st='') => `<div class="tile ${extra}" style="--f:${IT[k].f}; ${st}">${img(IT[k].p, w, h)}${label?`<p>${IT[k].n}</p>`:''}</div>`;
+const sub = (title, right='') => `<div class="top"><span>${ico(I.back)}</span><span class="ttl" style="font-size:22px">${title}</span><span style="margin-left:auto">${right}</span></div>`;
+
+/* ---------- adding things ---------- */
+const camera = `<div class="ph cam">
+  <div class="top"><span class="ttl" style="font-size:20px">Take photos</span><span class="m" style="margin-left:auto; font-size:12.5px">Lay it flat</span></div>
+  <div class="vf" style="--f:${IT.chinos.f}"><div class="bgcut"></div><div class="br"></div><div class="shot">${img('flat-chinos',150,220)}</div></div>
+  <span class="cutting">Cutting out…</span>
+  <div class="flash"></div>
+  <div class="tray">${tile('tee',44,50,false)}${tile('jeans',40,54,false)}${tile('chinos',38,54,false,'new')}</div>
+  <p class="count"><span>2 taken</span><span>3 taken</span></p>
+  <div class="ctrl"><span class="m" style="font-weight:700">Cancel</span><span class="shut"><i></i></span><span class="btn p" style="justify-self:end; padding:10px 16px">Done</span></div>
+</div>`;
+
+const fix = `<div class="ph fx" style="--f:${IT.loafers.f}; --tint:#F3D3C4">
+  ${sub('Fix the cut-out')}
+  <div class="board">${img('brown-loafers',200,170)}<span class="ghost"></span>
+    <span class="dot k" style="left:34%; top:52%; --d:0s">+</span><span class="dot k" style="left:66%; top:62%; --d:.8s">+</span><span class="dot r" style="left:64%; top:30%; --d:3.4s">−</span></div>
+  <p class="lbl">What a tap does</p>
+  <div class="opt3"><span class="on">Keep this part</span><span>Remove this part</span></div>
+  <p class="m" style="margin:10px 16px 0; font-size:12.5px; color:#F3D3C4">Tap the shoe to keep it, the background to remove it. Two or three taps is usually enough.</p>
+  <div class="foot"><div class="bar2" style="margin-bottom:8px"><span class="btn g">Undo point</span><span class="btn g">Start again</span></div><div style="margin:0 12px"><span class="btn p" style="display:block">Done</span></div></div>
+</div>`;
+
+const receipt = `<div class="ph rq">
+  ${sub('Read a receipt')}
+  <div class="paper"><div class="scan"></div>
+    <b>CROMA</b> · Store 114<br>14/03/2025&nbsp; 18:42<br>-----------------------<br>
+    <span class="hl" style="--k:${KC.elec}; --d:.4s">WH-1000 WIRELESS HP</span>
+    <span class="hl" style="--k:#C78A1E; --d:.9s">1 × &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;₹8,990.00</span>
+    GST incl.<br>-----------------------<br>TOTAL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;₹8,990.00<br>UPI ··· 4417</div>
+  <div class="found">
+    <div style="--k:${KC.elec}; --d:.5s"><span>Name</span><b>Wireless headphones</b><span class="ok">${ico(I.check,16,2.6)}</span></div>
+    <div style="--k:#C78A1E; --d:1s"><span>Paid</span><b>₹8,990</b><span class="ok">${ico(I.check,16,2.6)}</span></div>
+    <div style="--k:${KC.home}; --d:1.5s"><span>Date</span><b>14 Mar 2025</b><span class="ok">${ico(I.check,16,2.6)}</span></div>
+    <div style="--k:${KC.tools}; --d:2s"><span>Shop</span><b>Croma</b><span class="ok">${ico(I.check,16,2.6)}</span></div></div>
+  <div class="foot"><div class="bar2"><span class="btn g">Ignore</span><span class="btn p">Use these</span></div></div>
+</div>`;
+
+/* ---------- wearing ---------- */
+const wearlog = `<div class="ph wl">
+  ${sub('What you wore')}
+  <div class="day"><span>${ico(I.back)}</span><p><b>Today</b><br><span class="m sm">Wed 18 Nov</span></p><span class="off">${ico(I.fwd)}</span></div>
+  <div class="stage">${['tee','jeans','sneak'].map((k,i)=>`<i style="--f:${IT[k].f}; --d:${(i*.12).toFixed(2)}s"></i>`).join('')}
+    <div class="pcs">${img('flat-tee-white',96,84,'pc','--d:.3s')}${img('flat-jeans-blue',74,104,'pc','--d:.45s; margin-top:-10px')}${img('white-sneakers',70,40,'pc','--d:.6s')}</div>
+    <span class="stamp">Logged</span></div>
+  <div class="qq"><b>Same as last Wednesday?</b><span class="m sm">White tee, Blue jeans, Sneakers</span></div>
+  <div class="bar2"><span class="btn p">Yes, this</span><span class="btn g">Mirror photo</span></div>
+  <p class="cap2">Or one of your regulars</p>
+  <div class="regs">${[['shirt','chinos','loafers'],['floral','jeans','sneak'],['gtee','jacket','jeans']].map(o=>`<div>${o.map(k=>`<i style="--f:${IT[k].f}"></i>`).join('')}</div>`).join('')}</div>
+</div>`;
+
+const outfit = `<div class="ph op">
+  <div class="bands">${['floral','chinos','loafers'].map((k,i)=>`<i style="--f:${IT[k].f}; --d:${(i*.1).toFixed(1)}s"></i>`).join('')}</div>
+  <div class="z">
+    <div class="top"><span>${ico(I.back)}</span><span style="margin-left:auto; font-weight:700">Change</span></div>
+    <div class="pcs">${img('floral-shirt',104,112)}${img('flat-chinos',70,112)}${img('brown-loafers',76,52)}</div>
+    <h4>Weekend lunch</h4>
+    <p class="sub">Worn 9 times · last on Saturday · Out</p>
+    <div style="margin:14px 12px 0"><span class="btn p" style="display:block">Wore this today</span></div>
+    <p class="cap2">Its pieces</p>
+    <div class="its">${['floral','chinos','loafers'].map(k=>`<div>${tile(k,30,30,false)}<span>${IT[k].n}</span><span class="ch">${ico(I.chev,16)}</span></div>`).join('')}</div>
+  </div>
+</div>`;
+
+const builder = `<div class="ph ob">
+  ${sub('New outfit')}
+  <div class="tray"><p class="m sm" style="margin-bottom:8px">The outfit you are putting together</p>
+    <div class="slots">${[['shirt','.6s'],['chinos','1.6s'],['loafers','2.6s']].map(([k,d])=>`<div><span class="in" style="--f:${IT[k].f}; --d:${d}">${img(IT[k].p,54,60)}</span></div>`).join('')}</div>
+    <div class="strip">${[['shirt','.6s'],['chinos','1.6s'],['loafers','2.6s']].map(([k,d])=>`<i style="--f:${IT[k].f}; --d:${d}"></i>`).join('')}</div></div>
+  <div class="chips" style="padding:12px 12px 8px"><span class="chip on">All</span><span class="chip">Tops</span><span class="chip">Bottoms</span><span class="chip">Shoes</span></div>
+  <div class="grid">${[['tee',''],['shirt','.6s'],['floral',''],['gtee',''],['jeans',''],['chinos','1.6s'],['sneak',''],['loafers','2.6s']].map(([k,d])=>tile(k,44,48,false,d?'pick':'',d?`--d:${d}`:'')).join('')}</div>
+  <p class="lbl">Name, if you like</p><div class="well"><span class="m">For example: Office</span></div>
+  <div class="foot"><div style="margin:0 12px"><span class="btn p" style="display:block">Save the outfit</span></div></div>
+</div>`;
+
+/* ---------- places and tidying ---------- */
+const spot = `<div class="ph sp">
+  ${sub('Desk, top drawer', `<span style="font-weight:700">Rename</span>`)}
+  <p class="here">${ico(I.pin,16)}In the study · 4 things</p>
+  <div class="drawer"><div class="box">
+    ${tile('head',70,60)}${tile('watch',56,60)}
+    <div class="tile" style="--f:#4A4F5C">${`<span class="noimg">${ico(I.plug,38,1.6)}</span>`}<p>Charger</p></div>
+    <div class="tile" style="--f:#2F7A68"><span class="noimg">${ico(I.bank,38,1.6)}</span><p>Power bank</p></div>
+  </div><div class="front"><i></i></div></div>
+  <p class="m sm" style="margin:12px 16px 0">Move things here from their page, or hold one in Everything to move several.</p>
+  ${NAV('Places')}
+</div>`;
+
+const select = `<div class="ph sl">
+  <div class="top"><span class="ttl" style="font-size:20px">3 selected</span><span class="m" style="margin-left:auto; font-weight:700">Cancel</span></div>
+  <div class="grid">
+    ${tile('tee',56,56,true,'sel','--d:.2s')}${tile('head',60,56,true,'dim')}${tile('gtee',56,56,true,'sel','--d:.7s')}
+    ${tile('jeans',46,64,true,'dim')}${tile('shirt',56,56,true,'sel','--d:1.2s')}${tile('watch',50,56,true,'dim')}
+    ${tile('loafers',62,40,true,'dim')}${tile('jacket',56,56,true,'dim')}${tile('sneak',62,40,true,'dim')}</div>
+  <div class="sheet"><p style="padding:0 16px; font:800 18px var(--disp)">Move 3 pieces to</p>
+    <div class="chips"><span class="chip on">${ico(I.pin,13)}Bedroom cupboard</span><span class="chip">Laundry basket</span><span class="chip">Suitcase</span><span class="chip">No spot</span></div>
+    <div class="bar3"><span class="btn g">Edit</span><span class="btn g">Let go</span><span class="btn p">Move</span></div></div>
+</div>`;
+
+/* ---------- planning and looking back ---------- */
+const wishform = `<div class="ph wf" style="--f:#5E8A6E">
+  ${sub('New wish')}
+  <div class="wish"><div class="fill"></div><b>Linen shirt</b><small>Soon · ₹1,999</small></div>
+  <p class="lbl">Name</p><div class="well">Linen shirt</div>
+  <p class="lbl">How soon?</p><div class="opt3"><span class="on">Soon</span><span>This year</span><span>Some day</span></div>
+  <p class="lbl">Kind and colour, if you like</p>
+  <div class="sws"><i style="--k:#E9E4DA"></i><i style="--k:#1C1C1F"></i><i class="on" style="--k:#5E8A6E"></i><i style="--k:#2C55B8"></i><i style="--k:#9A2A4C"></i></div>
+  <p class="lbl">Price</p><div class="well">₹1,999<span class="ch m sm">about is fine</span></div>
+  <p class="lbl">Is it for someone? Their name</p><div class="well"><span class="m">Leave empty if it's for you</span></div>
+  <div class="foot"><div style="margin:0 12px"><span class="btn p" style="display:block">Save the wish</span></div></div>
+</div>`;
+
+const staples = `<div class="ph sa">
+  ${sub('Staples')}
+  <p class="m" style="margin:8px 16px 14px; font-size:13px">The basics Wishes mentions when you own none of them.</p>
+  ${[['tee','White tee','Clothes','have','You have 3'],[null,'Umbrella','Other','none','None yet',I.umb,KC.other],['sneak','White sneakers','Clothes','have','You have 1'],[null,'Black belt','Clothes','none','None yet',I.belt,KC.clothes],[null,'Phone charger','Electronics','have','You have 2',I.plug,KC.elec],[null,'Torch','Tools','none','None yet',I.light,KC.tools]]
+    .map(([k,n,kind,s,t,ic,c],i)=>`<div class="rw ${s==='none'?'no':''}" style="--d:${(i*.07).toFixed(2)}s">${k?tile(k,38,38,false):`<div class="tile" style="--f:${c}; ${s==='none'?`color:${c}`:''}"><span class="noimg" style="${s==='none'?'color:#FFFFFF99':''}">${ico(ic,24,1.8)}</span></div>`}<span>${n}<small>${kind}</small></span><span class="st ${s}">${t}</span></div>`).join('')}
+  <div class="foot"><div style="margin:0 12px"><span class="btn g" style="display:block">Add a staple</span></div></div>
+</div>`;
+
+const sizes = `<div class="ph sz">
+  ${sub('My sizes')}
+  <p class="lbl">Measured in</p><div class="opt3"><span class="on">Inches</span><span>Centimetres</span></div>
+  <p class="cap2">Brand by brand</p>
+  ${[['L','Levi\'s','Jeans',"32 × 30",'#2C55B8'],['U','Uniqlo','Tops · runs small','L','#B23A5E'],['N','Nike','Shoes','UK 9','#3D7A22'],['Z','Zara','Shirts','M','#7E52C0']].map(([m,b,n,s,k])=>`<div class="br" style="--k:${k}"><span class="mk">${m}</span><span>${b}<small>${n}</small></span><b>${s}</b></div>`).join('')}
+  <p class="cap2">How it all fits now</p>
+  <div class="fitbar"><i style="--k:#E0A045; flex:5; --d:0s"></i><i style="--k:#3FAE74; flex:38; --d:.1s"></i><i style="--k:#5B8DEF; flex:7; --d:.2s"></i></div>
+  <div class="fitkey"><span style="--k:#E0A045"><i></i>Tight 5</span><span style="--k:#3FAE74"><i></i>Fits 38</span><span style="--k:#5B8DEF"><i></i>Loose 7</span></div>
+  <div class="foot"><div style="margin:0 12px"><span class="btn g" style="display:block">Add a brand</span></div></div>
+</div>`;
+
+const year = `<div class="ph yr">
+  ${sub('Your 2025', '<span class="m sm">Swipe</span>')}
+  <div class="track">
+    <div class="slide"><div class="win" style="--f:${IT.jeans.f}"><p class="caps">Bedroom</p>${img('flat-jeans-blue',120,170)}<p class="cap"><span style="color:#D3DEFA">Most worn here</span><br><b style="font:800 20px var(--disp)">Blue jeans</b> · 84 wears</p></div>
+      <div class="nums"><div><b>14</b><span>pieces added</span></div><div><b>212</b><span>wears</span></div><div><b>6</b><span>let go</span></div></div></div>
+    <div class="slide"><div class="win" style="--f:${IT.head.f}"><p class="caps">The whole year</p><p class="big">131</p><p style="color:#C9D3E6">days with the headphones, your most used thing</p>${img('headphones',120,110,'pc','bottom:20px')}</div>
+      <div class="spend"><span class="m sm">Spent on new things</span><b>₹48,300</b></div></div>
+  </div>
+  <div class="dots"><i class="on"></i><i></i><i></i><i></i></div>
+  <p class="hint">Swipe for the next room</p>
+</div>`;
+
+const GROUPS = [
+  { id:'add', name:'Adding things', note:'Photos drop into a tray on their own colour as they are taken. Fixing a cut-out happens on the item\'s colour. A receipt is read line by line, and each fact it finds lights up.',
+    phones:[['Camera: take, cut out, and it lands in the tray', camera],['Fix the cut-out: taps to keep or remove a part', fix],['Read a receipt: the scan finds name, price, date and shop', receipt]] },
+  { id:'wear', name:'Wearing', note:'An outfit is shown as bands of its pieces\' colours: behind the day\'s log, across the top of an outfit\'s page, and as a strip that fills as you build one.',
+    phones:[['What you wore: the day\'s pieces on their colours, then "Logged"', wearlog],['An outfit\'s page, coloured by its pieces', outfit],['Putting an outfit together: pieces fly into the tray', builder]] },
+  { id:'tidy', name:'Places and tidying', note:'A place opens like the drawer it is. Picking several things lifts them with a tick, and the move sheet rises.',
+    phones:[['One place: the drawer opens to show what is in it', spot],['Select several, then move them together', select]] },
+  { id:'plan', name:'Planning and looking back', note:'A wish fills with its colour as you describe it. Staples show what you have and what you have none of. Sizes end with a plain fit bar, and the year steps through your rooms.',
+    phones:[['New wish: its tile fills with the colour you pick', wishform],['Staples: owned in colour, missing ones dashed', staples],['My sizes: brand by brand, and how everything fits', sizes],['Your year: one room at a time, then the whole year', year]] },
+];
+
+const $ = (s, el=document) => el.querySelector(s);
+const LS = 'inv-redesign-5';
+let state = {}, boardNote = '', db = null;
+const setStatus = t => { $('#status').textContent = t; };
+try { const s = JSON.parse(localStorage.getItem(LS) || '{}'); Object.assign(state, s.r || {}); boardNote = s.n || ''; } catch (e) {}
+const keep = () => { try { localStorage.setItem(LS, JSON.stringify({ r: state, n: boardNote })); } catch (e) {} };
+
+function build() {
+  $('#groups').innerHTML = GROUPS.map(g => `<section class="dir" aria-labelledby="g-${g.id}"><div class="dhead"><h2 id="g-${g.id}">${g.name}</h2></div><p class="thesis">${g.note}</p>
+    <div class="phones">${g.phones.map(([cap,html],i)=>{ const id = `${g.id}-${i+1}`; return `<div class="pcard" data-id="${id}"><div class="slot">${html}</div><p class="cap">${cap}</p>
+      <div class="row" role="group" aria-label="Your reaction to: ${cap}">${['love','like','no'].map(v=>`<button type="button" class="v" data-v="${v}" aria-pressed="false">${v[0].toUpperCase()+v.slice(1)}</button>`).join('')}<button type="button" class="nb">Note</button><button type="button" class="replay">Replay</button></div>
+      <textarea hidden aria-label="Note on: ${cap}"></textarea></div>`; }).join('')}</div></section>`).join('');
+}
+function paint() {
+  document.querySelectorAll('[data-id]').forEach(c => {
+    const s = state[c.dataset.id] || {};
+    c.querySelectorAll(':scope .v').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === s.v)));
+    const ta = c.querySelector(':scope > textarea'); if (ta && document.activeElement !== ta) { ta.value = s.note || ''; if (s.note) ta.hidden = false; }
+  });
+  if (document.activeElement !== $('#note-board')) $('#note-board').value = boardNote;
+}
+async function save(id) {
+  keep(); paint();
+  if (!db) return;
+  const s = state[id] || {};
+  try { await db.collection('reactions').doc(id).set({ v: s.v || null, note: s.note || '', at: new Date().toISOString() }); setStatus('Saved'); }
+  catch (e) { setStatus('Not saved online; kept on this device only'); }
+}
+async function saveBoard() {
+  keep();
+  if (!db) return;
+  try { await db.doc('notes/board').set({ text: boardNote, at: new Date().toISOString() }); setStatus('Saved'); }
+  catch (e) { setStatus('Not saved online; kept on this device only'); }
+}
+build(); paint();
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('.v');
+  if (b) { const id = b.closest('[data-id]').dataset.id; const s = state[id] = state[id] || {}; s.v = s.v === b.dataset.v ? null : b.dataset.v; save(id); return; }
+  const nb = ev.target.closest('.nb');
+  if (nb) { const ta = nb.closest('[data-id]').querySelector(':scope > textarea'); ta.hidden = false; ta.focus(); return; }
+  const r = ev.target.closest('.replay');
+  if (r) { const slot = $('.slot', r.closest('.pcard')); const html = slot.innerHTML; slot.innerHTML = ''; void slot.offsetWidth; slot.innerHTML = html; }
+});
+document.addEventListener('change', ev => {
+  const ta = ev.target;
+  if (ta.id === 'note-board') { boardNote = ta.value.trim(); saveBoard(); return; }
+  const c = ta.closest && ta.closest('[data-id]'); if (!c) return;
+  (state[c.dataset.id] = state[c.dataset.id] || {}).note = ta.value.trim(); save(c.dataset.id);
+});
+(async () => {
+  try { db = await window.claude?.use?.('db'); } catch (e) { db = null; }
+  if (!db) { setStatus('Saving on this device only'); return; }
+  setStatus('Connected. Reactions save as you go.');
+  db.collection('reactions').onSnapshot(snap => {
+    snap.docs.forEach(d => { const x = d.data(); state[d.id] = { v: x.v || null, note: x.note || '' }; });
+    keep(); paint();
+  }, () => setStatus('Lost connection; reactions kept on this device'));
+  db.doc('notes/board').onSnapshot(d => { if (d.exists) { boardNote = d.data().text || ''; paint(); } });
+})();
+</script>

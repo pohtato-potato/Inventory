@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import { wearsFromEvents, withStarterLane } from './migrate';
+import { sizeRowForward, wearsFromEvents, withStarterLane } from './migrate';
 import type { Item, ItemEvent, Kind, Outfit, Photo, Place, SavedSearch, Setting, Shade, SizeRow, Wear, Wish } from '../domain/types';
 
 export class InventoryDb extends Dexie {
@@ -38,6 +38,10 @@ export class InventoryDb extends Dexie {
         await tx.table('wears').bulkAdd(wearsFromEvents(worn));
         await tx.table('kinds').toCollection().modify((k: Kind) => { Object.assign(k, withStarterLane(k)); });
       });
+    // The redesign: a brand holds several sizes, each with an optional tailoring note.
+    this.version(3).stores({}).upgrade(async (tx) => {
+      await tx.table('sizes').toCollection().modify((r: SizeRow, ref: { value: SizeRow }) => { ref.value = sizeRowForward(r); });
+    });
   }
 }
 

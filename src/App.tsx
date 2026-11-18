@@ -1,12 +1,15 @@
 import { Suspense, useEffect } from 'react';
+import { useSetting } from './db/hooks';
+import { setOwnKindColours, type KindGroup } from './domain/kinds';
 import { seedIfEmpty } from './db/seed';
 import { sweepTrash } from './db/actions';
 import { useRoute } from './router';
 import { TabBar } from './ui/TabBar';
 import { ToastHost } from './ui/Toast';
 import { AskHost } from './ui/Ask';
-import { Wardrobe } from './screens/Wardrobe';
-import { Things } from './screens/Things';
+import { Everything, Things, Wardrobe } from './screens/Browse';
+import { Places } from './screens/Places';
+import { StaplesPage } from './screens/Staples';
 import { SpotPage } from './screens/SpotPage';
 import { Search } from './screens/Search';
 import { Piece } from './screens/Piece';
@@ -27,6 +30,9 @@ import { YearReview } from './screens/YearReview';
 import { startConveyor } from './photo/conveyor';
 
 const SCREENS: Record<string, React.ComponentType> = {
+  '/everything': Everything,
+  '/places': Places,
+  '/staples': StaplesPage,
   '/wardrobe': Wardrobe,
   '/things': Things,
   '/spot': SpotPage,
@@ -49,16 +55,20 @@ const SCREENS: Record<string, React.ComponentType> = {
   '/year': YearReview,
 };
 
-/** Screens that show the tab bar. The rest (a piece, the camera, details) use the whole screen. */
-const WITH_TABS = new Set(['/wardrobe', '/things', '/spot', '/search', '/outfits', '/wishes', '/home']);
+/** Screens that show the tab bar. The rest (a thing, the camera, details) use the whole screen. */
+const WITH_TABS = new Set(['/home', '/everything', '/wardrobe', '/things', '/search', '/outfits', '/places', '/spot', '/wishes']);
+/** Which tab each screen with the tab bar sits under. */
+const TAB_OF: Record<string, string> = { '/wardrobe': '/everything', '/things': '/everything', '/search': '/everything', '/outfits': '/everything', '/spot': '/places' };
 
 export function App() {
   const { path } = useRoute();
   useEffect(() => {
     void seedIfEmpty().then(() => sweepTrash(Date.now())).then(() => startConveyor());
   }, []);
-  const Screen = SCREENS[path] ?? Wardrobe;
-  const tab = path === '/outfits' ? '/wardrobe' : ['/things', '/wardrobe', '/wishes', '/home'].includes(path) ? path : '';
+  const own = useSetting<Partial<Record<KindGroup, string>>>('kindColours', {});
+  setOwnKindColours(own);
+  const Screen = SCREENS[path] ?? Home;
+  const tab = TAB_OF[path] ?? path;
   return (
     <>
       <Suspense fallback={<main className="screen" aria-busy="true" />}>

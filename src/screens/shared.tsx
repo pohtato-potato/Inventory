@@ -4,12 +4,19 @@ import type { Id, Item, Kind, Place, Shade } from '../domain/types';
 import { back, go } from '../router';
 import { keepUncut } from '../photo/conveyor';
 import { IconBack, IconCalendar } from '../ui/icons';
-import { UNKNOWN_LIGHT } from '../ui/light';
-import { Piece, Window } from '../ui/Window';
+import { kindColour, kindGroup } from '../domain/kinds';
+import { Cut, Swatch } from '../ui/Swatch';
+import { NoPhoto } from '../ui/kindIcons';
+import { floodTo } from '../ui/flood';
 
-/** The colour that lights a piece's window: its main shade. */
-export function pieceColour(item: Item, shades: Shade[]): string {
-  return shades.find((s) => s.id === item.shadeMain)?.hex ?? UNKNOWN_LIGHT;
+/** A thing's colour: its main shade, or, with none, its kind's colour (the owner picks one for a thing with no photo). */
+export function pieceColour(item: Item, trees: { shades: Shade[]; kinds: Kind[] }): string {
+  return trees.shades.find((s) => s.id === item.shadeMain)?.hex ?? kindColour(item.kindId, trees.kinds);
+}
+
+/** Opens a thing: its colour floods the screen from the tap. */
+export function openItem(id: Id): void {
+  floodTo(() => go('/piece', { id }));
 }
 
 export function byId<T extends { id: Id }>(list: T[]): Map<Id, T> {
@@ -34,14 +41,25 @@ export function homesWithSpots(places: Place[]): { home: Place; spots: Place[] }
   return homes.map((home) => ({ home, spots: places.filter((p) => p.role === 'spot' && p.homeId === home.id).sort((a, b) => a.order - b.order) }));
 }
 
-export function SubTop({ title, right, onBack }: { title: string; right?: ReactNode; onBack?: () => void }) {
+export function SubTop({ title, right, onBack, small = false }: { title: string; right?: ReactNode; onBack?: () => void; small?: boolean }) {
   return (
     <div className="top sub">
-      <button type="button" className="icon-btn m" aria-label="Back" onClick={onBack ?? (() => back())}>
-        <IconBack />
+      <button type="button" className="icon-btn" aria-label="Back" onClick={onBack ?? (() => back())}>
+        <IconBack size={24} />
       </button>
-      <h1 className="caps" style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</h1>
-      <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>{right}</span>
+      <h1 className={small ? 'top-small' : 'title'}>{title}</h1>
+      <span className="top-right">{right}</span>
+    </div>
+  );
+}
+
+/** A screen's own title, with buttons on the right. */
+export function Top({ title, right, sub }: { title: string; right?: ReactNode; sub?: ReactNode }) {
+  return (
+    <div className="top">
+      <h1 className="title">{title}</h1>
+      {sub}
+      <span className="top-right">{right}</span>
     </div>
   );
 }
@@ -55,7 +73,7 @@ export function UncutNote({ item }: { item: Item }) {
     <div className="uncut-note" role="status">
       <p>Couldn't separate this piece from the background. Try a plain surface.</p>
       <div className="uncut-actions">
-        <button type="button" className="acc" onClick={() => go('/add', { retake: item.id })}>Retake</button>
+        <button type="button" className="acc wide" onClick={() => go('/add', { retake: item.id })}>Retake</button>
         <button type="button" className="ghost" onClick={() => void keepUncut(item.id)}>Keep as it is</button>
         <button type="button" className="ghost" onClick={() => go('/fix', { id: item.id })}>Fix it by tapping</button>
       </div>
@@ -77,14 +95,14 @@ export function DayPicker({ value, onPick, future = false, label = 'Pick the exa
 }
 
 
-/** A piece in a small square window (Home, the wish page, an outfit's photo): no name, just the piece lit by its colour. */
-export function Mini({ item, thumb, shades, size = 48, onPress }: { item: Item; thumb?: Thumb; shades: Shade[]; size?: number; onPress?: () => void }) {
+/** A thing in a small square on its colour (Home, a wish, an outfit's photo): no name, just the thing. */
+export function Mini({ item, thumb, trees, size = 48, onPress }: { item: Item; thumb?: Thumb; trees: { shades: Shade[]; kinds: Kind[] }; size?: number; onPress?: () => void }) {
   const gone = item.status === 'gone' || item.deletedAt !== undefined;
-  const inner = <Piece src={thumb?.url} cut={thumb?.cut ?? true} />;
+  const inner = thumb ? <Cut src={thumb.url} cut={thumb.cut} /> : <NoPhoto group={kindGroup(item.kindId, trees.kinds)} size={Math.round(size * 0.5)} />;
   const style = { width: size, height: size };
   return onPress ? (
-    <Window as="button" type="button" className="mini" colour={pieceColour(item, shades)} lit={!gone} style={style} aria-label={item.name} onClick={onPress}>{inner}</Window>
+    <Swatch as="button" type="button" className="mini" colour={pieceColour(item, trees)} dim={gone} style={style} aria-label={item.name} onClick={onPress}>{inner}</Swatch>
   ) : (
-    <Window className="mini" colour={pieceColour(item, shades)} lit={!gone} style={style} aria-hidden="true">{inner}</Window>
+    <Swatch className="mini" colour={pieceColour(item, trees)} dim={gone} style={style} aria-hidden="true">{inner}</Swatch>
   );
 }

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { parseReceipt } from '../read/parse';
 import { roughDateText } from '../domain/format';
 import { parseRoughDate } from '../domain/estimate';
@@ -14,7 +14,7 @@ export interface ReceiptValues {
 const LABELS: [keyof ReceiptValues, string][] = [['name', 'Name'], ['shop', 'Shop'], ['when', 'Bought'], ['price', 'Price'], ['size', 'Size']];
 
 /** "Read a receipt or order screenshot": every value found is an editable guess; only ticked ones are used. */
-export function ReadReceipt({ onUse }: { onUse: (r: ReceiptValues) => void }) {
+export function ReadReceipt({ onUse, start }: { onUse: (r: ReceiptValues) => void; start?: File | null }) {
   const file = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<'idle' | 'reading' | 'none' | 'found' | 'failed'>('idle');
   const [progress, setProgress] = useState(0);
@@ -42,8 +42,11 @@ export function ReadReceipt({ onUse }: { onUse: (r: ReceiptValues) => void }) {
     }
   };
 
+  // A receipt picked from the add sheet is read as soon as the form opens.
+  useEffect(() => { if (start) void read(start); }, [start]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <div className="receipt">
+    <div className={`receipt${state === 'reading' ? ' reading' : ''}`}>
       <button type="button" className="ghost" onClick={() => file.current?.click()} disabled={state === 'reading'}>
         {state === 'reading' ? `Reading… ${Math.round(progress * 100)}%` : 'Read a receipt or order screenshot'}
       </button>

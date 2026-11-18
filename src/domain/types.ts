@@ -17,7 +17,6 @@ export interface Kind extends Base {
   name: string;
   clothing: boolean;
   fields: FieldKey[];
-  hideFromWindow?: boolean;
   order: number;
   lane?: Lane;
   layer?: Layer;
@@ -83,7 +82,6 @@ export interface Item extends Base {
   /** pending: waiting in the cut-out queue; uncut: the cut-out failed, the photo is kept as taken and a retake is offered;
    *  kept: the owner chose to keep the photo as taken. */
   cutout?: 'pending' | 'done' | 'uncut' | 'kept';
-  hideFromWindow?: boolean;
   extra: Record<string, string>;
   createdAt: number;
   /** Where this piece is worn on the outfit stage, when its kind has no lane (asked once, "Where is this worn?"). */
@@ -126,12 +124,22 @@ export interface SavedSearch extends Base {
   query: string;
 }
 
-/** My sizes: a body measurement or a brand's size. */
+/** One size at a brand: what it covers (Shoes, Trousers), the size, a note, and what to have tailored. */
+export interface SizeEntry {
+  covers: string;
+  size: string;
+  note?: string;
+  /** "Needs tailoring": for example "take in the waist to 31". */
+  tailoring?: string;
+}
+
+/** My sizes: a body measurement (`value`), or a brand with one or more sizes (`entries`). */
 export interface SizeRow extends Base {
   type: 'measure' | 'brand';
   name: string;
-  value: string;
-  note?: string;
+  /** A measurement's number. Brands keep their sizes in `entries`. */
+  value?: string;
+  entries?: SizeEntry[];
   order: number;
 }
 

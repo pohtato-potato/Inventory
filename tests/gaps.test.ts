@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { STARTER_KINDS, STARTER_PLACES, STARTER_SHADES } from '../src/db/seed';
-import { gaps, ownedLike, STARTER_STAPLES } from '../src/domain/gaps';
+import { gaps, ownedLike, stapleOwned, STARTER_STAPLES } from '../src/domain/gaps';
 import type { Item } from '../src/domain/types';
 
 const trees = { kinds: STARTER_KINDS, shades: STARTER_SHADES, places: STARTER_PLACES };
@@ -36,8 +36,20 @@ describe('gaps (Task 8)', () => {
   it('a staple whose kind the owner has removed is never shown', () => {
     expect(gaps([], [{ id: 'x', label: 'Kilt', kind: 'Kilts' }], [], trees)).toEqual([]);
   });
-  it('lists the nine starter staples', () => {
-    expect(STARTER_STAPLES.map((s) => s.label)).toEqual(['White tee', 'Black tee', 'White shirt', 'Blue jeans', 'Dark trousers', 'White sneakers', 'Brown or black leather shoes', 'Plain belt', 'Light jacket']);
+  it('lists the starter staples: nine clothes and three things', () => {
+    expect(STARTER_STAPLES.map((s) => s.label)).toEqual(['White tee', 'Black tee', 'White shirt', 'Blue jeans', 'Dark trousers', 'White sneakers', 'Brown or black leather shoes', 'Plain belt', 'Light jacket', 'Umbrella', 'Phone charger', 'Torch']);
+  });
+});
+
+describe('stapleOwned', () => {
+  it('counts what you have; a thing staple needs its word in the name', () => {
+    const charger = piece('Phone charger', 'k-o-electronics', '');
+    const laptop = piece('Laptop', 'k-o-electronics', '');
+    const staple = STARTER_STAPLES.find((s) => s.id === 'phone-charger')!;
+    expect(stapleOwned([charger, laptop], staple, trees)).toEqual([charger]);
+    expect(stapleOwned([laptop], staple, trees)).toEqual([]);
+    expect(stapleOwned([whiteTee, offWhiteTee, navyTee], STARTER_STAPLES[0], trees)).toHaveLength(2);
+    expect(stapleOwned([], { id: 'x', label: 'Kilt', kind: 'Kilts' }, trees)).toBeNull();
   });
 });
 

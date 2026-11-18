@@ -6,7 +6,7 @@ export interface Route {
   params: URLSearchParams;
 }
 
-export const HOME_PATH = '/wardrobe';
+export const HOME_PATH = '/home';
 
 export function parseHash(hash: string): Route {
   const raw = hash.replace(/^#/, '');
@@ -60,7 +60,7 @@ export function go(path: string, params?: Record<string, string | undefined>, op
   window.scrollTo(0, 0);
 }
 
-/** Steps back inside the app, or to the wardrobe when the page was opened directly. */
+/** Steps back inside the app, or to Home when the page was opened directly. */
 export function back(fallback = HOME_PATH) {
   if (history.state?.inApp) history.back();
   else go(fallback, undefined, { replace: true });

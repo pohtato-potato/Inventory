@@ -51,7 +51,7 @@ function stillOwned(s: { outfitId?: Id; itemIds: Id[] } | null, items: Item[]) {
 }
 
 /**
- * What was worn on a day. Most days it is one tap: the likely outfit stands in a window ("Same as last Monday?"). Then
+ * What was worn on a day. Most days it is one tap: the likely outfit stands on its colours ("Same as last Monday?"). Then
  * your regulars, then pieces one by one. No reminders, no streaks.
  */
 export function WearLog() {
@@ -112,7 +112,7 @@ export function WearLog() {
       {w && draft === null && (
         <section className="wear-today" aria-label="Logged">
           <OutfitStage ids={w.itemIds} items={all} trees={trees} thumbs={thumbs} height={290} width="100%" face={wFaceUrl} label={`Logged: ${piecesText(w.itemIds, all)}`} />
-          <p className="wear-q"><b>Logged</b> <span className="m">{wearLine(w, outfits, all)}</span></p>
+          <p className="wear-q"><span className="stamp lands wear-stamp">Logged</span> <span className="m">{wearLine(w, outfits, all)}</span></p>
           <div className="wear-acts">
             <button type="button" className="ghost" style={{ flex: 1 }} onClick={() => setDraft(w.itemIds)}>Change</button>
             <button type="button" className="ghost" style={{ flex: 1 }} onClick={async () => { await removeWear(day); showToast('Cleared the day', () => void undoLast()); }}>Clear this day</button>
@@ -167,7 +167,7 @@ export function WearLog() {
                   const i = all.find((x) => x.id === id);
                   if (!i) return null;
                   const t = thumbs.get(id);
-                  return <Tile key={id} item={i} photo={t?.url} cut={t?.cut ?? true} colour={pieceColour(i, trees.shades)} index={n} selected onPress={() => toggle(id)} />;
+                  return <Tile key={id} item={i} photo={t?.url} cut={t?.cut ?? true} colour={pieceColour(i, trees)} index={n} selected onPress={() => toggle(id)} />;
                 })}
               </div>
             </>
@@ -178,7 +178,7 @@ export function WearLog() {
               <div className="grid">
                 {owned.filter((i) => !pieces.includes(i.id)).map((i, n) => {
                   const t = thumbs.get(i.id);
-                  return <Tile key={i.id} item={i} photo={t?.url} cut={t?.cut ?? true} colour={pieceColour(i, trees.shades)} index={n} onPress={() => toggle(i.id)} />;
+                  return <Tile key={i.id} item={i} photo={t?.url} cut={t?.cut ?? true} colour={pieceColour(i, trees)} index={n} onPress={() => toggle(i.id)} />;
                 })}
               </div>
             </>

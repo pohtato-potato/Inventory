@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { saveOutfit, setSetting, undoLast, updateItem, updateOutfit } from '../db/actions';
 import { useAllItems, useMainPhotos, useOutfit, useOutfits, useSelfies, useSetting, useTrees, useWears, type Thumb, type Trees } from '../db/hooks';
 import { outfitPhotos } from '../domain/face';
-import { DRESS_CODES, LANE_WORDS, laneFor, layout, lightPiece, needsLane, pairedFirst, pairScore, placeIn, splitRegulars, STAGE_ASPECT } from '../domain/outfit';
+import { DRESS_CODES, LANE_WORDS, laneFor, layout, needsLane, pairedFirst, pairScore, placeIn, splitRegulars, STAGE_ASPECT } from '../domain/outfit';
 import { isUnsorted } from '../domain/fields';
 import type { Id, Item, Lane, Outfit, Photo, Wear } from '../domain/types';
 import { outfitCount, wearStats } from '../domain/wearlog';
@@ -13,29 +13,28 @@ import { askText } from '../ui/Ask';
 import { Chips } from '../ui/Chips';
 import { Seg } from '../ui/Seg';
 import { Sheet } from '../ui/Sheet';
-import { Stage } from '../ui/Stage';
+import { Bands, Stage } from '../ui/Stage';
 import { Tile } from '../ui/Tile';
-import { Window } from '../ui/Window';
 import { showToast } from '../ui/Toast';
 import { pieceColour } from './shared';
 
-/** The outfit stage for a set of piece ids: lit by its top, gone pieces greyed. With a mirror photo (`face`), the photo
- *  fills the window instead, still lit by the top's colour. */
+/** The outfit stage for a set of piece ids: the pieces on bands of their colours, top first; gone pieces greyed.
+ *  With a mirror photo (`face`), the photo stands on the same bands. */
 export function OutfitStage({ ids, items, trees, thumbs, height, label, delay, face, width }: { ids: Id[]; items: Item[]; trees: Trees; thumbs: Map<Id, Thumb>; height: number; label: string; delay?: number; face?: string; width?: number | string }) {
   const byId = new Map(items.map((i) => [i.id, i]));
   const list = ids.map((id) => byId.get(id)).filter((i): i is Item => !!i);
   const aspect = new Map(list.map((i) => [i.id, thumbs.get(i.id)?.aspect ?? 1.2]));
   const placed = layout(list, trees.kinds, aspect);
-  const lit = lightPiece(placed);
-  const light = lit ? pieceColour(byId.get(lit)!, trees.shades) : undefined;
+  const colours = [...placed].sort((p, q) => p.y - q.y).map((p) => pieceColour(byId.get(p.itemId)!, trees));
   if (face) {
     return (
-      <Window colour={light} delay={delay} className="stage face" style={{ width: width ?? Math.round(height * STAGE_ASPECT), height }} role="img" aria-label={`${label}, mirror photo`}>
+      <div className="stage face" style={{ width: width ?? Math.round(height * STAGE_ASPECT), height }} role="img" aria-label={`${label}, mirror photo`}>
+        <Bands colours={colours} delay={delay} />
         <img className="face-img" src={face} alt="" draggable={false} decoding="async" />
-      </Window>
+      </div>
     );
   }
-  return <Stage placed={placed} photos={thumbs} height={height} light={light} label={label} delay={delay} width={width} />;
+  return <Stage placed={placed} photos={thumbs} height={height} colours={colours} label={label} delay={delay} width={width} />;
 }
 
 type Selfie = { url: string; photo: Photo };
@@ -98,7 +97,7 @@ export function Outfits() {
   return (
     <main className="screen outfits">
       <div className="top">
-        <h1 className="caps">{editing ? 'Change outfit' : 'Outfits'}</h1>
+        <h1 className="title">{editing ? 'Change outfit' : 'Outfits'}</h1>
       </div>
       {!editing && <WardrobeSwitch on="outfits" />}
 
@@ -155,7 +154,7 @@ export function Outfits() {
               const pairs = picked.length > 0 && !picked.includes(i.id) && pairScore(i, picked, together) > 0;
               return (
                 <div key={i.id} className="tile-cell">
-                  <Tile item={i} photo={t?.url} cut={t?.cut ?? true} colour={pieceColour(i, trees.shades)} index={n} selected={picked.includes(i.id)}
+                  <Tile item={i} photo={t?.url} cut={t?.cut ?? true} colour={pieceColour(i, trees)} index={n} selected={picked.includes(i.id)}
                     onPress={() => add(i)} />
                   {pairs && <p className="sm pairs-well">pairs well</p>}
                 </div>

@@ -1,5 +1,5 @@
 /** A segmented switch: By kind · By colour · By place. */
-export function Seg<T extends string>({ options, value, onChange, label }: { options: { value: T; label: string }[]; value: T; onChange: (v: T) => void; label: string }) {
+export function Seg<T extends string>({ options, value, onChange, label }: { options: { value: T; label: string }[]; value?: T; onChange: (v: T) => void; label: string }) {
   return (
     <div className="seg2" role="tablist" aria-label={label}>
       {options.map((o) => (
