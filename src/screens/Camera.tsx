@@ -7,9 +7,9 @@ import { back, go, useRoute } from '../router';
 import { bitmapFromFile, openCamera } from '../photo/camera';
 import { addShot, onCutoutLanded, retakeShot } from '../photo/conveyor';
 import { loadModel, modelCached, modelState } from '../photo/cutout';
-import { Numeral } from '../ui/Numeral';
+import { Tick } from '../ui/Tick';
 import { showToast } from '../ui/Toast';
-import { Piece, Window } from '../ui/Window';
+import { Cut, Swatch } from '../ui/Swatch';
 import { pieceColour } from './shared';
 
 /** Shoot piece after piece. Each shot becomes a piece at once; cut-outs follow one at a time. */
@@ -99,13 +99,13 @@ export function Camera() {
           {(shotItems ?? []).filter(Boolean).slice(0, 4).map((i) => {
             const t = thumbs?.get(i!.id);
             return (
-              <Window key={i!.id} className="cam-thumb" colour={trees ? pieceColour(i!, trees.shades) : undefined}>
-                <Piece src={t?.url} cut={t?.cut} />
-              </Window>
+              <Swatch key={i!.id} tone="page" className="cam-thumb" colour={trees ? pieceColour(i!, trees) : undefined}>
+                <Cut src={t?.url} cut={t?.cut} />
+              </Swatch>
             );
           })}
           <span className="m" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'flex-end', gap: 6 }}>
-            <Numeral value={shots.length} roll={false} className="cam-n" /> shot
+            <Tick value={shots.length} className="num cam-n" /> taken
           </span>
         </div>
         <div className="cam-row">

@@ -1,6 +1,6 @@
 // Moving older data forward: the version 1 → 2 database upgrade and version 1 backups both use these.
 import { dayKey } from '../domain/wearlog';
-import type { ItemEvent, Kind, Lane, Layer, Wear } from '../domain/types';
+import type { ItemEvent, Kind, Lane, Layer, SizeEntry, SizeRow, Wear } from '../domain/types';
 import { newId } from './db';
 
 /** Where each starter kind sits on the outfit stage, by its starter name. Kinds the owner adds get none until chosen. */
@@ -55,4 +55,16 @@ export function wearsFromEvents(events: ItemEvent[]): Wear[] {
   return [...days.entries()]
     .sort(([a], [b]) => (a < b ? -1 : 1))
     .map(([day, d]) => ({ id: newId(), day, itemIds: [...d.ids], updatedAt: d.at }));
+}
+
+/**
+ * Version 3: a brand held one size (`value`, `note`); it now holds a list of sizes. The old size becomes the first
+ * entry, keeping its note; nothing is lost. Measurements and rows already moved are returned as they are.
+ */
+export function sizeRowForward(row: SizeRow & { note?: string }): SizeRow {
+  if (row.type !== 'brand' || Array.isArray(row.entries)) return row;
+  const { value, note, ...rest } = row;
+  const entry: SizeEntry = { covers: '', size: (value ?? '').trim() };
+  if (note?.trim()) entry.note = note.trim();
+  return { ...rest, entries: entry.size || entry.note ? [entry] : [] };
 }

@@ -9,6 +9,8 @@ export interface Staple {
   label: string;
   kind: string;
   family?: string | string[];
+  /** For things, a word the name must hold ("charger"), since a thing's kind is broad. */
+  word?: string;
 }
 
 export const STARTER_STAPLES: Staple[] = [
@@ -21,6 +23,9 @@ export const STARTER_STAPLES: Staple[] = [
   { id: 'leather-shoes', label: 'Brown or black leather shoes', kind: 'Shoes', family: ['Brown', 'Black'] },
   { id: 'plain-belt', label: 'Plain belt', kind: 'Belts' },
   { id: 'light-jacket', label: 'Light jacket', kind: 'Jackets' },
+  { id: 'umbrella', label: 'Umbrella', kind: 'Other', word: 'umbrella' },
+  { id: 'phone-charger', label: 'Phone charger', kind: 'Electronics', word: 'charger' },
+  { id: 'torch', label: 'Torch', kind: 'Tools', word: 'torch' },
 ];
 
 const same = (a: string, b: string) => a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase();
@@ -31,19 +36,27 @@ export function ownedLike(items: Item[], q: { kindId?: Id; shadeId?: Id }, trees
   return items.filter((i) => i.status === 'owned' && matches(i, q, trees));
 }
 
+/**
+ * The owned things that count as a staple: of its kind (or under it), of one of its families, and holding its word.
+ * `null` when the staple's kind or family no longer exists in the owner's tree.
+ */
+export function stapleOwned(items: Item[], s: Staple, trees: SearchTrees): Item[] | null {
+  const kind = trees.kinds.find((k) => same(k.name, s.kind));
+  if (!kind) return null;
+  const names = s.family === undefined ? [] : Array.isArray(s.family) ? s.family : [s.family];
+  const families = names.map((n) => trees.shades.find((x) => !x.familyId && same(x.name, n))).filter((x) => !!x);
+  if (names.length && !families.length) return null;
+  const queries = families.length ? families.map((f) => ({ kindId: kind.id, shadeId: f.id })) : [{ kindId: kind.id }];
+  const word = s.word?.trim().toLocaleLowerCase();
+  const found = new Map<Id, Item>();
+  for (const q of queries) for (const i of ownedLike(items, q, trees)) if (!word || i.name.toLocaleLowerCase().includes(word)) found.set(i.id, i);
+  return [...found.values()];
+}
+
 /** The staples you own none of, leaving out ones dismissed and ones whose kind or family no longer exists. */
 export function gaps(items: Item[], staples: Staple[], dismissed: string[], trees: SearchTrees): Staple[] {
   const off = new Set(dismissed);
-  return staples.filter((s) => {
-    if (off.has(s.id)) return false;
-    const kind = trees.kinds.find((k) => same(k.name, s.kind));
-    if (!kind) return false;
-    const names = s.family === undefined ? [] : Array.isArray(s.family) ? s.family : [s.family];
-    const families = names.map((n) => trees.shades.find((x) => !x.familyId && same(x.name, n))).filter((x) => !!x);
-    if (names.length && !families.length) return false;
-    const queries = families.length ? families.map((f) => ({ kindId: kind.id, shadeId: f.id })) : [{ kindId: kind.id }];
-    return !queries.some((q) => ownedLike(items, q, trees).length > 0);
-  });
+  return staples.filter((s) => !off.has(s.id) && stapleOwned(items, s, trees)?.length === 0);
 }
 
 /** Kind names that stay as they are for one piece. */

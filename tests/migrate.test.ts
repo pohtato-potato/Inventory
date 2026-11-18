@@ -52,7 +52,7 @@ describe('upgrading a Build 1 database (Review Focus 1)', () => {
     const before = await seedV1Fixture();
     expect(before).toMatchObject({ items: 3, photos: 5 });
     await db.open();
-    expect(db.verno).toBe(2);
+    expect(db.verno).toBe(3);
     expect(await db.items.count()).toBe(before.items);
     expect(await db.photos.count()).toBe(before.photos);
     expect(await db.events.count()).toBe(before.events);

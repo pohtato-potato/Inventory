@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { undoLast } from '../db/actions';
-import { useItem, usePhoto } from '../db/hooks';
+import { useItem, usePhoto, useTrees } from '../db/hooks';
+import { pageColours } from '../ui/Swatch';
 import { back, useRoute } from '../router';
 import { readPixels } from '../photo/cutout';
 import { closeFix, fixModelCached, fixModelState, loadFixModel, prepareFix, saveFix, tapFix } from '../photo/fix';
@@ -8,7 +9,7 @@ import { addPoint, tapAt, undoPoint, type TapMode, type TapPoint } from '../phot
 import { samDownloadText } from '../photo/samPlan';
 import { Seg } from '../ui/Seg';
 import { showToast } from '../ui/Toast';
-import { SubTop } from './shared';
+import { pieceColour, SubTop } from './shared';
 
 type Phase =
   | { k: 'ask'; size: string } // the model is not downloaded yet: say how big it is first
@@ -25,6 +26,7 @@ export function Fix() {
   const { params } = useRoute();
   const id = params.get('id') ?? '';
   const item = useItem(id);
+  const trees = useTrees();
   const original = usePhoto(id, 'original');
   const [phase, setPhase] = useState<Phase | null>(null);
   const [mode, setMode] = useState<TapMode>('keep');
@@ -158,7 +160,7 @@ export function Fix() {
 
   const ready = phase?.k === 'ready';
   return (
-    <main className="screen fix">
+    <main className={`screen fix${trees ? ' on-colour' : ''}`} style={trees ? pageColours(pieceColour(item, trees)) : undefined}>
       <SubTop title="Fix the cut-out" />
       <div className="fix-stage">
         <div className="fix-photo">
@@ -206,7 +208,7 @@ export function Fix() {
         )}
         {ready && (
           <>
-            <Seg label="What a tap does" value={mode} onChange={setMode} options={[{ value: 'keep', label: '+ Keep' }, { value: 'remove', label: '− Remove' }]} />
+            <Seg label="What a tap does" value={mode} onChange={setMode} options={[{ value: 'keep', label: 'Keep this part' }, { value: 'remove', label: 'Remove this part' }]} />
             <p className="m fix-hint" role="status">
               {note ?? (busy ? 'Finding it…' : points.length ? (mode === 'keep' ? 'Tap any part it missed.' : 'Tap what to take away.') : mode === 'keep' ? 'Tap the piece.' : 'Tap what to take away.')}
             </p>

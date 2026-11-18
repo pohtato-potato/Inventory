@@ -59,6 +59,14 @@ export function matches(item: Item, q: Query, trees: SearchTrees): boolean {
   return true;
 }
 
+/**
+ * What Everything, Places and a place show: owned things, or, with the Gone filter on, only things let go.
+ * Trashed things never.
+ */
+export function shownItems(items: Item[], opts: { gone?: boolean } = {}): Item[] {
+  return items.filter((i) => i.deletedAt === undefined && (opts.gone ? i.status === 'gone' : i.status === 'owned'));
+}
+
 const KEYS = ['text', 'kindId', 'shadeId', 'spotId', 'fit', 'tag', 'brand', 'needsDetails', 'gone'] as const;
 const FITS: Fit[] = ['tight', 'fits', 'loose'];
 

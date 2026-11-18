@@ -7,14 +7,14 @@ export { UNSORTED };
 
 const T0 = 0; // starter rows carry updatedAt 0 so any edit by the owner is newer
 
-type K = [name: string, fields?: FieldKey[], hide?: boolean];
+type K = [name: string, fields?: FieldKey[]];
 const CLOTHING: [K, K[]][] = [
   [['Tops'], [['Tees'], ['Shirts'], ['Knitwear'], ['Jackets']]],
   [['Bottoms'], [['Jeans'], ['Trousers'], ['Shorts']]],
   [['Shoes', ['shoeSize']], []],
-  [['Accessories'], [['Watches', ['metal', 'battery']], ['Bracelets'], ['Rings'], ['Belts'], ['Bags'], ['Socks', [], true], ['Caps']]],
+  [['Accessories'], [['Watches', ['metal', 'battery']], ['Bracelets'], ['Rings'], ['Belts'], ['Bags'], ['Socks'], ['Caps']]],
   [['Ethnic'], [['Kurtas'], ['Ethnic bottoms']]],
-  [['Innerwear', [], true], []],
+  [['Innerwear'], []],
 ];
 const OTHER: K[] = [['Electronics', ['serial']], ['Bags and luggage'], ['Tools'], ['Home'], ['Other']];
 
@@ -29,9 +29,8 @@ const UNSORTED_KINDS: Kind[] = [
 function buildKinds(): Kind[] {
   const out: Kind[] = [];
   let order = 0;
-  const add = ([name, fields = [], hide]: K, parentId: string | null, clothing: boolean, prefix = '') => {
+  const add = ([name, fields = []]: K, parentId: string | null, clothing: boolean, prefix = '') => {
     const kind: Kind = { id: `k-${prefix}${slug(name)}`, parentId, name, clothing, fields, order: order++, updatedAt: T0 };
-    if (hide) kind.hideFromWindow = true;
     out.push(withStarterLane(kind));
     return kind.id;
   };

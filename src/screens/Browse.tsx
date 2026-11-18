@@ -1,76 +1,85 @@
 import { useMemo, useState } from 'react';
-import { addPlace, setKindHidden, updateItem, setSetting } from '../db/actions';
-import { askText } from '../ui/Ask';
+import { setSetting } from '../db/actions';
 import { useItems, useMainPhotos, useSetting, useTrees, useWearLog, type Thumb, type Trees } from '../db/hooks';
 import { countAtEveryLevel, descendants } from '../domain/tree';
 import type { Id, Item } from '../domain/types';
-import { kindOrder, pickWindowPiece, sortItems, type SortBy } from '../domain/window';
+import { kindOrder, sortItems, type SortBy } from '../domain/sort';
 import { fitSummary } from '../domain/wears';
+import { shownItems } from '../domain/search';
+import { GROUP_NAME, groupColour, kindGroup, KIND_GROUPS, type KindGroup } from '../domain/kinds';
 import { go, useRoute } from '../router';
 import { Chips } from '../ui/Chips';
 import { Numeral } from '../ui/Numeral';
 import { Seg } from '../ui/Seg';
 import { Sheet } from '../ui/Sheet';
 import { Tile, usePress } from '../ui/Tile';
-import { showToast } from '../ui/Toast';
-import { Piece, Window } from '../ui/Window';
-import { UNKNOWN_LIGHT, windowColour } from '../ui/light';
-import { IconDown, IconMenu, IconSearch, IconChev } from '../ui/icons';
-import { byId, homesWithSpots, kindName, pieceColour } from './shared';
+import { Cut, Swatch } from '../ui/Swatch';
+import { KindIcon, NoPhoto } from '../ui/kindIcons';
+import { IconDown, IconMenu, IconSearch, IconChev, IconScan, IconCamera } from '../ui/icons';
+import { byId, kindName, openItem, pieceColour, Top } from './shared';
 import { Selection, useSelection } from './Selection';
 import { WardrobeSwitch } from './Outfits';
+import { PlaceGroups } from './Places';
 
-export type Scope = 'clothing' | 'things';
+export type Scope = 'all' | 'clothing' | 'things';
 type By = 'kind' | 'colour' | 'place';
 
 const SCOPE = {
+  all: { title: 'Everything', noun: ['thing', 'things'], path: '/everything' },
   clothing: { title: 'Wardrobe', noun: ['piece', 'pieces'], path: '/wardrobe' },
   things: { title: 'Things', noun: ['thing', 'things'], path: '/things' },
 } as const;
 
-export function useScopedItems(scope: Scope, trees: Trees | undefined) {
+/** Owned things in a scope (or, with `gone`, only things let go). */
+export function useScopedItems(scope: Scope, trees: Trees | undefined, gone = false) {
   const clothing = useMemo(() => new Set(trees?.kinds.filter((k) => k.clothing).map((k) => k.id) ?? []), [trees]);
   const all = useItems();
   return useMemo(() => {
     if (!all || !trees) return undefined;
-    return all.filter((i) => i.status === 'owned' && (scope === 'clothing') === clothing.has(i.kindId));
-  }, [all, trees, clothing, scope]);
+    return shownItems(all, { gone }).filter((i) => scope === 'all' || (scope === 'clothing') === clothing.has(i.kindId));
+  }, [all, trees, clothing, scope, gone]);
 }
+
+export function Everything() { return <Browse scope="all" />; }
+export function Wardrobe() { return <Browse scope="clothing" />; }
+export function Things() { return <Browse scope="things" />; }
 
 export function Browse({ scope }: { scope: Scope }) {
   const { params } = useRoute();
   const by = (params.get('by') as By) || 'kind';
+  const gone = params.get('gone') === '1';
   const trees = useTrees();
-  const items = useScopedItems(scope, trees);
+  const items = useScopedItems(scope, trees, gone);
+  const owned = useScopedItems(scope, trees);
   const thumbs = useMainPhotos();
   const wear = useWearLog();
   const layout = useSetting<'grid' | 'list'>('view.layout', 'grid');
   const sort = useSetting<SortBy>('view.sort', 'kind');
-  const [seed] = useState(() => Math.floor(Math.random() * 1e9));
   const [menu, setMenu] = useState(false);
   const sel = useSelection();
   const s = SCOPE[scope];
 
-  if (!trees || !items || !thumbs || !wear) return <main className="screen" aria-busy="true" />;
+  if (!trees || !items || !owned || !thumbs || !wear) return <main className="screen" aria-busy="true" />;
 
-  const total = items.reduce((n, i) => n + i.count, 0);
-  const pick = pickWindowPiece(items, trees.kinds, wear.last, Date.now(), seed);
-  const setBy = (v: By) => go(s.path, v === 'kind' ? {} : { by: v }, { replace: true });
+  const setBy = (v: By) => go(s.path, { ...(v === 'kind' ? {} : { by: v }), ...(gone ? { gone: '1' } : {}) }, { replace: true });
+  const setGone = (on: boolean) => go(s.path, { ...(by === 'kind' ? {} : { by }), ...(on ? { gone: '1' } : {}) }, { replace: true });
+  const dayOne = scope === 'all' && !owned.length && !gone;
 
   return (
-    <main className="screen" style={sel.ids.size ? { paddingBottom: 'calc(var(--sheet-h, 0px) + 24px)' } : undefined}>
+    <main className="screen browse" style={sel.ids.size ? { paddingBottom: 'calc(var(--sheet-h, 0px) + 24px)' } : undefined}>
       {sel.ids.size ? (
         <Selection sel={sel} trees={trees} />
       ) : (
-        <Header scope={scope} total={total} pick={pick} thumbs={thumbs} trees={trees} items={items} onMenu={() => setMenu(true)} />
+        <Header scope={scope} owned={owned} trees={trees} onMenu={() => setMenu(true)} />
       )}
       {scope === 'clothing' && !sel.ids.size && <WardrobeSwitch on="pieces" />}
-      {items.length > 0 && (
+      {dayOne ? <DayOne /> : (
         <>
           <Seg label="Browse by" value={by} onChange={setBy} options={[{ value: 'kind', label: 'By kind' }, { value: 'colour', label: 'By colour' }, { value: 'place', label: 'By place' }]} />
-          {by === 'kind' && <ByKind items={items} trees={trees} thumbs={thumbs} layout={layout} sort={sort} lastWorn={wear.last} sel={sel} />}
+          {by === 'kind' && <ByKind scope={scope} items={items} trees={trees} thumbs={thumbs} layout={layout} sort={sort} lastWorn={wear.last} sel={sel} gone={gone} setGone={setGone} goneCount={0} />}
           {by === 'colour' && <ByColour items={items} trees={trees} thumbs={thumbs} sel={sel} />}
-          {by === 'place' && <ByPlace items={items} trees={trees} thumbs={thumbs} />}
+          {by === 'place' && <div style={{ paddingTop: 6 }}><PlaceGroups items={items} trees={trees} thumbs={thumbs} /></div>}
+          {!items.length && by === 'kind' && <p className="m empty-line">{gone ? 'Nothing let go yet.' : `No ${s.noun[1]} yet.`}</p>}
         </>
       )}
       <ViewMenu open={menu} onClose={() => setMenu(false)} layout={layout} sort={sort} scope={scope} />
@@ -78,54 +87,46 @@ export function Browse({ scope }: { scope: Scope }) {
   );
 }
 
-function Header({ scope, total, pick, thumbs, trees, items, onMenu }: { scope: Scope; total: number; items: Item[]; pick: ReturnType<typeof pickWindowPiece>; thumbs: Map<Id, Thumb>; trees: Trees; onMenu: () => void }) {
+function Header({ scope, owned, trees, onMenu }: { scope: Scope; owned: Item[]; trees: Trees; onMenu: () => void }) {
   const s = SCOPE[scope];
-  const [hideSheet, setHideSheet] = useState(false);
-  const press = usePress(pick ? () => go('/piece', { id: pick.item.id }) : undefined, pick ? () => setHideSheet(true) : undefined);
-  const colour = pick ? pieceColour(pick.item, trees.shades) : undefined;
-  const thumb = pick ? thumbs.get(pick.item.id) : undefined;
+  const total = owned.reduce((n, i) => n + i.count, 0);
+  const clothes = owned.filter((i) => kindGroup(i.kindId, trees.kinds) === 'clothes').reduce((n, i) => n + i.count, 0);
   return (
-    <Window as="section" colour={colour} lit={!!pick} className={`hero hero-${scope}`} aria-label={s.title}>
-      <div className="top">
-        <h1 className="caps">{s.title}</h1>
-        <span style={{ marginLeft: 'auto', display: 'flex' }}>
-          <button type="button" className="icon-btn" aria-label="Search" onClick={() => go('/search', scope === 'things' ? { scope } : {})}><IconSearch /></button>
-          <button type="button" className="icon-btn" aria-label="View and settings" onClick={onMenu}><IconMenu /></button>
-        </span>
-      </div>
-      <div className="hero-count">
-        <Numeral value={total} className="hero-num" />
-        <p className="caps m">{total === 1 ? s.noun[0] : s.noun[1]}</p>
-        {scope === 'clothing' && <FitNow items={items} trees={trees} />}
-      </div>
-      {pick ? (
+    <>
+      <Top title={s.title} right={
         <>
-          <button type="button" className="hero-piece" aria-label={`${pick.item.name}, in the window. Hold for options.`} {...press}>
-            <Piece src={thumb?.url} cut={thumb?.cut} />
-          </button>
-          <p className="hero-why" aria-hidden="true">
-            <span className="m">In the window</span>
-            <br />
-            <b>{pick.item.name}</b>
-            <br />
-            <span className="m">{pick.reason}</span>
-          </p>
-          <Sheet open={hideSheet} onClose={() => setHideSheet(false)} label="Window options">
-            <p className="name" style={{ fontSize: 22, paddingBottom: 10 }}>{pick.item.name}</p>
-            <div style={{ display: 'grid', gap: 8 }}>
-              <button type="button" className="ghost" onClick={async () => { await updateItem(pick.item.id, { hideFromWindow: true }); setHideSheet(false); showToast("It won't show in the window"); }}>Don't show this in the window</button>
-              <button type="button" className="ghost" onClick={async () => { await setKindHidden(pick.item.kindId, true); setHideSheet(false); showToast(`No ${kindName(pick.item.kindId, trees.kinds).toLowerCase()} in the window`, () => void setKindHidden(pick.item.kindId, false)); }}>Don't show any {kindName(pick.item.kindId, trees.kinds).toLowerCase()}</button>
-              <button type="button" className="ghost" onClick={() => setHideSheet(false)}>Cancel</button>
-            </div>
-          </Sheet>
+          <button type="button" className="icon-btn" aria-label="Search" onClick={() => go('/search', scope === 'all' ? {} : { scope })}><IconSearch /></button>
+          <button type="button" className="icon-btn boxed" aria-label="Do I own this?" onClick={() => go('/own')}><IconScan /></button>
+          <button type="button" className="icon-btn" aria-label="View and settings" onClick={onMenu}><IconMenu /></button>
         </>
-      ) : (
-        <div className="hero-empty">
-          <p className="name" style={{ fontSize: 24 }}>Nothing here yet</p>
-          <button type="button" className="acc" onClick={() => go('/add', scope === 'things' ? { scope } : {})}>Add your first {scope === 'things' ? 'thing' : 'piece'}</button>
+      } />
+      {total > 0 && (
+        <div className="count-head rise">
+          <Numeral value={total} className="count-num" />
+          <p>
+            <b>{total === 1 ? s.noun[0] : s.noun[1]} you own</b><br />
+            <span className="m sm">{scope === 'all' ? `${clothes} ${clothes === 1 ? 'piece of clothing' : 'clothes'} · ${total - clothes} other ${total - clothes === 1 ? 'thing' : 'things'}` : ''}</span>
+            {scope === 'clothing' && <FitNow items={owned} trees={trees} />}
+          </p>
         </div>
       )}
-    </Window>
+    </>
+  );
+}
+
+/** Day one: an empty app that shows where things will go. */
+function DayOne() {
+  return (
+    <section className="dayone" aria-label="Nothing here yet">
+      <p className="name dayone-title rise">Nothing here yet</p>
+      <p className="m rise" style={{ '--d': '60ms' } as React.CSSProperties}>Start with what's in front of you: a shelf, a drawer, a pile of clothes. Lay a few things flat and take photos one after another.</p>
+      <button type="button" className="acc wide rise" style={{ '--d': '120ms' } as React.CSSProperties} onClick={() => go('/add')}><IconCamera />Take photos</button>
+      <div className="dayone-tiles" aria-hidden="true">
+        {(['clothes', 'electronics', 'home', 'tools'] as KindGroup[]).map((g, i) => (
+          <span key={g} className="dayone-tile" style={{ '--k': groupColour(g), animationDelay: `${i * 300}ms` } as React.CSSProperties}><KindIcon group={g} size={30} /></span>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -142,13 +143,20 @@ function FitNow({ items, trees }: { items: Item[]; trees: Trees }) {
 
 // ---------- by kind ----------
 
-function ByKind({ items, trees, thumbs, layout, sort, lastWorn, sel }: { items: Item[]; trees: Trees; thumbs: Map<Id, Thumb>; layout: 'grid' | 'list'; sort: SortBy; lastWorn: Map<Id, number>; sel: ReturnType<typeof useSelection> }) {
-  const [kind, setKind] = useState<Id | 'all'>('all');
+function ByKind({ scope, items, trees, thumbs, layout, sort, lastWorn, sel, gone, setGone }: { scope: Scope; items: Item[]; trees: Trees; thumbs: Map<Id, Thumb>; layout: 'grid' | 'list'; sort: SortBy; lastWorn: Map<Id, number>; sel: ReturnType<typeof useSelection>; gone: boolean; setGone: (on: boolean) => void; goneCount: number }) {
+  const [kind, setKind] = useState<string>('all');
   const counts = useMemo(() => countAtEveryLevel(items.map((i) => ({ key: i.kindId, n: i.count })), trees.kinds, (k) => k.parentId), [items, trees]);
   const order = useMemo(() => kindOrder(trees.kinds), [trees]);
   const total = items.reduce((n, i) => n + i.count, 0);
-  const chipKinds = trees.kinds.filter((k) => (counts.get(k.id) ?? 0) > 0).sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
-  const inKind = kind === 'all' ? items : items.filter((i) => i.kindId === kind || descendants(kind, trees.kinds, (k) => k.parentId).includes(i.kindId));
+  const groupN = new Map<KindGroup, number>();
+  for (const i of items) groupN.set(kindGroup(i.kindId, trees.kinds), (groupN.get(kindGroup(i.kindId, trees.kinds)) ?? 0) + i.count);
+  // Everything filters by the six kind groups; Wardrobe and Things by their own kinds, as before.
+  const options = scope === 'all'
+    ? KIND_GROUPS.filter((g) => groupN.get(g)).map((g) => ({ value: `g:${g}`, label: GROUP_NAME[g], count: groupN.get(g), dot: groupColour(g) }))
+    : trees.kinds.filter((k) => (counts.get(k.id) ?? 0) > 0).sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0)).map((k) => ({ value: k.id, label: k.name, count: counts.get(k.id) }));
+  const inKind = kind === 'all' ? items
+    : kind.startsWith('g:') ? items.filter((i) => kindGroup(i.kindId, trees.kinds) === kind.slice(2))
+    : items.filter((i) => i.kindId === kind || descendants(kind, trees.kinds, (k) => k.parentId).includes(i.kindId));
   const sorted = sortItems(inKind, sort, { kinds: trees.kinds, lastWorn });
   const groups: { kindId: Id; items: Item[] }[] = [];
   if (sort === 'kind') {
@@ -162,13 +170,13 @@ function ByKind({ items, trees, thumbs, layout, sort, lastWorn, sel }: { items: 
   return (
     <>
       <div style={{ padding: '12px 14px 0' }}>
-        <Chips scroll label="Kinds" value={kind} onChange={(v) => setKind(v === kind ? 'all' : v)}
-          options={[{ value: 'all' as Id, label: 'All', count: total }, ...chipKinds.map((k) => ({ value: k.id, label: k.name, count: counts.get(k.id) }))]} />
+        <Chips scroll label="Kinds" value={gone ? 'gone' : kind} onChange={(v) => { if (v === 'gone') { setGone(!gone); setKind('all'); } else { if (gone) setGone(false); setKind(v === kind ? 'all' : v); } }}
+          options={[{ value: 'all', label: 'All', count: gone ? undefined : total }, ...(gone ? [] : options), { value: 'gone', label: 'Gone' }]} />
       </div>
       {groups.map((g, gi) => (
-        <section key={g.kindId || 'all'} aria-label={g.kindId ? kindName(g.kindId, trees.kinds) : 'Pieces'}>
+        <section key={g.kindId || 'all'} aria-label={g.kindId ? kindName(g.kindId, trees.kinds) : 'Things'}>
           {g.kindId ? (
-            <h2 className="section-h"><span className="name">{kindName(g.kindId, trees.kinds)}</span> <span className="m">{g.items.reduce((n, i) => n + i.count, 0)}</span></h2>
+            <h2 className="section-h"><span className="dot" style={{ background: groupColour(kindGroup(g.kindId, trees.kinds)) }} aria-hidden="true" /><span className="name">{kindName(g.kindId, trees.kinds)}</span> <span className="m">{g.items.reduce((n, i) => n + i.count, 0)}</span></h2>
           ) : <div style={{ height: 12 }} />}
           <Pieces items={g.items} trees={trees} thumbs={thumbs} layout={layout} sel={sel} offset={gi * 3} />
         </section>
@@ -180,14 +188,14 @@ function ByKind({ items, trees, thumbs, layout, sort, lastWorn, sel }: { items: 
 /** A grid (three across) or list of pieces. Tap opens; hold starts selecting. */
 export function Pieces({ items, trees, thumbs, layout = 'grid', sel, offset = 0 }: { items: Item[]; trees: Trees; thumbs: Map<Id, Thumb>; layout?: 'grid' | 'list'; sel?: ReturnType<typeof useSelection>; offset?: number }) {
   const selecting = !!sel && sel.ids.size > 0;
-  const tap = (i: Item) => (selecting ? sel!.toggle(i.id) : go('/piece', { id: i.id }));
+  const tap = (i: Item) => (selecting ? sel!.toggle(i.id) : openItem(i.id));
   const hold = sel ? (i: Item) => sel.toggle(i.id) : undefined;
   if (layout === 'list') {
     const shades = byId(trees.shades);
     return (
       <ul className="plist">
         {items.map((i, n) => (
-          <ListRow key={i.id} item={i} thumb={thumbs.get(i.id)} colour={pieceColour(i, trees.shades)} sub={[kindName(i.kindId, trees.kinds), i.shadeMain ? shades.get(i.shadeMain)?.name : undefined, i.brand].filter(Boolean).join(' · ')} onPress={() => tap(i)} onLongPress={hold ? () => hold(i) : undefined} selected={sel?.ids.has(i.id)} selecting={selecting} index={n + offset} />
+          <ListRow key={i.id} item={i} thumb={thumbs.get(i.id)} colour={pieceColour(i, trees)} group={kindGroup(i.kindId, trees.kinds)} sub={[kindName(i.kindId, trees.kinds), i.shadeMain ? shades.get(i.shadeMain)?.name : undefined, i.brand].filter(Boolean).join(' · ')} onPress={() => tap(i)} onLongPress={hold ? () => hold(i) : undefined} selected={sel?.ids.has(i.id)} selecting={selecting} index={n + offset} />
         ))}
       </ul>
     );
@@ -196,18 +204,18 @@ export function Pieces({ items, trees, thumbs, layout = 'grid', sel, offset = 0 
     <div className="grid">
       {items.map((i, n) => {
         const t = thumbs.get(i.id);
-        return <Tile key={i.id} item={i} photo={t?.url} cut={t?.cut ?? true} colour={pieceColour(i, trees.shades)} index={n + offset} onPress={() => tap(i)} onLongPress={hold ? () => hold(i) : undefined} selected={sel?.ids.has(i.id)} selecting={selecting} />;
+        return <Tile key={i.id} item={i} photo={t?.url} cut={t?.cut ?? true} colour={pieceColour(i, trees)} group={kindGroup(i.kindId, trees.kinds)} index={n + offset} onPress={() => tap(i)} onLongPress={hold ? () => hold(i) : undefined} selected={sel?.ids.has(i.id)} selecting={selecting} />;
       })}
     </div>
   );
 }
 
-function ListRow({ item, thumb, colour, sub, onPress, onLongPress, selected, selecting, index }: { item: Item; thumb?: Thumb; colour: string; sub: string; onPress: () => void; onLongPress?: () => void; selected?: boolean; selecting: boolean; index: number }) {
+function ListRow({ item, thumb, colour, group, sub, onPress, onLongPress, selected, selecting, index }: { item: Item; thumb?: Thumb; colour: string; group: KindGroup; sub: string; onPress: () => void; onLongPress?: () => void; selected?: boolean; selecting: boolean; index: number }) {
   const press = usePress(onPress, onLongPress);
   return (
     <li>
-      <button type="button" className={`prow${selected ? ' sel' : ''}`} aria-pressed={selecting ? !!selected : undefined} {...press}>
-        <Window colour={colour} delay={Math.min(index, 12) * 40} lit={!selecting || !!selected} className="prow-win"><Piece src={thumb?.url} cut={thumb?.cut} /></Window>
+      <button type="button" className={`prow${selected ? ' sel' : ''}${selecting && !selected ? ' faded' : ''}`} aria-pressed={selecting ? !!selected : undefined} {...press}>
+        <Swatch colour={colour} delay={Math.min(index, 12) * 40} dim={item.status === 'gone'} className="prow-win rise">{thumb ? <Cut src={thumb.url} cut={thumb.cut} /> : <NoPhoto group={group} size={26} />}</Swatch>
         <span style={{ minWidth: 0 }}>
           <span className="prow-name">{item.name}{item.count > 1 ? ` ×${item.count}` : ''}</span>
           <span className="m sm prow-sub">{sub}</span>
@@ -238,32 +246,32 @@ function ByColour({ items, trees, thumbs, sel }: { items: Item[]; trees: Trees; 
           const shown = shade && shades.some((s) => s.id === shade) ? inFam.filter((i) => i.shadeMain === shade) : inFam;
           const shadeName = shade ? shades.find((s) => s.id === shade)?.name : undefined;
           return (
-            <Window key={f.id} as="section" colour={f.hex} delay={fi * 80} className="fam open" aria-label={`${f.name}, ${counts.get(f.id)}`}>
+            <Swatch key={f.id} as="section" tone="page" colour={f.hex} delay={fi * 60} className="fam open rise" aria-label={`${f.name}, ${counts.get(f.id)}`}>
               <button type="button" className="fam-head" aria-expanded="true" onClick={() => { setOpen(null); setShade(null); }}>
                 <Numeral value={counts.get(f.id) ?? 0} className="fam-num-lg" />
-                <span className="caps">{f.name}</span>
-                <span className="m" style={{ marginLeft: 'auto' }}><IconDown /></span>
+                <span className="b">{f.name}</span>
+                <span style={{ marginLeft: 'auto' }}><IconDown /></span>
               </button>
               {shades.length > 0 && (
                 <div className="chips" style={{ paddingTop: 10 }}>
                   {shades.map((s) => (
-                    <button key={s.id} type="button" className={`chip${shade === s.id ? ' on' : ''}`} style={shade === s.id ? undefined : { background: '#0B0C0FAA' }} aria-pressed={shade === s.id} onClick={() => setShade(shade === s.id ? null : s.id)}>
+                    <button key={s.id} type="button" className={`chip${shade === s.id ? ' on' : ''}`} aria-pressed={shade === s.id} onClick={() => setShade(shade === s.id ? null : s.id)}>
                       <span className="dot" style={{ background: s.hex }} />{s.name} <span className="chip-n">{counts.get(s.id)}</span>
                     </button>
                   ))}
                 </div>
               )}
-              <p className="sm m" style={{ padding: '10px 0 8px' }}>{shown.reduce((n, i) => n + i.count, 0)} in {(shadeName ?? f.name).toLowerCase()}</p>
+              <p className="sm tint" style={{ padding: '10px 0 8px' }}>{shown.reduce((n, i) => n + i.count, 0)} in {(shadeName ?? f.name).toLowerCase()}</p>
               <div className="fam-grid"><Pieces items={shown} trees={trees} thumbs={thumbs} sel={sel} /></div>
-            </Window>
+            </Swatch>
           );
         }
         return (
-          <Window key={f.id} as="button" type="button" colour={f.hex} delay={100 + fi * 80} className="fam" aria-expanded="false" aria-label={`${f.name}, ${counts.get(f.id)}`} onClick={() => { setOpen(f.id); setShade(null); }}>
+          <Swatch key={f.id} as="button" type="button" tone="page" colour={f.hex} delay={fi * 60} className="fam rise" aria-expanded="false" aria-label={`${f.name}, ${counts.get(f.id)}`} onClick={() => { setOpen(f.id); setShade(null); }}>
             <span className="num fam-num">{counts.get(f.id)}</span>
-            <span className="caps">{f.name}</span>
-            <span className="fam-pieces">{lead.map((i) => <Piece key={i.id} src={thumbs.get(i.id)?.url} cut={thumbs.get(i.id)?.cut} />)}</span>
-          </Window>
+            <span className="b">{f.name}</span>
+            <span className="fam-pieces">{lead.map((i) => <Cut key={i.id} src={thumbs.get(i.id)?.url} cut={thumbs.get(i.id)?.cut} />)}</span>
+          </Swatch>
         );
       })}
       {noColour.length > 0 && (
@@ -276,76 +284,13 @@ function ByColour({ items, trees, thumbs, sel }: { items: Item[]; trees: Trees; 
   );
 }
 
-// ---------- by place ----------
-
-function ByPlace({ items, trees, thumbs }: { items: Item[]; trees: Trees; thumbs: Map<Id, Thumb> }) {
-  const groups = homesWithSpots(trees.places);
-  const withMe = trees.places.find((p) => p.role === 'withme');
-  const inSpot = (id: Id) => items.filter((i) => i.spotId === id);
-  const sum = (list: Item[]) => list.reduce((n, i) => n + i.count, 0);
-  const known = new Set(trees.places.map((p) => p.id));
-  const nowhere = items.filter((i) => !i.spotId || !known.has(i.spotId));
-  const addSpot = async (homeId: Id, homeName: string) => {
-    const name = await askText(`A new spot in ${homeName}`, 'For example: Cupboard, left rail');
-    if (name) await addPlace(name, homeId);
-  };
-  const addHome = async () => {
-    const name = await askText('A new home', "For example: Parents' home");
-    if (name) await addPlace(name, null);
-  };
-  return (
-    <>
-      {groups.map(({ home, spots }) => {
-        const homeItems = items.filter((i) => spots.some((s) => s.id === i.spotId));
-        return (
-          <section key={home.id} aria-label={home.name}>
-            <h2 className="section-h"><span className="name">{home.name}</span> <span className="m">{sum(homeItems)}</span></h2>
-            {spots.map((sp) => <Shelf key={sp.id} id={sp.id} name={sp.name} items={inSpot(sp.id)} trees={trees} thumbs={thumbs} />)}
-            <div style={{ padding: '0 14px 6px' }}>
-              <button type="button" className="ghost wide" onClick={() => addSpot(home.id, home.name)}>Add a spot in {home.name}</button>
-            </div>
-          </section>
-        );
-      })}
-      {withMe && (
-        <section aria-label="With me">
-          <h2 className="section-h"><span className="name">With me</span> <span className="m">{sum(inSpot(withMe.id))}</span></h2>
-          {inSpot(withMe.id).length > 0 && <Shelf id={withMe.id} name="With me" items={inSpot(withMe.id)} trees={trees} thumbs={thumbs} />}
-        </section>
-      )}
-      {nowhere.length > 0 && (
-        <section aria-label="No spot yet">
-          <h2 className="section-h"><span className="name">No spot yet</span> <span className="m">{sum(nowhere)}</span></h2>
-          <Shelf id="none" name="Not put anywhere" items={nowhere} trees={trees} thumbs={thumbs} />
-        </section>
-      )}
-      <div style={{ padding: '12px 14px 0' }}>
-        <button type="button" className="ghost wide" onClick={addHome}>Add a home</button>
-      </div>
-    </>
-  );
-}
-
-function Shelf({ id, name, items, trees, thumbs }: { id: Id; name: string; items: Item[]; trees: Trees; thumbs: Map<Id, Thumb> }) {
-  const lead = items.slice(0, 3);
-  const colour = lead[0] ? pieceColour(lead[0], trees.shades) : undefined;
-  const n = items.reduce((s, i) => s + i.count, 0);
-  return (
-    <button type="button" className="shelf" style={{ '--c': windowColour(colour ?? UNKNOWN_LIGHT) } as React.CSSProperties} onClick={() => go('/spot', { id })} aria-label={`${name}, ${n}`}>
-      <span className="num shelf-num">{n}</span>
-      <span className="shelf-name">{name}</span>
-      <span className="shelf-pieces">{lead.map((i) => <Piece key={i.id} src={thumbs.get(i.id)?.url} cut={thumbs.get(i.id)?.cut} />)}</span>
-      <span className="m" aria-hidden="true"><IconChev /></span>
-    </button>
-  );
-}
-
 // ---------- view menu ----------
 
 function ViewMenu({ open, onClose, layout, sort, scope }: { open: boolean; onClose: () => void; layout: 'grid' | 'list'; sort: SortBy; scope: Scope }) {
   return (
     <Sheet open={open} onClose={onClose} label="View">
       <div style={{ display: 'grid', gap: 14 }}>
+        <div className="sheet-grip" aria-hidden="true" />
         <div className="q">
           <p className="ql">Show as</p>
           <Chips label="Show as" value={layout} onChange={(v) => void setSetting('view.layout', v)} options={[{ value: 'grid', label: 'Grid' }, { value: 'list', label: 'List' }]} />
@@ -355,11 +300,12 @@ function ViewMenu({ open, onClose, layout, sort, scope }: { open: boolean; onClo
           <Chips label="Sort by" value={sort} onChange={(v) => void setSetting('view.sort', v)} options={[{ value: 'kind', label: 'Kind' }, { value: 'added', label: 'Newest' }, { value: 'lastWorn', label: 'Last worn' }, { value: 'name', label: 'Name' }]} />
         </div>
         <div style={{ display: 'grid', gap: 0, margin: '0 -18px' }}>
-          {scope === 'clothing' && <button type="button" className="li" onClick={() => { onClose(); go('/wear'); }}>What you wore<span className="n"><IconChev /></span></button>}
-          {scope === 'clothing' && <button type="button" className="li" onClick={() => { onClose(); go('/own'); }}>Do I already own this?<span className="n"><IconChev /></span></button>}
-          {scope === 'clothing' && <button type="button" className="li" onClick={() => { onClose(); go('/sizes'); }}>My sizes<span className="n"><IconChev /></span></button>}
+          {scope !== 'things' && <button type="button" className="li" onClick={() => { onClose(); go('/outfits'); }}>Outfits<span className="n"><IconChev /></span></button>}
+          {scope !== 'things' && <button type="button" className="li" onClick={() => { onClose(); go('/wear'); }}>What you wore<span className="n"><IconChev /></span></button>}
+          <button type="button" className="li" onClick={() => { onClose(); go('/own'); }}>Do I already own this?<span className="n"><IconChev /></span></button>
+          {scope !== 'things' && <button type="button" className="li" onClick={() => { onClose(); go('/sizes'); }}>My sizes<span className="n"><IconChev /></span></button>}
           <button type="button" className="li" onClick={() => { onClose(); go('/details'); }}>Pieces that need details<span className="n"><IconChev /></span></button>
-          <button type="button" className="li" onClick={() => { onClose(); go('/search', { gone: '1' }); }}>Pieces you let go<span className="n"><IconChev /></span></button>
+          <button type="button" className="li" onClick={() => { onClose(); go(SCOPE[scope].path, { gone: '1' }, { replace: true }); }}>Things you let go<span className="n"><IconChev /></span></button>
           <button type="button" className="li" onClick={() => { onClose(); go('/settings'); }}>Kinds, backup and trash<span className="n"><IconChev /></span></button>
         </div>
         <button type="button" className="ghost" onClick={onClose}>Done</button>

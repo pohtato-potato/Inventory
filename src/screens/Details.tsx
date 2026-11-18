@@ -10,9 +10,13 @@ import { back, go, useRoute } from '../router';
 import { Chip, Chips } from '../ui/Chips';
 import { Sheet } from '../ui/Sheet';
 import { showToast } from '../ui/Toast';
-import { Piece, Window } from '../ui/Window';
+import { Cut, Swatch, pageColours } from '../ui/Swatch';
+import { Seg } from '../ui/Seg';
+import { NoPhoto } from '../ui/kindIcons';
+import { kindGroup } from '../domain/kinds';
+import { takePendingReceipt } from './AddSheet';
 import { IconPin } from '../ui/icons';
-import { CONDITION_LABEL, FIT_LABEL, FIT_TONE } from './Piece';
+import { CONDITION_LABEL, FIT_LABEL } from './Piece';
 import { DayPicker, kindName, pieceColour, SubTop, UncutNote } from './shared';
 import { OutfitStage } from './Outfits';
 import { Tile } from '../ui/Tile';
@@ -42,11 +46,11 @@ export function Details() {
     return (
       <main className="screen">
         <SubTop title="Needs details" />
-        <Window className="empty-win" colour="#7BD3A0">
-          <p className="name" style={{ fontSize: 24 }}>{skipped.length ? 'Nothing left except the ones you skipped' : 'Every piece has its details'}</p>
+        <Swatch className="empty-win wellcard" tone="page" colour="#3D7A22">
+          <p className="name">{skipped.length ? 'Nothing left except the ones you skipped' : 'Every piece has its details'}</p>
           {skipped.length > 0 && <button type="button" className="ghost" onClick={() => setSkipped([])}>Go through the skipped ones</button>}
-          <button type="button" className="acc" onClick={() => go('/wardrobe', undefined, { replace: true })}>Back to the wardrobe</button>
-        </Window>
+          <button type="button" className="acc" onClick={() => go('/everything', undefined, { replace: true })}>Back to Everything</button>
+        </Swatch>
       </main>
     );
   }
@@ -87,7 +91,6 @@ interface Draft {
   fitNote: string;
   shop: string;
   currency: string;
-  hideFromWindow: boolean;
   outfitScale: number;
   dressCodes: string[];
 }
@@ -102,7 +105,7 @@ function toDraft(i: Item): Draft {
     price: i.price ? roughPriceText(i.price, i.currency) : '',
     fit: i.fit, spotId: i.spotId, extra: { ...i.extra }, size: i.size ?? '', brand: i.brand ?? '',
     count: String(i.count), condition: i.condition, tags: i.tags.join(', '), fitNote: i.fitNote ?? '',
-    shop: i.shop ?? '', currency: i.currency, hideFromWindow: !!i.hideFromWindow,
+    shop: i.shop ?? '', currency: i.currency,
     outfitScale: i.outfitScale ?? 1, dressCodes: i.dressCodes ?? [],
   };
 }
@@ -114,6 +117,7 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
   const photo = usePhoto(item.id);
   const original = usePhoto(item.id, 'original');
   const items = useItems();
+  const [receipt] = useState(() => takePendingReceipt());
   const set = (p: Partial<Draft>) => setD((o) => ({ ...o, ...p }));
   // A cut-out that lands while the form is open fills the shade the owner has not picked yet.
   useEffect(() => { if (item.shadeMain && !d.shadeMain) set({ shadeMain: item.shadeMain, shadeSecond: item.shadeSecond }); }, [item.shadeMain]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -152,7 +156,7 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
         brand: d.brand.trim() || undefined, count: Math.max(1, Math.round(Number(d.count)) || 1), condition: d.condition,
         tags: d.tags.split(',').map((t) => t.trim().replace(/^#/, '')).filter(Boolean),
         fitNote: d.fitNote.trim() || undefined,
-        currency: (d.currency.trim() || 'INR').toUpperCase(), hideFromWindow: d.hideFromWindow || undefined,
+        currency: (d.currency.trim() || 'INR').toUpperCase(),
         outfitScale: Math.abs(d.outfitScale - 1) < 0.001 ? undefined : d.outfitScale,
         dressCodes: d.dressCodes.length ? d.dressCodes : undefined,
       });
@@ -165,14 +169,20 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
   };
 
   return (
-    <main className="screen details" style={{ paddingBottom: `calc(${unsorted ? 130 : 96}px + var(--safe-b))` }}>
-      {edit ? <SubTop title={`Edit ${kind.toLowerCase()}`} /> : (
-        <div className="top"><h1 className="caps">Needs details</h1><span className="m" style={{ marginLeft: 'auto', paddingRight: 10 }}>{position}</span></div>
+    <main className={`screen details${shade ? ' on-colour' : ''}`} style={{ ...(shade ? pageColours(shade.hex) : {}), paddingBottom: `calc(${unsorted ? 130 : 96}px + var(--safe-b))` }}>
+      {edit ? (
+        <div className="top sub edit-top">
+          <button type="button" className="link" onClick={() => back()}>Cancel</button>
+          <h1 className="top-small">Edit</h1>
+          <span className="top-right" />
+        </div>
+      ) : (
+        <div className="top"><h1 className="title">Needs details</h1><span className="top-right m">{position}</span></div>
       )}
-      <Window className="details-win" colour={shade?.hex}>
-        <Piece src={photo?.url} cut={photo?.photo.role === 'main'} alt={d.name || 'The new piece'} />
+      <div className="details-win">
+        {photo ? <Cut src={photo.url} cut={photo.photo.role === 'main'} alt={d.name || 'The new piece'} /> : <NoPhoto group={kindGroup(d.kindId, trees.kinds)} size={64} />}
         {item.cutout === 'pending' && <span className="sm details-wait">Cutting out…</span>}
-      </Window>
+      </div>
       <UncutNote item={item} />
       {edit && original && item.cutout !== 'uncut' && (
         <div className="fix-entry"><button type="button" className="ghost" onClick={() => go('/fix', { id: item.id })}>Fix the cut-out</button></div>
@@ -219,7 +229,7 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
             <input className="field" value={d.price} onChange={(e) => set({ price: e.target.value })} placeholder="About ₹800" aria-label="How much it cost" aria-invalid={priceBad} inputMode="text" />
           </div>
           {(whenBad || priceBad) && <p className="warn-text">{whenBad ? 'Try a date, a month or a year, like "12 Nov 2026", "Jan 2024" or "about 2023". ' : ''}{priceBad ? 'Try an amount, like "about ₹800".' : ''}</p>}
-          <ReadReceipt onUse={(r) => set({
+          <ReadReceipt start={receipt} onUse={(r) => set({
             ...(r.when ? { when: r.when } : {}),
             ...(r.price ? { price: r.price } : {}),
             ...(r.name ? { name: r.name } : {}),
@@ -229,7 +239,7 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
         </div>
         <div className="q">
           <p className="ql">How does it fit now?</p>
-          <Chips label="Fit" value={d.fit} onChange={(v) => set({ fit: d.fit === v ? undefined : v })} options={(['tight', 'fits', 'loose'] as Fit[]).map((f) => ({ value: f, label: FIT_LABEL[f], tone: FIT_TONE[f] }))} />
+          <Seg<Fit> label="Fit" value={d.fit} onChange={(v) => set({ fit: d.fit === v ? undefined : v })} options={(['tight', 'fits', 'loose'] as Fit[]).map((f) => ({ value: f, label: FIT_LABEL[f] }))} />
         </div>
         <div className="q">
           <p className="ql">Where does it live?</p>
@@ -241,7 +251,7 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
                 </Chip>
               ))}
             </div>
-          ) : <p className="m sm">No spots yet. Add them in the wardrobe, By place.</p>}
+          ) : <p className="m sm">No spots yet. Add them in Places.</p>}
         </div>
         {fields.map((f) => (
           <div className="q" key={f}>
@@ -253,14 +263,13 @@ function Form({ item, trees, edit, position, onSkip, onSaved }: { item: Item; tr
         {edit && clothing && !unsorted && <OutfitBits item={item} trees={trees} d={d} set={set} />}
         {edit && (
           <div style={{ display: 'grid', gap: 8 }}>
-            <button type="button" className="ghost" aria-pressed={d.hideFromWindow} onClick={() => set({ hideFromWindow: !d.hideFromWindow })}>{d.hideFromWindow ? 'Show in the window again' : "Don't show in the window"}</button>
             <button type="button" className="ghost" onClick={() => setLetting(true)}>Let it go</button>
           </div>
         )}
       </div>
       <div className="bottom-bar">
         {unsorted && <p className="bar-why">Choose what it is to save it.</p>}
-        {edit ? <button type="button" className="ghost" onClick={() => back()}>Cancel</button> : <button type="button" className="ghost" onClick={onSkip}>Skip</button>}
+        {!edit && <button type="button" className="ghost" onClick={onSkip}>Skip</button>}
         <button type="button" className="acc" style={{ flex: 1 }} onClick={save} disabled={whenBad || priceBad || exactBad || unsorted}>{edit ? 'Save' : 'Save and next'}</button>
       </div>
       <ChangeSheet open={changing} onClose={() => setChanging(false)} trees={trees} d={d} set={set} />
@@ -397,7 +406,7 @@ function OutfitBits({ item, trees, d, set }: { item: Item; trees: Trees; d: Draf
             {others.map((o, n) => {
               const t = thumbs.get(o.id);
               const on = !!item.pairs?.includes(o.id);
-              return <Tile key={o.id} item={o} photo={t?.url} cut={t?.cut ?? true} colour={pieceColour(o, trees.shades)} index={n} selected={on} selecting onPress={() => void setPairs(item.id, o.id, !on)} />;
+              return <Tile key={o.id} item={o} photo={t?.url} cut={t?.cut ?? true} colour={pieceColour(o, trees)} index={n} selected={on} selecting onPress={() => void setPairs(item.id, o.id, !on)} />;
             })}
           </div>
           <button type="button" className="acc" onClick={() => setPairing(false)}>Done</button>

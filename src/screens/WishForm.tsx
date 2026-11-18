@@ -13,7 +13,7 @@ import { Chip, Chips } from '../ui/Chips';
 import { Seg } from '../ui/Seg';
 import { Sheet } from '../ui/Sheet';
 import { showToast } from '../ui/Toast';
-import { Piece, Window } from '../ui/Window';
+import { Cut, Swatch } from '../ui/Swatch';
 import { kindName, SubTop, type Trees } from './shared';
 
 type Shot = { blob: Blob; w: number; h: number };
@@ -130,9 +130,10 @@ function Form({ wish, params, trees }: { wish: Wish | null; params: URLSearchPar
   return (
     <main className="screen details" style={{ paddingBottom: 'calc(96px + var(--safe-b))' }}>
       <SubTop title={wish ? 'Change the wish' : 'New wish'} />
-      <Window className="wish-hero form" colour={shade?.hex} lit={!!photoUrl}>
-        {photoUrl ? <Piece src={photoUrl} cut={false} alt={d.name || 'The wish'} /> : <span className="wish-word big" aria-hidden="true">{d.name || 'No photo'}</span>}
-      </Window>
+      {/* A dashed wish tile that fills from the bottom with the colour picked. */}
+      <Swatch key={shade?.id ?? 'none'} tone="page" className={`wish-hero form${shade ? ' filled' : ''}`} colour={shade?.hex}>
+        {photoUrl ? <Cut src={photoUrl} cut={false} alt={d.name || 'The wish'} className="shop-img" /> : <span className="wish-word big" aria-hidden="true">{d.name || 'No photo'}</span>}
+      </Swatch>
       <div className="fix-entry">
         <button type="button" className="ghost" onClick={() => file.current?.click()}>{photoUrl ? 'Change the photo' : 'Add a photo'}</button>
         <input ref={file} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) void pick(f); e.target.value = ''; }} />

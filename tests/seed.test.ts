@@ -35,10 +35,9 @@ describe('starter shades', () => {
 });
 
 describe('starter kinds', () => {
-  it('nests tees under tops and hides socks from the window', () => {
+  it('nests tees under tops', () => {
     const tops = STARTER_KINDS.find((k) => k.name === 'Tops')!;
     expect(STARTER_KINDS.find((k) => k.name === 'Tees')!.parentId).toBe(tops.id);
-    expect(STARTER_KINDS.find((k) => k.name === 'Socks')!.hideFromWindow).toBe(true);
   });
   it('gives shoes, watches and electronics their own fields', () => {
     expect(STARTER_KINDS.find((k) => k.name === 'Shoes')!.fields).toContain('shoeSize');

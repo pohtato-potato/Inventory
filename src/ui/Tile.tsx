@@ -1,6 +1,8 @@
 import { useRef } from 'react';
 import type { Item } from '../domain/types';
-import { Piece, Window } from './Window';
+import { Cut, Swatch } from './Swatch';
+import { NoPhoto } from './kindIcons';
+import type { KindGroup } from '../domain/kinds';
 import { IconCheck } from './icons';
 
 /** Calls onLongPress after 500 ms held still; a normal tap calls onPress. */
@@ -25,13 +27,14 @@ export function usePress(onPress?: () => void, onLongPress?: () => void) {
   };
 }
 
-/** A piece in a three-across grid: its window, its name under it. Never a price. */
+/** A thing in a three-across grid: its photo on a darker version of its colour, its name bottom-left. Never a price. */
 export function Tile({
-  item, photo, colour, onPress, onLongPress, selected, selecting = false, index = 0, cut = true,
+  item, photo, colour, group = 'other', onPress, onLongPress, selected, selecting = false, index = 0, cut = true,
 }: {
   item: Item;
   photo?: string;
   colour?: string;
+  group?: KindGroup;
   onPress?: () => void;
   onLongPress?: () => void;
   selected?: boolean;
@@ -43,23 +46,21 @@ export function Tile({
   const gone = item.status === 'gone' || item.deletedAt !== undefined;
   const label = `${item.name}${item.count > 1 ? `, ${item.count} of them` : ''}${selecting ? (selected ? ', selected' : ', not selected') : ''}`;
   return (
-    <div className="tile-cell">
-      <Window
-        as="button"
-        type="button"
-        colour={colour}
-        lit={!gone && (!selecting || !!selected)}
-        delay={Math.min(index, 12) * 50}
-        className={`tile${selected ? ' sel' : ''}`}
-        aria-label={label}
-        aria-pressed={selecting ? !!selected : undefined}
-        {...press}
-      >
-        <Piece src={photo} cut={cut} />
-        {item.count > 1 && <span className="tile-count">×{item.count}</span>}
-        {selected && <span className="tick"><IconCheck /></span>}
-      </Window>
-      <p className="lbl" aria-hidden="true">{item.name}</p>
-    </div>
+    <Swatch
+      as="button"
+      type="button"
+      colour={colour}
+      dim={gone}
+      delay={Math.min(index, 14) * 40}
+      className={`tile rise${selecting ? ' picking' : ''}${selected ? ' sel' : ''}`}
+      aria-label={label}
+      aria-pressed={selecting ? !!selected : undefined}
+      {...press}
+    >
+      {photo ? <Cut src={photo} cut={cut} /> : <NoPhoto group={group} size={30} />}
+      {item.count > 1 && <span className="tile-count">×{item.count}</span>}
+      {selected && <span className="tick"><IconCheck size={18} /></span>}
+      <span className="tile-name" aria-hidden="true">{item.name}</span>
+    </Swatch>
   );
 }

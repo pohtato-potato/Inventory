@@ -1,0 +1,552 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-18T11:39:20.023Z",
+  "title": "Design System: Inventory",
+  "extensions": {
+    "colorMeta": {
+      "graphite": {
+        "role": "neutral",
+        "displayName": "Graphite",
+        "canonical": "#101114",
+        "tonalRamp": [
+          "#22242B",
+          "#3B3F4A",
+          "#545969",
+          "#6D7488",
+          "#8E93A4",
+          "#ADB1BD",
+          "#CFD1D8",
+          "#F1F2F4"
+        ]
+      },
+      "pane": {
+        "role": "neutral",
+        "displayName": "Pane",
+        "canonical": "#1A1B20",
+        "tonalRamp": [
+          "#22242A",
+          "#3B3E49",
+          "#555868",
+          "#6E7287",
+          "#8E92A4",
+          "#ADB0BD",
+          "#CFD1D8",
+          "#F1F1F4"
+        ]
+      },
+      "pane-2": {
+        "role": "neutral",
+        "displayName": "Pane 2",
+        "canonical": "#24262C",
+        "tonalRamp": [
+          "#22242A",
+          "#3C3F49",
+          "#555A68",
+          "#6E7487",
+          "#8F94A3",
+          "#AEB1BC",
+          "#CFD1D8",
+          "#F1F2F4"
+        ]
+      },
+      "chalk": {
+        "role": "primary",
+        "displayName": "Chalk",
+        "canonical": "#F4F1EB",
+        "tonalRamp": [
+          "#312A1B",
+          "#56492F",
+          "#7A6743",
+          "#9E8657",
+          "#B7A37B",
+          "#CBBCA0",
+          "#E0D8C7",
+          "#F6F3EF"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#16130F",
+        "tonalRamp": [
+          "#2D271F",
+          "#4F4436",
+          "#70614D",
+          "#927E63",
+          "#AC9C86",
+          "#C3B7A7",
+          "#DCD5CB",
+          "#F5F3F0"
+        ]
+      },
+      "quiet": {
+        "role": "neutral",
+        "displayName": "Quiet",
+        "canonical": "#BDB8B0",
+        "tonalRamp": [
+          "#2A2723",
+          "#48443C",
+          "#676056",
+          "#857D6F",
+          "#A29B90",
+          "#BCB7AE",
+          "#D8D5D0",
+          "#F3F3F1"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "canonical": "#2C2E35",
+        "tonalRamp": [
+          "#23242A",
+          "#3C3F48",
+          "#565967",
+          "#6F7486",
+          "#9094A2",
+          "#AEB1BC",
+          "#D0D1D8",
+          "#F1F2F3"
+        ]
+      },
+      "edge": {
+        "role": "neutral",
+        "displayName": "Edge (white 33%)",
+        "canonical": "#FFFFFF54"
+      },
+      "well": {
+        "role": "neutral",
+        "displayName": "Well (black 22%)",
+        "canonical": "#00000038"
+      },
+      "fit-fits": {
+        "role": "tertiary",
+        "displayName": "Fits green",
+        "canonical": "#7BD3A0",
+        "tonalRamp": [
+          "#133923",
+          "#21633D",
+          "#2F8E57",
+          "#3DB871",
+          "#66CC91",
+          "#90DAAF",
+          "#BEE9D0",
+          "#ECF9F1"
+        ]
+      },
+      "fit-tight": {
+        "role": "tertiary",
+        "displayName": "Tight amber",
+        "canonical": "#F0B95B",
+        "tonalRamp": [
+          "#462F06",
+          "#79510B",
+          "#AD7310",
+          "#E09515",
+          "#EEAF44",
+          "#F3C577",
+          "#F8DDB0",
+          "#FDF5E8"
+        ]
+      },
+      "fit-loose": {
+        "role": "tertiary",
+        "displayName": "Loose blue-grey",
+        "canonical": "#8FA3BF",
+        "tonalRamp": [
+          "#1C2531",
+          "#303F54",
+          "#455A78",
+          "#59759C",
+          "#7D94B5",
+          "#A1B2C9",
+          "#C8D2DF",
+          "#EFF2F6"
+        ]
+      },
+      "kind-clothes": {
+        "role": "secondary",
+        "displayName": "Clothes",
+        "canonical": "#B23A5E",
+        "tonalRamp": [
+          "#3A131E",
+          "#642135",
+          "#8E2E4B",
+          "#B93C62",
+          "#CD6584",
+          "#DB8FA6",
+          "#EABECB",
+          "#F9ECF0"
+        ]
+      },
+      "kind-electronics": {
+        "role": "secondary",
+        "displayName": "Electronics",
+        "canonical": "#2F63D6",
+        "tonalRamp": [
+          "#0D1D40",
+          "#16326F",
+          "#1F469E",
+          "#285BCC",
+          "#557FDD",
+          "#83A2E7",
+          "#B7C9F1",
+          "#EAEFFB"
+        ]
+      },
+      "kind-home": {
+        "role": "secondary",
+        "displayName": "Home",
+        "canonical": "#7E52C0",
+        "tonalRamp": [
+          "#231438",
+          "#3C2361",
+          "#56328A",
+          "#6F41B3",
+          "#8F69C9",
+          "#AE93D8",
+          "#D0BFE8",
+          "#F1ECF8"
+        ]
+      },
+      "kind-tools": {
+        "role": "secondary",
+        "displayName": "Tools",
+        "canonical": "#3D7A22",
+        "tonalRamp": [
+          "#1E3C11",
+          "#34681D",
+          "#4A9429",
+          "#60BF35",
+          "#83D35F",
+          "#A5DF8B",
+          "#CAECBB",
+          "#EFF9EB"
+        ]
+      },
+      "kind-bags": {
+        "role": "secondary",
+        "displayName": "Bags and luggage",
+        "canonical": "#985A0D",
+        "tonalRamp": [
+          "#462A06",
+          "#7A480A",
+          "#AE670F",
+          "#E28613",
+          "#EFA243",
+          "#F3BC77",
+          "#F8D8AF",
+          "#FDF3E8"
+        ]
+      },
+      "kind-other": {
+        "role": "secondary",
+        "displayName": "Other",
+        "canonical": "#59626D",
+        "tonalRamp": [
+          "#22262A",
+          "#3C4249",
+          "#555D68",
+          "#6E7987",
+          "#8F98A3",
+          "#AEB4BD",
+          "#CFD3D8",
+          "#F1F2F4"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "A thing's name on its page; big wear counts."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Screen titles, one line."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section heads, sheet titles, place names."
+      },
+      "numeral": {
+        "displayName": "Numeral",
+        "purpose": "Counts and totals, 26-74px, tabular."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running text, fields, rows."
+      },
+      "body-small": {
+        "displayName": "Body small",
+        "purpose": "Chips, tabs, notes, segments."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Button and link text; never wraps."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Spaced-capital section captions only; the floor size."
+      }
+    },
+    "itemColour": {
+      "page": "itemColour(): lift HSL lightness under 16% to 16% (saturation cap 50%), then darken in 1% steps until chalk #F4F1EB reads at 4.5:1.",
+      "tint": "tintOf(): page hue at 88% lightness, saturation cap 45%, raised until 4.5:1 on the page colour.",
+      "tile": "tileColour(): page colour x 0.72 brightness.",
+      "ownerPalette": [
+        "#B23A5E",
+        "#2F63D6",
+        "#7E52C0",
+        "#3D7A22",
+        "#985A0D",
+        "#59626D",
+        "#A8324A",
+        "#1F7A78",
+        "#8E3F1F",
+        "#5B4FB0",
+        "#2E6E4E",
+        "#7A5A18"
+      ]
+    },
+    "shadows": [
+      {
+        "name": "cut-out-lift",
+        "value": "drop-shadow(0 8px 10px #0007)",
+        "purpose": "Filter under every cut-out photo."
+      },
+      {
+        "name": "sheet-lift",
+        "value": "0 -10px 30px #0008",
+        "purpose": "Non-modal sheets."
+      },
+      {
+        "name": "toast-lift",
+        "value": "0 8px 24px #000A",
+        "purpose": "The undo toast."
+      },
+      {
+        "name": "scrim",
+        "value": "#000A",
+        "purpose": "Behind modal sheets."
+      },
+      {
+        "name": "focus-ring",
+        "value": "2px solid #F4F1EB, offset 2px",
+        "purpose": "Every focus-visible element; fields use an inset 2px chalk ring."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Default easing for rises, presses, pops, grows."
+      },
+      {
+        "name": "ease-flood",
+        "value": "cubic-bezier(.65, 0, .2, 1)",
+        "purpose": "Colour fills: the flood, wish and bought fills."
+      },
+      {
+        "name": "flood",
+        "value": "550ms open / 450ms back, clip-path circle via View Transitions",
+        "purpose": "Opening a thing grows its colour from the tap point; old page dims to 45%."
+      },
+      {
+        "name": "rise",
+        "value": "350ms, translateY(14px) + fade, staggered by --d",
+        "purpose": "Cards, tiles, list rows entering."
+      },
+      {
+        "name": "sheet-rise",
+        "value": "340ms, translateY(40px) + fade; scrim fade 200ms",
+        "purpose": "Sheets opening."
+      },
+      {
+        "name": "tick",
+        "value": "320ms one-step roll",
+        "purpose": "A count that changes."
+      },
+      {
+        "name": "bands-grow",
+        "value": "600ms scaleY, 70ms per band; pieces drop 450ms after 250ms",
+        "purpose": "Outfit bands."
+      },
+      {
+        "name": "bar-grow",
+        "value": "700ms scaleX from left",
+        "purpose": "Numbers bars and the fit bar."
+      },
+      {
+        "name": "fill-up",
+        "value": "700-900ms scaleY from bottom, ease-flood",
+        "purpose": "Wish tile filling; a bought wish."
+      },
+      {
+        "name": "stamp",
+        "value": "420ms, scale 1.8 to 1 at -5deg",
+        "purpose": "Logged / Gone."
+      },
+      {
+        "name": "pop",
+        "value": "300-350ms, scale 0 to 1.18 to 1",
+        "purpose": "Selection ticks, camera thumbnails, fix points."
+      },
+      {
+        "name": "nudge",
+        "value": "500ms shake, once, after 800ms",
+        "purpose": "A missing staple."
+      },
+      {
+        "name": "breathe",
+        "value": "2.6s opacity, 3 times",
+        "purpose": "Day-one empty tiles."
+      },
+      {
+        "name": "scan-sweep",
+        "value": "1.4s, repeats while reading",
+        "purpose": "Receipt being read."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow",
+        "value": "max-width: 350px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Chalk with ink text; the one primary action in a view.",
+      "html": "<button class=\"ds-acc\">Save the outfit</button>",
+      "css": ".ds-acc { display:inline-flex; align-items:center; justify-content:center; min-height:48px; padding:0 16px; border:0; border-radius:14px; background:#F4F1EB; color:#16130F; font:700 16px/1.2 'Atkinson Hyperlegible', Verdana, sans-serif; white-space:nowrap; transition:transform .15s cubic-bezier(.16,1,.3,1); } .ds-acc:hover { opacity:.92; } .ds-acc:active { transform:scale(.97); } .ds-acc:focus-visible { outline:2px solid #F4F1EB; outline-offset:2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action: a 2px outline in white at 33%.",
+      "html": "<button class=\"ds-ghost\">Something else</button>",
+      "css": ".ds-ghost { display:inline-flex; align-items:center; justify-content:center; min-height:48px; padding:0 16px; border:2px solid #FFFFFF54; border-radius:14px; background:transparent; color:#F4F1EB; font:700 16px/1.2 'Atkinson Hyperlegible', Verdana, sans-serif; white-space:nowrap; transition:transform .15s cubic-bezier(.16,1,.3,1), border-color .2s; } .ds-ghost:hover { border-color:#FFFFFF80; } .ds-ghost:active { transform:scale(.97); } .ds-ghost:focus-visible { outline:2px solid #F4F1EB; outline-offset:2px; }"
+    },
+    {
+      "name": "Kind Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Filter pill with a kind dot and count; fills chalk when on.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip ds-on\"><span class=\"ds-dot\" style=\"background:#B23A5E\"></span>Clothes <span class=\"ds-n\">42</span></button><button class=\"ds-chip\"><span class=\"ds-dot\" style=\"background:#2F63D6\"></span>Electronics <span class=\"ds-n\">9</span></button></div>",
+      "css": ".ds-chips { display:flex; gap:8px; padding:12px; background:#101114; } .ds-chip { display:inline-flex; align-items:center; gap:7px; min-height:44px; padding:0 14px; border-radius:22px; border:2px solid #FFFFFF54; background:transparent; color:#F4F1EB; font:400 15px/1.2 'Atkinson Hyperlegible', Verdana, sans-serif; white-space:nowrap; transition:background .2s, color .2s, border-color .2s; } .ds-chip:hover { border-color:#FFFFFF80; } .ds-chip:focus-visible { outline:2px solid #F4F1EB; outline-offset:2px; } .ds-chip.ds-on { background:#F4F1EB; border-color:#F4F1EB; color:#16130F; font-weight:700; } .ds-dot { width:14px; height:14px; border-radius:50%; box-shadow:inset 0 0 0 1px #FFFFFF44; } .ds-chip:not(.ds-on) .ds-n { color:#BDB8B0; }"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Pane 2 well with an inset chalk ring on focus.",
+      "html": "<label class=\"ds-q\"><span class=\"ds-ql\">Name</span><input class=\"ds-field\" placeholder=\"For example: Office\"></label>",
+      "css": ".ds-q { display:grid; gap:8px; padding:14px; background:#101114; color:#F4F1EB; } .ds-ql { font:700 15px/1.3 'Atkinson Hyperlegible', Verdana, sans-serif; } .ds-field { min-height:48px; padding:10px 14px; border:0; border-radius:12px; background:#24262C; color:#F4F1EB; font:400 17px/1.3 'Atkinson Hyperlegible', Verdana, sans-serif; box-shadow:inset 0 0 0 2px transparent; transition:box-shadow .15s; } .ds-field::placeholder { color:#BDB8B0; } .ds-field:hover { box-shadow:inset 0 0 0 2px #FFFFFF22; } .ds-field:focus, .ds-field:focus-visible { outline:none; box-shadow:inset 0 0 0 2px #F4F1EB; }"
+    },
+    {
+      "name": "Tile",
+      "kind": "card",
+      "refersTo": "tile",
+      "description": "Grid square on the thing's darkened colour, name bottom-left.",
+      "html": "<div class=\"ds-grid\"><button class=\"ds-tile\" style=\"--c:#6A1F35\"><span class=\"ds-tile-name\">Floral shirt</span></button><button class=\"ds-tile\" style=\"--c:#203F8B\"><span class=\"ds-tile-name\">Jeans</span></button><button class=\"ds-tile\" style=\"--c:#252E40\"><span class=\"ds-tile-name\">Headphones</span></button></div>",
+      "css": ".ds-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:14px; background:#101114; width:340px; } .ds-tile { position:relative; aspect-ratio:1; border:0; padding:0; border-radius:14px; overflow:hidden; background:var(--c); color:#F4F1EB; text-align:left; transition:transform .25s cubic-bezier(.16,1,.3,1); } .ds-tile:active { transform:scale(.96); } .ds-tile:focus-visible { outline:2px solid #F4F1EB; outline-offset:2px; } .ds-tile-name { position:absolute; left:0; right:0; bottom:0; padding:16px 8px 7px; font:700 14px/1.2 'Atkinson Hyperlegible', Verdana, sans-serif; background:linear-gradient(180deg,#0000,#0008 60%); }"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "custom",
+      "refersTo": "segmented",
+      "description": "Two-to-three-way switch; chosen option fills chalk.",
+      "html": "<div class=\"ds-seg\" role=\"tablist\"><button class=\"ds-on\">By kind</button><button>By colour</button><button>By place</button></div>",
+      "css": ".ds-seg { display:flex; gap:4px; padding:4px; border-radius:14px; background:#24262C; width:320px; } .ds-seg button { flex:1; min-height:44px; border:0; border-radius:11px; background:transparent; color:#F4F1EB; font:400 15px/1 'Atkinson Hyperlegible', Verdana, sans-serif; white-space:nowrap; transition:background .2s, color .2s; } .ds-seg button:hover { background:#FFFFFF10; } .ds-seg button:focus-visible { outline:2px solid #F4F1EB; outline-offset:2px; } .ds-seg button.ds-on { background:#F4F1EB; color:#16130F; font-weight:700; }"
+    },
+    {
+      "name": "Tab Bar",
+      "kind": "nav",
+      "refersTo": "tab-bar",
+      "description": "Home, Everything, chalk plus, Places, Wishes.",
+      "html": "<nav class=\"ds-nav\"><button class=\"ds-tab ds-on\">Home</button><button class=\"ds-tab\">Everything</button><button class=\"ds-plus\" aria-label=\"Add a piece\"><span><svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg></span></button><button class=\"ds-tab\">Places</button><button class=\"ds-tab\">Wishes</button></nav>",
+      "css": ".ds-nav { display:flex; align-items:center; gap:2px; height:68px; padding:0 6px; width:360px; background:#101114; border-top:1px solid #2C2E35; } .ds-tab { flex:1 1 auto; min-height:48px; border:0; background:none; color:#BDB8B0; font:400 15px/1 'Atkinson Hyperlegible', Verdana, sans-serif; white-space:nowrap; } .ds-tab:hover { color:#F4F1EB; } .ds-tab:focus-visible, .ds-plus:focus-visible { outline:2px solid #F4F1EB; outline-offset:2px; border-radius:8px; } .ds-tab.ds-on { color:#F4F1EB; font-weight:700; } .ds-plus { flex:0 0 60px; min-height:56px; border:0; background:none; display:grid; place-items:center; padding:0; } .ds-plus span { width:48px; height:48px; border-radius:14px; background:#F4F1EB; color:#16130F; display:grid; place-items:center; transition:transform .2s cubic-bezier(.16,1,.3,1); } .ds-plus:active span { transform:scale(.92); }"
+    },
+    {
+      "name": "Stamp",
+      "kind": "custom",
+      "refersTo": "stamp",
+      "description": "\"Logged\" / \"Gone\": a rotated display word that lands once.",
+      "html": "<div class=\"ds-stage\"><span class=\"ds-stamp\">Logged</span></div>",
+      "css": ".ds-stage { padding:24px; background:#101114; color:#7BD3A0; } .ds-stamp { display:inline-block; border:2px solid currentColor; border-radius:8px; padding:5px 12px; font-family: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif; font-weight:800; font-size:18px; line-height:1; letter-spacing:.06em; text-transform:uppercase; transform:rotate(-5deg); animation:ds-stamp .42s cubic-bezier(.16,1,.3,1) both; } .ds-stamp:hover { transform:rotate(-5deg) scale(1.03); } @keyframes ds-stamp { from { transform:rotate(-5deg) scale(1.8); opacity:0; } to { transform:rotate(-5deg); opacity:1; } }"
+    },
+    {
+      "name": "Outfit Bands",
+      "kind": "custom",
+      "refersTo": "outfit-bands",
+      "description": "Vertical bands of an outfit's piece colours, growing from the floor.",
+      "html": "<div class=\"ds-bands\" role=\"img\" aria-label=\"Outfit\"><span style=\"--c:#9A2A4C;--d:0ms\"></span><span style=\"--c:#2C55B8;--d:70ms\"></span><span style=\"--c:#8E3F1F;--d:140ms\"></span></div>",
+      "css": ".ds-bands { display:flex; width:120px; height:200px; border-radius:16px; overflow:hidden; } .ds-bands > span { flex:1; background:var(--c); transform-origin:bottom; animation:ds-grow .6s cubic-bezier(.16,1,.3,1) both; animation-delay:var(--d); } .ds-bands:hover { outline:3px solid #F4F1EB; outline-offset:-3px; } @keyframes ds-grow { from { transform:scaleY(0); } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Shade Card",
+    "overview": "A quiet graphite room where the owner's things supply all the colour. Lists sit on near-black; opening a thing floods the whole screen with that thing's colour from the point of the tap, and its page rises in on it. Colour always means something: it is a thing's own shade, its kind, or (for sizes only) how it fits. Nothing is coloured for decoration.\n\nThe type is big and confident: Bricolage Grotesque at weight 800 for names, titles and numbers, Atkinson Hyperlegible for everything you read. The layout is a phone in one hand: three-across tiles, rows at least 56px tall, buttons at least 48px, and a fixed tab bar with a chalk plus in the middle. Motion is wanted and every motion has a cause: it shows what just happened, then stops.\n\nIt refuses themed worlds (shop windows, rails, dressing rooms, laundry tags), clothes-only metaphors, and the flat grey catalogue with one blue accent.",
+    "keyCharacteristics": [
+      "Graphite ground, chalk text, chalk as the one primary button.",
+      "A thing's colour fills whole pages, clamped so chalk text always reads.",
+      "Six kind colours for dots, icon wells, chips, empty tiles and bars.",
+      "Display 800 for names and numbers; nothing under 14px.",
+      "Each motion plays once, on its event."
+    ],
+    "rules": [
+      {
+        "name": "The Own Colour Rule",
+        "body": "Every colour on screen belongs to a thing, a kind, or a fit. If you cannot say whose colour it is, it is chalk or graphite.",
+        "section": "colors"
+      },
+      {
+        "name": "The Clamp Rule",
+        "body": "A thing's colour never fills a surface raw. It goes through the page clamp (or the tile darken) first, so chalk text reads at 4.5:1 on every shade the owner can have.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fit-Only Rule",
+        "body": "Green, amber and blue-grey mean fits, tight and loose. They do not decorate, and they do not stand in for success or warning elsewhere, except amber for \"needs tailoring\", \"None yet\" and field errors.",
+        "section": "colors"
+      },
+      {
+        "name": "The 14px Floor Rule",
+        "body": "No text renders under 14px, on any screen width. On screens 350px wide or less, button labels drop from 16 to 15px and tab labels from 15 to 14px before anything wraps.",
+        "section": "typography"
+      },
+      {
+        "name": "The Sentence-Case Rule",
+        "body": "Labels are sentence case at 700. Spaced capitals are kept only for small section captions, and a caption is the section's own heading, never a tag above another heading.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tonal Step Rule",
+        "body": "A surface is raised by moving one step lighter (graphite to pane to pane 2) or, on an item colour, by sinking into a well. Do not add a shadow to a card.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** take every coloured surface from a thing (through `itemColour` / `tileColour` / `tintOf`), a kind (`groupColour`), or a fit token.",
+      "**Do** keep chalk as the only primary button, and show one per view.",
+      "**Do** keep text at 14px or larger and touch targets at 44px or larger; buttons at 48px.",
+      "**Do** put fields and fact tiles in wells (`#00000038`) on a coloured page and on pane 2 on graphite.",
+      "**Do** give each motion a cause, play it once, and animate only transform, opacity and clip-path.",
+      "**Do** use Display 800 with tight tracking for names and numbers, tabular figures for counts.",
+      "**Do** keep two or three buttons in a row equal width, shrinking labels to the floor before anything wraps."
+    ],
+    "donts": [
+      "**Don't** add decorative colour, gradients or a second accent; colour that belongs to nothing is noise.",
+      "**Don't** put a raw, unclamped shade behind text.",
+      "**Don't** use green, amber or blue-grey for anything but fit (amber also for tailoring, \"None yet\" and errors).",
+      "**Don't** use thin weights, handwriting faces, or text under 14px.",
+      "**Don't** add shadows to cards; raise by a tonal step or a well.",
+      "**Don't** add themed worlds or clothes-only metaphors (rails, tags, shop windows).",
+      "**Don't** loop a motion for show; only a live process (reading a receipt) may repeat."
+    ]
+  }
+}
